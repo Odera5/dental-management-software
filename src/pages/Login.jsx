@@ -1,6 +1,6 @@
 // src/pages/Login.jsx
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 export default function Login() {
@@ -15,24 +15,22 @@ export default function Login() {
     setError("");
     setLoading(true);
 
-    console.log("Attempting login with:", { email, password });
-
     try {
       const res = await api.post("/auth/login", { email, password });
-      console.log("Login response:", res.data);
 
       // Check which key the backend returns for token
       const token = res.data.accessToken || res.data.token;
       if (!token) throw new Error("No access token returned from API");
+      const refreshToken = res.data.refreshToken;
+      if (!refreshToken) throw new Error("No refresh token returned from API");
 
       const user = res.data.user;
       if (!user) throw new Error("No user data returned from API");
 
-      // Save to localStorage (keys expected by Dashboard.jsx)
       localStorage.setItem("accessToken", token);
+      localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("user", JSON.stringify(user));
 
-      console.log("Login successful, redirecting to /dashboard");
       navigate("/dashboard");
     } catch (err) {
       console.error("Login error:", err.response?.data || err.message || err);
@@ -86,12 +84,8 @@ export default function Login() {
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
-
-        <p className="text-sm text-center mt-4">
-          Don't have an account?{" "}
-          <Link to="/signup" className="text-blue-600 hover:underline">
-            Sign Up
-          </Link>
+        <p className="text-sm text-center mt-4 text-gray-600">
+          Staff accounts are created by the clinic administrator.
         </p>
       </div>
     </div>

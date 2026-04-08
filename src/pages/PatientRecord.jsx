@@ -7,27 +7,19 @@ import Modal from "../components/PatientRecord/Modal";
 import RecordForm from "../components/PatientRecord/RecordForm";
 import RecordItem from "../components/PatientRecord/RecordItem";
 import SearchFilterSort from "../components/PatientRecord/SearchFilterSort";
+import { createEmptyRecord } from "../components/PatientRecord/recordUtils";
 
 export default function PatientRecord() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
 
   const [patient, setPatient] = useState(null);
   const [records, setRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchKeyword, setSearchKeyword] = useState("");
 
-  const [newRecord, setNewRecord] = useState({
-    presentingComplaint: "",
-    history: "",
-    examination: "",
-    investigation: "",
-    diagnosis: "",
-    treatmentPlan: "",
-    medication: "",
-    attachments: [],
-  });
+  const [newRecord, setNewRecord] = useState(createEmptyRecord());
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [expandedRecordId, setExpandedRecordId] = useState(null);
@@ -48,6 +40,8 @@ export default function PatientRecord() {
             formData.append("attachments", file);
           }
         });
+      } else if (key === "teeth") {
+        formData.append("teeth", JSON.stringify(recordData.teeth || []));
       } else {
         formData.append(key, recordData[key] || "");
       }
@@ -67,13 +61,11 @@ export default function PatientRecord() {
         setLoading(true);
 
         const resPatient = await api.get(`/patients/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
         });
 
         setPatient(resPatient.data);
 
         const resRecords = await api.get(`/patients/${id}/records`, {
-          headers: { Authorization: `Bearer ${token}` },
         });
 
         setRecords(resRecords.data);
@@ -87,7 +79,7 @@ export default function PatientRecord() {
     };
 
     fetchPatient();
-  }, [id, token]);
+  }, [id]);
 
   // ---------------- Add record ----------------
   const handleAddRecord = async (recordData) => {
@@ -96,21 +88,18 @@ export default function PatientRecord() {
 
       const formData = createFormData(recordData);
 
-      const res = await api.post(`/patients/${id}/records`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const res = await api.post(`/patients/${id}/records`, formData);
 
       const updatedRecords = [...records, res.data];
       setRecords(updatedRecords);
       setFilteredRecords(updatedRecords);
 
       showToast("Record added successfully!", "success");
+      return true;
     } catch (err) {
       console.error(err);
-      showToast("Failed to add record", "error");
+      showToast(err.response?.data?.message || "Failed to add record", "error");
+      return false;
     } finally {
       setAddLoading(false);
     }
@@ -122,9 +111,7 @@ export default function PatientRecord() {
       return;
 
     try {
-      await api.delete(`/patients/${id}/records/${recordId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/patients/${id}/records/${recordId}`);
 
       const updatedRecords = records.filter(
         (r) => r._id !== recordId
@@ -136,7 +123,7 @@ export default function PatientRecord() {
       showToast("Record deleted successfully!", "success");
     } catch (err) {
       console.error(err);
-      showToast("Failed to delete record", "error");
+      showToast(err.response?.data?.message || "Failed to delete record", "error");
     }
   };
 
@@ -149,16 +136,7 @@ export default function PatientRecord() {
     try {
       const formData = createFormData(updatedData, removedAttachments);
 
-      const res = await api.put(
-        `/patients/${id}/records/${recordId}`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const res = await api.put(`/patients/${id}/records/${recordId}`, formData);
 
       const updatedRecords = records.map((r) =>
         r._id === recordId ? res.data : r
@@ -170,7 +148,7 @@ export default function PatientRecord() {
       showToast("Record updated successfully!", "success");
     } catch (err) {
       console.error(err);
-      showToast("Failed to update record", "error");
+      showToast(err.response?.data?.message || "Failed to update record", "error");
     }
   };
 
@@ -220,9 +198,10 @@ export default function PatientRecord() {
 
       <SearchFilterSort
         records={records}
-        onFiltered={(filtered) =>
-          setFilteredRecords(filtered)
-        }
+        onFiltered={(filtered, keyword) => {
+          setFilteredRecords(filtered);
+          setSearchKeyword(keyword);
+        }}
       />
 
       {/* SIMPLE NORMAL RENDER — NO VIRTUALIZATION */}
@@ -232,13 +211,14 @@ export default function PatientRecord() {
         ) : (
           filteredRecords.map((record) => (
             <RecordItem
+              patientId={id}
               key={record._id}
               record={record}
               expandedRecordId={expandedRecordId}
               setExpandedRecordId={setExpandedRecordId}
               handleDelete={handleDeleteRecord}
               handleSaveEdit={handleSaveEdit}
-              searchKeyword=""
+              searchKeyword={searchKeyword}
             />
           ))
         )}
@@ -251,22 +231,15 @@ export default function PatientRecord() {
           </h2>
 
           <RecordForm
+            patientId={id}
             recordData={newRecord}
             setRecordData={setNewRecord}
             onSubmit={async (e) => {
               e.preventDefault();
-              await handleAddRecord(newRecord);
+              const created = await handleAddRecord(newRecord);
+              if (!created) return;
 
-              setNewRecord({
-                presentingComplaint: "",
-                history: "",
-                examination: "",
-                investigation: "",
-                diagnosis: "",
-                treatmentPlan: "",
-                medication: "",
-                attachments: [],
-              });
+              setNewRecord(createEmptyRecord());
 
               setShowAddModal(false);
             }}

@@ -1,36 +1,46 @@
 // src/components/PatientRecord/RecordItem.jsx
 import React, { useState, useCallback, useEffect } from "react";
+import api from "../../services/api";
 import RecordForm from "./RecordForm";
 import Modal from "./Modal";
 import HighlightText from "../../utils/highlightText";
+import {
+  createEmptyRecord,
+  formatToothFindings,
+  isImageAttachment,
+  normalizeAttachmentApiPath,
+} from "./recordUtils";
 
 function RecordItem({
+  patientId,
   record,
   expandedRecordId,
   setExpandedRecordId,
   handleDelete,
   handleSaveEdit,
   searchKeyword,
-  virtualizer, // 👈 NEW
+  virtualizer,
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editingRecordData, setEditingRecordData] = useState({ ...record });
+  const [editingRecordData, setEditingRecordData] = useState({
+    ...createEmptyRecord(),
+    ...record,
+  });
   const [removedAttachments, setRemovedAttachments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [attachmentUrls, setAttachmentUrls] = useState({});
 
   const isExpanded = expandedRecordId === record._id;
 
-  // 🔥 Force re-measure when expanding/collapsing
   useEffect(() => {
     if (virtualizer) {
       virtualizer.measure();
     }
   }, [isExpanded, virtualizer]);
 
-  // Reset editing state
   const cancelEditing = useCallback(() => {
     setIsEditing(false);
-    setEditingRecordData({ ...record });
+    setEditingRecordData({ ...createEmptyRecord(), ...record });
     setRemovedAttachments([]);
     setLoading(false);
   }, [record]);
@@ -48,55 +58,129 @@ function RecordItem({
     }
   };
 
-  // 🔥 Force re-measure after images load
   const handleImageLoad = () => {
     if (virtualizer) {
       virtualizer.measure();
     }
   };
 
+  useEffect(() => {
+    if (!isExpanded || !record.attachments?.length) return undefined;
+
+    let isCancelled = false;
+    const objectUrls = [];
+
+    const loadAttachments = async () => {
+      try {
+        const nextUrls = {};
+
+        await Promise.all(
+          record.attachments.map(async (file, index) => {
+            const requestUrl = file?.url || file || "";
+            const normalizedRequestUrl = normalizeAttachmentApiPath(
+              patientId,
+              requestUrl,
+            );
+            const attachmentKey = file?.name || requestUrl || `attachment-${index}`;
+
+            if (!normalizedRequestUrl) return;
+
+            const response = await api.get(normalizedRequestUrl, {
+              responseType: "blob",
+            });
+
+            const objectUrl = URL.createObjectURL(response.data);
+            objectUrls.push(objectUrl);
+            nextUrls[attachmentKey] = objectUrl;
+          }),
+        );
+
+        if (!isCancelled) {
+          setAttachmentUrls(nextUrls);
+        }
+      } catch (error) {
+        console.error("Failed to load attachment previews:", error);
+      }
+    };
+
+    loadAttachments();
+
+    return () => {
+      isCancelled = true;
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+      setAttachmentUrls({});
+    };
+  }, [isExpanded, patientId, record.attachments]);
+
+  const examSections = [
+    ["Extra-Oral", record.examinationExtraOral],
+    ["Soft Tissue", record.softTissue],
+    ["Periodontal Status", record.periodontalStatus],
+    ["Occlusion", record.occlusion],
+  ].filter(([, value]) => value);
+
+  const toothFindings = formatToothFindings(record.teeth, record.dentition);
+
   return (
     <div className="border rounded bg-gray-50 mb-2">
-      {/* Collapsed Header */}
       <div
-        onClick={() =>
-          setExpandedRecordId(
-            isExpanded ? null : record._id
-          )
-        }
+        onClick={() => setExpandedRecordId(isExpanded ? null : record._id)}
         className="flex justify-between items-center cursor-pointer px-4 py-2 bg-gray-200"
       >
         <span>
           <strong>Date:</strong>{" "}
-          {record.createdAt
-            ? new Date(record.createdAt).toLocaleDateString()
-            : "-"}{" "}
-          | <strong>Complaint:</strong>{" "}
+          {record.createdAt ? new Date(record.createdAt).toLocaleDateString() : "-"} |{" "}
+          <strong>Complaint:</strong>{" "}
           <HighlightText
             text={record.presentingComplaint || ""}
             keyword={searchKeyword}
           />{" "}
           | <strong>Diagnosis:</strong>{" "}
-          <HighlightText
-            text={record.diagnosis || ""}
-            keyword={searchKeyword}
-          />
+          <HighlightText text={record.diagnosis || ""} keyword={searchKeyword} />
         </span>
-        <span>{isExpanded ? "▲" : "▼"}</span>
+        <span>{isExpanded ? "^" : "v"}</span>
       </div>
 
-      {/* Expanded Section */}
       {isExpanded && (
-        <div className="p-4 space-y-2">
+        <div className="p-4 space-y-3">
           <p>
             <strong>History:</strong>{" "}
             <HighlightText text={record.history || ""} keyword={searchKeyword} />
           </p>
 
-          <p>
-            <strong>Examination:</strong>{" "}
-            <HighlightText text={record.examination || ""} keyword={searchKeyword} />
-          </p>
+          {examSections.length > 0 ? (
+            <div className="space-y-1">
+              <strong>Clinical Examination:</strong>
+              {examSections.map(([label, value]) => (
+                <p key={label}>
+                  <span className="font-medium">{label}:</span>{" "}
+                  <HighlightText text={value || ""} keyword={searchKeyword} />
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p>
+              <strong>Examination:</strong>{" "}
+              <HighlightText text={record.examination || ""} keyword={searchKeyword} />
+            </p>
+          )}
+
+          {toothFindings.length > 0 && (
+            <div className="space-y-1">
+              <strong>Tooth Findings:</strong>
+              <p className="text-sm text-gray-600">
+                {record.dentition === "child" ? "Child" : "Adult"} dentition
+              </p>
+              {toothFindings.map((finding) => (
+                <p key={finding.condition}>
+                  <span className="font-medium">{finding.label}:</span>{" "}
+                  {finding.teeth
+                    .map((tooth) => tooth.notation)
+                    .join(", ")}
+                </p>
+              ))}
+            </div>
+          )}
 
           <p>
             <strong>Investigation:</strong>{" "}
@@ -113,32 +197,44 @@ function RecordItem({
             <HighlightText text={record.medication || ""} keyword={searchKeyword} />
           </p>
 
-          {/* Attachments */}
           {record.attachments && record.attachments.length > 0 && (
             <div>
               <strong>Attachments:</strong>
               <div className="mt-1 grid grid-cols-2 md:grid-cols-4 gap-2">
                 {record.attachments.map((file, idx) => {
-                  const url = file.url || file;
-                  const name = file.name || file;
-                  const isImage = url.match(/\.(jpeg|jpg|png|gif)$/i);
+                  const name = file?.name || file || "Attachment";
+                  const requestUrl = file?.url || file || "";
+                  const attachmentKey = file?.name || requestUrl || `attachment-${idx}`;
+                  const url = attachmentUrls[attachmentKey] || "";
+                  const isImage = isImageAttachment(file);
 
                   return isImage ? (
-                    <img
-                      key={idx}
-                      src={url}
-                      alt={name}
-                      onLoad={handleImageLoad} // 🔥 CRITICAL
-                      className="w-full h-24 object-cover border rounded"
-                    />
+                    url ? (
+                      <img
+                        key={idx}
+                        src={url}
+                        alt={name}
+                        onLoad={handleImageLoad}
+                        className="w-full h-24 object-cover border rounded"
+                      />
+                    ) : (
+                      <div
+                        key={idx}
+                        className="flex h-24 items-center justify-center rounded border bg-gray-100 text-xs text-gray-500"
+                      >
+                        Loading...
+                      </div>
+                    )
                   ) : (
-                    <div
+                    <a
                       key={idx}
-                      className="p-2 border rounded bg-gray-100 text-sm truncate"
+                      href={url || undefined}
+                      download={name}
+                      className="block p-2 border rounded bg-gray-100 text-sm truncate hover:bg-gray-200"
                       title={name}
                     >
-                      📄 {name}
-                    </div>
+                      [File] {name}
+                    </a>
                   );
                 })}
               </div>
@@ -147,9 +243,7 @@ function RecordItem({
 
           <p>
             <strong>Created At:</strong>{" "}
-            {record.createdAt
-              ? new Date(record.createdAt).toLocaleString()
-              : "-"}
+            {record.createdAt ? new Date(record.createdAt).toLocaleString() : "-"}
           </p>
 
           <div className="flex space-x-2 mt-2">
@@ -172,11 +266,13 @@ function RecordItem({
             <Modal onClose={cancelEditing}>
               <h2 className="text-xl font-semibold mb-4">Edit Record</h2>
               <RecordForm
+                patientId={patientId}
                 recordData={editingRecordData}
                 setRecordData={setEditingRecordData}
                 onSubmit={saveEdit}
                 submitLabel="Save"
                 loading={loading}
+                onRemovedAttachmentsChange={setRemovedAttachments}
               />
             </Modal>
           )}

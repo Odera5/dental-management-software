@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 
 export default function Modal({ children, onClose }) {
-  // Lock background scroll
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -16,7 +15,7 @@ export default function Modal({ children, onClose }) {
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-600 hover:text-gray-900 text-xl"
         >
-          ✕
+          x
         </button>
         {children}
       </div>
