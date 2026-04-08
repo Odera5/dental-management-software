@@ -370,7 +370,7 @@ export default function Dashboard() {
           <div className="bg-white p-4 rounded shadow text-center">
             <h3 className="text-gray-500 text-sm">Monthly Revenue</h3>
             <p className="text-2xl font-bold">
-              Ksh {monthlyRevenue.toLocaleString()}
+              NGN {monthlyRevenue.toLocaleString()}
             </p>
           </div>
         </div>
