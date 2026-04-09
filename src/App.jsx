@@ -6,13 +6,16 @@ import {
   Navigate,
 } from "react-router-dom";
 import Login from "./pages/Login";
+import RegisterClinic from "./pages/RegisterClinic";
 import Signup from "./pages/Signup";
+import ClinicSettings from "./pages/ClinicSettings";
 import Dashboard from "./pages/Dashboard";
 import RegisterPatient from "./pages/RegisterPatient";
 import PatientRecord from "./pages/PatientRecord";
 import Appointments from "./pages/Appointments";
 import Billing from "./pages/Billing";
 import WaitingRoom from "./pages/WaitingRoom";
+import Support from "./pages/Support";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -24,11 +27,21 @@ function App() {
 
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
+        <Route path="/register-clinic" element={<RegisterClinic />} />
+        <Route path="/support" element={<Support />} />
         <Route
           path="/signup"
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <Signup />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clinic-settings"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <ClinicSettings />
             </ProtectedRoute>
           }
         />

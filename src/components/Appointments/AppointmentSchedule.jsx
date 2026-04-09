@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import api from "../../services/api";
 import Toast from "../Toast";
 import AppointmentForm from "./AppointmentForm";
+import { getEntityId } from "../../utils/entityId";
 
 export default function AppointmentSchedule({ patientId = null }) {
   const [appointments, setAppointments] = useState([]);
@@ -64,7 +65,7 @@ export default function AppointmentSchedule({ patientId = null }) {
     try {
       await api.put(`/appointments/${id}`, { status: "completed" });
       setAppointments((current) =>
-        current.filter((appointment) => appointment._id !== id),
+        current.filter((appointment) => getEntityId(appointment) !== id),
       );
       setToast({
         show: true,
@@ -177,7 +178,7 @@ export default function AppointmentSchedule({ patientId = null }) {
         <div className="space-y-4">
           {appointments.map((appointment) => (
             <div
-              key={appointment._id}
+              key={getEntityId(appointment)}
               className="border border-gray-300 rounded-lg p-4 hover:shadow-lg"
             >
               <div className="flex justify-between items-start">
@@ -228,7 +229,7 @@ export default function AppointmentSchedule({ patientId = null }) {
                   {canModifyAppointment(appointment.status) ? (
                     <>
                       <button
-                        onClick={() => handleComplete(appointment._id)}
+                        onClick={() => handleComplete(getEntityId(appointment))}
                         className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
                       >
                         Mark Completed
@@ -243,7 +244,7 @@ export default function AppointmentSchedule({ patientId = null }) {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete(appointment._id)}
+                        onClick={() => handleDelete(getEntityId(appointment))}
                         className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
                       >
                         Cancel

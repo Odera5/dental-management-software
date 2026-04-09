@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import api from "../../services/api";
 import Toast from "../Toast";
+import { getEntityId } from "../../utils/entityId";
 
 const STATUS_LABELS = {
   waiting: "Waiting",
@@ -103,7 +104,7 @@ export default function WaitingRoomBoard() {
     if (!nextStatus) return;
 
     try {
-      await api.put(`/waiting-room/${item._id}`, { status: nextStatus });
+      await api.put(`/waiting-room/${getEntityId(item)}`, { status: nextStatus });
       showToast(
         `${item.patientName || item.patientId?.name} moved to ${STATUS_LABELS[nextStatus]}`,
         "success",
@@ -127,7 +128,7 @@ export default function WaitingRoomBoard() {
     }
 
     try {
-      await api.delete(`/waiting-room/${item._id}`);
+      await api.delete(`/waiting-room/${getEntityId(item)}`);
       showToast("Patient removed from waiting list", "success");
       fetchQueue();
     } catch (error) {
@@ -205,7 +206,7 @@ export default function WaitingRoomBoard() {
           >
             <option value="">Select existing patient</option>
             {patients.map((patient) => (
-              <option key={patient._id} value={patient._id}>
+              <option key={getEntityId(patient)} value={getEntityId(patient)}>
                 {[patient.name, patient.phone || "no phone"].join(" | ")}
               </option>
             ))}
@@ -262,7 +263,7 @@ export default function WaitingRoomBoard() {
             <div className="space-y-4">
               {entries.map((entry) => (
                 <div
-                  key={entry._id}
+                  key={getEntityId(entry)}
                   className="border border-gray-200 rounded-lg p-4 bg-white"
                 >
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">

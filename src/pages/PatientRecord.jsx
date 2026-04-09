@@ -8,6 +8,7 @@ import RecordForm from "../components/PatientRecord/RecordForm";
 import RecordItem from "../components/PatientRecord/RecordItem";
 import SearchFilterSort from "../components/PatientRecord/SearchFilterSort";
 import { createEmptyRecord } from "../components/PatientRecord/recordUtils";
+import { getEntityId } from "../utils/entityId";
 
 export default function PatientRecord() {
   const { id } = useParams();
@@ -114,7 +115,7 @@ export default function PatientRecord() {
       await api.delete(`/patients/${id}/records/${recordId}`);
 
       const updatedRecords = records.filter(
-        (r) => r._id !== recordId
+        (r) => getEntityId(r) !== recordId
       );
 
       setRecords(updatedRecords);
@@ -139,7 +140,7 @@ export default function PatientRecord() {
       const res = await api.put(`/patients/${id}/records/${recordId}`, formData);
 
       const updatedRecords = records.map((r) =>
-        r._id === recordId ? res.data : r
+        getEntityId(r) === recordId ? res.data : r
       );
 
       setRecords(updatedRecords);
@@ -212,7 +213,7 @@ export default function PatientRecord() {
           filteredRecords.map((record) => (
             <RecordItem
               patientId={id}
-              key={record._id}
+              key={getEntityId(record)}
               record={record}
               expandedRecordId={expandedRecordId}
               setExpandedRecordId={setExpandedRecordId}

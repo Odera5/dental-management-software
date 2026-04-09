@@ -2,6 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
+const supportEmail = "primuxcare@gmail.com";
+const whatsappNumber = "08068073362";
+const whatsappLink = "https://wa.me/2348068073362";
+
 export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -119,13 +123,22 @@ export default function Signup() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate("/dashboard")}
-            className="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
-          >
-            Back to Dashboard
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => navigate("/clinic-settings")}
+              className="rounded bg-slate-800 px-4 py-2 text-white hover:bg-slate-900"
+            >
+              Settings
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/dashboard")}
+              className="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
+            >
+              Back to Dashboard
+            </button>
+          </div>
         </div>
 
         {(error || success) && (
@@ -195,6 +208,31 @@ export default function Signup() {
               >
                 {loading ? "Creating..." : "Create Staff Account"}
               </button>
+            </div>
+
+            <div className="mt-6 rounded-lg border border-teal-200 bg-teal-50 p-4">
+              <h3 className="text-sm font-semibold text-teal-900">Need help? Contact us</h3>
+              <p className="mt-2 text-sm text-teal-900">
+                If you need technical help with the product, contact us at{" "}
+                <a
+                  href={`mailto:${supportEmail}`}
+                  className="font-medium underline"
+                >
+                  {supportEmail}
+                </a>
+                .
+              </p>
+              <p className="mt-2 text-sm text-teal-900">
+                WhatsApp:{" "}
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium underline"
+                >
+                  {whatsappNumber}
+                </a>
+              </p>
             </div>
           </div>
 

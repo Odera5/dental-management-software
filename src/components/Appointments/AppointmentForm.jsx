@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import api from "../../services/api";
 import Toast from "../Toast";
+import { getEntityId } from "../../utils/entityId";
 
 export default function AppointmentForm({
   patientId = null,
@@ -8,6 +9,7 @@ export default function AppointmentForm({
   onSuccess,
   onCancel,
 }) {
+  const dentistAssignmentEnabled = false;
   const [formData, setFormData] = useState({
     patientId: patientId || "",
     appointmentDate: "",
@@ -28,7 +30,6 @@ export default function AppointmentForm({
   });
 
   const [patients, setPatients] = useState([]);
-  const [dentists, setDentists] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [slotLoading, setSlotLoading] = useState(false);
@@ -36,19 +37,18 @@ export default function AppointmentForm({
 
   useEffect(() => {
     fetchPatients();
-    fetchDentists();
   }, []);
 
   useEffect(() => {
     if (appointment) {
       setFormData({
-        patientId: appointment.patientId._id,
+        patientId: getEntityId(appointment.patientId),
         appointmentDate: appointment.appointmentDate.split("T")[0],
         timeSlot: appointment.timeSlot,
         appointmentType: appointment.appointmentType,
         duration: appointment.duration,
         notes: appointment.notes,
-        dentistId: appointment.dentistId?._id || "",
+        dentistId: getEntityId(appointment.dentistId),
       });
     }
   }, [appointment]);
@@ -65,16 +65,6 @@ export default function AppointmentForm({
       setPatients(response.data);
     } catch (error) {
       console.error("Failed to fetch patients:", error);
-    }
-  };
-
-  const fetchDentists = async () => {
-    try {
-      // Assuming you have a dentists endpoint or getting from users
-      // For now, we'll skip this or you can add it later
-      setDentists([]);
-    } catch (error) {
-      console.error("Failed to fetch dentists:", error);
     }
   };
 
@@ -142,16 +132,17 @@ export default function AppointmentForm({
           address: newPatient.address,
         });
 
-        resolvedPatientId = patientResponse.data._id;
+        resolvedPatientId = getEntityId(patientResponse.data);
       }
 
       const payload = {
         ...formData,
         patientId: resolvedPatientId,
+        dentistId: dentistAssignmentEnabled ? formData.dentistId : "",
       };
 
       if (appointment) {
-        await api.put(`/appointments/${appointment._id}`, payload);
+        await api.put(`/appointments/${getEntityId(appointment)}`, payload);
       } else {
         await api.post("/appointments", payload);
       }
@@ -235,7 +226,7 @@ export default function AppointmentForm({
               >
                 <option value="">Select Patient</option>
                 {patients.map((patient) => (
-                  <option key={patient._id} value={patient._id}>
+                  <option key={getEntityId(patient)} value={getEntityId(patient)}>
                     {patient.name}
                   </option>
                 ))}
@@ -406,23 +397,19 @@ export default function AppointmentForm({
             </>
           )}
 
-          {/* Dentist */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">Dentist</label>
-            <select
-              name="dentistId"
-              value={formData.dentistId}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded p-2"
-            >
-              <option value="">Unassigned</option>
-              {dentists.map((dentist) => (
-                <option key={dentist._id} value={dentist._id}>
-                  {dentist.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {dentistAssignmentEnabled && (
+            <div>
+              <label className="block text-sm font-semibold mb-2">Dentist</label>
+              <select
+                name="dentistId"
+                value={formData.dentistId}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded p-2"
+              >
+                <option value="">Unassigned</option>
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Notes */}

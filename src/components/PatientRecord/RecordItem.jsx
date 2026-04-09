@@ -1,18 +1,12 @@
 // src/components/PatientRecord/RecordItem.jsx
 import React, { useState, useCallback, useEffect } from "react";
-import api from "../../services/api";
 import RecordForm from "./RecordForm";
 import Modal from "./Modal";
 import HighlightText from "../../utils/HighlightText";
-import {
-  createEmptyRecord,
-  formatToothFindings,
-  isImageAttachment,
-  normalizeAttachmentApiPath,
-} from "./recordUtils";
+import { createEmptyRecord, formatToothFindings } from "./recordUtils";
+import { getEntityId } from "../../utils/entityId";
 
 function RecordItem({
-  patientId,
   record,
   expandedRecordId,
   setExpandedRecordId,
@@ -26,11 +20,10 @@ function RecordItem({
     ...createEmptyRecord(),
     ...record,
   });
-  const [removedAttachments, setRemovedAttachments] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [attachmentUrls, setAttachmentUrls] = useState({});
 
-  const isExpanded = expandedRecordId === record._id;
+  const recordId = getEntityId(record);
+  const isExpanded = expandedRecordId === recordId;
 
   useEffect(() => {
     if (virtualizer) {
@@ -41,7 +34,6 @@ function RecordItem({
   const cancelEditing = useCallback(() => {
     setIsEditing(false);
     setEditingRecordData({ ...createEmptyRecord(), ...record });
-    setRemovedAttachments([]);
     setLoading(false);
   }, [record]);
 
@@ -50,67 +42,13 @@ function RecordItem({
     setLoading(true);
 
     try {
-      await handleSaveEdit(record._id, editingRecordData, removedAttachments);
+      await handleSaveEdit(recordId, editingRecordData, []);
       cancelEditing();
     } catch (err) {
       console.error("Failed to update record:", err);
       setLoading(false);
     }
   };
-
-  const handleImageLoad = () => {
-    if (virtualizer) {
-      virtualizer.measure();
-    }
-  };
-
-  useEffect(() => {
-    if (!isExpanded || !record.attachments?.length) return undefined;
-
-    let isCancelled = false;
-    const objectUrls = [];
-
-    const loadAttachments = async () => {
-      try {
-        const nextUrls = {};
-
-        await Promise.all(
-          record.attachments.map(async (file, index) => {
-            const requestUrl = file?.url || file || "";
-            const normalizedRequestUrl = normalizeAttachmentApiPath(
-              patientId,
-              requestUrl,
-            );
-            const attachmentKey = file?.name || requestUrl || `attachment-${index}`;
-
-            if (!normalizedRequestUrl) return;
-
-            const response = await api.get(normalizedRequestUrl, {
-              responseType: "blob",
-            });
-
-            const objectUrl = URL.createObjectURL(response.data);
-            objectUrls.push(objectUrl);
-            nextUrls[attachmentKey] = objectUrl;
-          }),
-        );
-
-        if (!isCancelled) {
-          setAttachmentUrls(nextUrls);
-        }
-      } catch (error) {
-        console.error("Failed to load attachment previews:", error);
-      }
-    };
-
-    loadAttachments();
-
-    return () => {
-      isCancelled = true;
-      objectUrls.forEach((url) => URL.revokeObjectURL(url));
-      setAttachmentUrls({});
-    };
-  }, [isExpanded, patientId, record.attachments]);
 
   const examSections = [
     ["Extra-Oral", record.examinationExtraOral],
@@ -124,7 +62,7 @@ function RecordItem({
   return (
     <div className="border rounded bg-gray-50 mb-2">
       <div
-        onClick={() => setExpandedRecordId(isExpanded ? null : record._id)}
+        onClick={() => setExpandedRecordId(isExpanded ? null : recordId)}
         className="flex justify-between items-center cursor-pointer px-4 py-2 bg-gray-200"
       >
         <span>
@@ -197,50 +135,6 @@ function RecordItem({
             <HighlightText text={record.medication || ""} keyword={searchKeyword} />
           </p>
 
-          {record.attachments && record.attachments.length > 0 && (
-            <div>
-              <strong>Attachments:</strong>
-              <div className="mt-1 grid grid-cols-2 md:grid-cols-4 gap-2">
-                {record.attachments.map((file, idx) => {
-                  const name = file?.name || file || "Attachment";
-                  const requestUrl = file?.url || file || "";
-                  const attachmentKey = file?.name || requestUrl || `attachment-${idx}`;
-                  const url = attachmentUrls[attachmentKey] || "";
-                  const isImage = isImageAttachment(file);
-
-                  return isImage ? (
-                    url ? (
-                      <img
-                        key={idx}
-                        src={url}
-                        alt={name}
-                        onLoad={handleImageLoad}
-                        className="w-full h-24 object-cover border rounded"
-                      />
-                    ) : (
-                      <div
-                        key={idx}
-                        className="flex h-24 items-center justify-center rounded border bg-gray-100 text-xs text-gray-500"
-                      >
-                        Loading...
-                      </div>
-                    )
-                  ) : (
-                    <a
-                      key={idx}
-                      href={url || undefined}
-                      download={name}
-                      className="block p-2 border rounded bg-gray-100 text-sm truncate hover:bg-gray-200"
-                      title={name}
-                    >
-                      [File] {name}
-                    </a>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           <p>
             <strong>Created At:</strong>{" "}
             {record.createdAt ? new Date(record.createdAt).toLocaleString() : "-"}
@@ -255,7 +149,7 @@ function RecordItem({
             </button>
 
             <button
-              onClick={() => handleDelete(record._id)}
+              onClick={() => handleDelete(recordId)}
               className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
             >
               Delete
@@ -266,13 +160,11 @@ function RecordItem({
             <Modal onClose={cancelEditing}>
               <h2 className="text-xl font-semibold mb-4">Edit Record</h2>
               <RecordForm
-                patientId={patientId}
                 recordData={editingRecordData}
                 setRecordData={setEditingRecordData}
                 onSubmit={saveEdit}
                 submitLabel="Save"
                 loading={loading}
-                onRemovedAttachmentsChange={setRemovedAttachments}
               />
             </Modal>
           )}

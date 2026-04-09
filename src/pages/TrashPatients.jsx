@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
 import Toast from "../components/Toast";
+import { getEntityId } from "../utils/entityId";
 
 export default function TrashPatients() {
   const [patients, setPatients] = useState([]);
@@ -30,9 +31,8 @@ export default function TrashPatients() {
   // =========================
   const fetchPatients = async () => {
     try {
-      const res = await api.get("/patients");
-      const trashed = res.data.filter((p) => p.isDeleted);
-      setPatients(trashed);
+      const res = await api.get("/patients/trash/all");
+      setPatients(res.data || []);
       setCurrentPage(1);
     } catch (err) {
       console.error(err);
@@ -63,7 +63,7 @@ export default function TrashPatients() {
   };
 
   const toggleSelectAll = () => {
-    const currentIds = paginatedPatients().map((p) => p._id);
+    const currentIds = paginatedPatients().map((patient) => getEntityId(patient));
     const allSelected = currentIds.every((id) => selected.has(id));
     const newSet = new Set(selected);
     currentIds.forEach((id) => (allSelected ? newSet.delete(id) : newSet.add(id)));
@@ -152,7 +152,9 @@ export default function TrashPatients() {
                 type="checkbox"
                 checked={
                   paginatedPatients().length > 0 &&
-                  paginatedPatients().every((p) => selected.has(p._id))
+                  paginatedPatients().every((patient) =>
+                    selected.has(getEntityId(patient)),
+                  )
                 }
                 onChange={toggleSelectAll}
               />
@@ -171,12 +173,12 @@ export default function TrashPatients() {
             </tr>
           ) : (
             paginatedPatients().map((p) => (
-              <tr key={p._id} className="border-b">
+              <tr key={getEntityId(p)} className="border-b">
                 <td className="p-2 text-center">
                   <input
                     type="checkbox"
-                    checked={selected.has(p._id)}
-                    onChange={() => toggleSelect(p._id)}
+                    checked={selected.has(getEntityId(p))}
+                    onChange={() => toggleSelect(getEntityId(p))}
                   />
                 </td>
                 <td className="p-2">{p.name}</td>

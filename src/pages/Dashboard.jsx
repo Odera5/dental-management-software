@@ -2,6 +2,16 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api, { logoutCurrentUser } from "../services/api";
 import Toast from "../components/Toast";
+import { getEntityId } from "../utils/entityId";
+
+const formatLocalDateKey = (value = new Date()) => {
+  const date = value instanceof Date ? value : new Date(value);
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -12,6 +22,7 @@ export default function Dashboard() {
     name: storedUser.name || storedUser.email || "User",
     email: storedUser.email || "",
     role: storedUser.role || "nurse",
+    clinicName: storedUser.clinic?.name || "Clinic",
   };
 
   const [patients, setPatients] = useState([]);
@@ -31,9 +42,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showTrash, setShowTrash] = useState(false);
   const [toast, setToast] = useState(null);
-  const [currentDay, setCurrentDay] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
+  const [currentDay, setCurrentDay] = useState(formatLocalDateKey());
   const [currentTime, setCurrentTime] = useState(new Date());
   const [authChecked, setAuthChecked] = useState(false);
 
@@ -85,7 +94,7 @@ export default function Dashboard() {
 
   const fetchAppointmentsToday = async () => {
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = formatLocalDateKey();
       const res = await api.get(
         `/appointments?startDate=${today}&endDate=${today}`,
       );
@@ -117,12 +126,12 @@ export default function Dashboard() {
   const fetchMonthlyRevenue = async () => {
     try {
       const now = new Date();
-      const startDate = new Date(now.getFullYear(), now.getMonth(), 1)
-        .toISOString()
-        .slice(0, 10);
-      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-        .toISOString()
-        .slice(0, 10);
+      const startDate = formatLocalDateKey(
+        new Date(now.getFullYear(), now.getMonth(), 1),
+      );
+      const endDate = formatLocalDateKey(
+        new Date(now.getFullYear(), now.getMonth() + 1, 0),
+      );
       const res = await api.get(
         `/invoices/report?startDate=${startDate}&endDate=${endDate}`,
       );
@@ -158,14 +167,14 @@ export default function Dashboard() {
 
   // Reset current day if date changes
   useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = formatLocalDateKey();
     if (today !== currentDay) setCurrentDay(today);
   }, [currentDay]);
 
   // Patients registered today
   useEffect(() => {
     setPatientsToday(
-      patients.filter((p) => p.createdAt?.slice(0, 10) === currentDay),
+      patients.filter((p) => formatLocalDateKey(p.createdAt) === currentDay),
     );
   }, [patients, currentDay]);
 
@@ -214,13 +223,15 @@ export default function Dashboard() {
     .filter(matchesPatientSearch);
 
   // Soft delete
-  const handleDelete = async (_id) => {
+  const handleDelete = async (patientId) => {
     if (!window.confirm("Move this patient to Trash?")) return;
     try {
-      const res = await api.delete(`/patients/${_id}`);
+      const res = await api.delete(`/patients/${patientId}`);
       if (res.status === 200) {
         // Remove from active patients
-        setPatients((prev) => prev.filter((p) => p._id !== _id));
+        setPatients((prev) =>
+          prev.filter((patient) => getEntityId(patient) !== patientId),
+        );
         // Refresh trash immediately from backend
         fetchTrash();
         showToast(res.data.message || "Patient moved to Trash");
@@ -234,9 +245,9 @@ export default function Dashboard() {
     }
   };
 
-  const handleRestore = async (_id) => {
+  const handleRestore = async (patientId) => {
     try {
-      const res = await api.put(`/patients/${_id}/restore`);
+      const res = await api.put(`/patients/${patientId}/restore`);
       if (res.status === 200) {
         fetchPatients();
         fetchTrash();
@@ -251,10 +262,10 @@ export default function Dashboard() {
     }
   };
 
-  const handlePermanentDelete = async (_id) => {
+  const handlePermanentDelete = async (patientId) => {
     if (!window.confirm("Permanently delete this patient?")) return;
     try {
-      const res = await api.delete(`/patients/${_id}/permanent`);
+      const res = await api.delete(`/patients/${patientId}/permanent`);
       if (res.status === 200) {
         fetchTrash();
         showToast("Patient permanently deleted");
@@ -268,7 +279,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleViewRecords = (_id) => navigate(`/patients/${_id}/records`);
+  const handleViewRecords = (patientId) => navigate(`/patients/${patientId}/records`);
 
   const formattedTime = currentTime.toLocaleTimeString([], {
     hour: "2-digit",
@@ -278,7 +289,7 @@ export default function Dashboard() {
   const formattedDate = currentTime.toLocaleDateString();
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-gray-100 p-3 sm:p-4 lg:p-6">
       {toast && (
         <Toast
           message={toast.message}
@@ -288,16 +299,19 @@ export default function Dashboard() {
         />
       )}
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Welcome, {user.name}</h1>
-          <p className="text-gray-600 flex items-center gap-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
+            BHF by PrimuxCare
+          </p>
+          <h1 className="text-xl font-bold sm:text-2xl">Welcome, {user.name}</h1>
+          <p className="flex flex-wrap items-center gap-2 text-sm text-gray-600 sm:gap-4">
             Role: {user.role} <span className="text-gray-400">|</span>{" "}
             {formattedDate} {formattedTime}
           </p>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {(user.role === "admin" ||
             user.role === "nurse" ||
             user.role === "doctor") && (
@@ -305,32 +319,32 @@ export default function Dashboard() {
               {user.role === "admin" && (
                 <button
                   onClick={() => navigate("/signup")}
-                  className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 text-sm"
+                  className="rounded bg-purple-600 px-4 py-2 text-sm text-white hover:bg-purple-700"
                 >
                   Manage Staff
                 </button>
               )}
               <button
                 onClick={() => navigate("/register-patient")}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+                className="rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700"
               >
                 Register Patient
               </button>
               <button
                 onClick={() => navigate("/appointments")}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
               >
                 Appointments
               </button>
               <button
                 onClick={() => navigate("/waiting-room")}
-                className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 text-sm"
+                className="rounded bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
               >
                 Waiting Room
               </button>
               <button
                 onClick={() => navigate("/billing")}
-                className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 text-sm"
+                className="rounded bg-orange-600 px-4 py-2 text-sm text-white hover:bg-orange-700"
               >
                 Billing
               </button>
@@ -338,14 +352,14 @@ export default function Dashboard() {
           )}
           <button
             onClick={handleLogout}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
           >
             Logout
           </button>
           {user.role === "admin" && (
             <button
               onClick={() => setShowTrash(!showTrash)}
-              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+              className="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
             >
               {showTrash ? "Back to Patients" : "Trash"}
             </button>
@@ -354,20 +368,20 @@ export default function Dashboard() {
       </div>
 
       {!showTrash && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white p-4 rounded shadow text-center">
+        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded bg-white p-4 text-center shadow">
             <h3 className="text-gray-500 text-sm">Patients Registered Today</h3>
             <p className="text-2xl font-bold">{patientsToday.length}</p>
           </div>
-          <div className="bg-white p-4 rounded shadow text-center">
+          <div className="rounded bg-white p-4 text-center shadow">
             <h3 className="text-gray-500 text-sm">Appointments Today</h3>
             <p className="text-2xl font-bold">{appointmentsToday}</p>
           </div>
-          <div className="bg-white p-4 rounded shadow text-center">
+          <div className="rounded bg-white p-4 text-center shadow">
             <h3 className="text-gray-500 text-sm">Waiting Patients</h3>
             <p className="text-2xl font-bold">{waitingSummary.waiting}</p>
           </div>
-          <div className="bg-white p-4 rounded shadow text-center">
+          <div className="rounded bg-white p-4 text-center shadow">
             <h3 className="text-gray-500 text-sm">Monthly Revenue</h3>
             <p className="text-2xl font-bold">
               NGN {monthlyRevenue.toLocaleString()}
@@ -381,10 +395,10 @@ export default function Dashboard() {
         placeholder="Search patients by name or card number..."
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full mb-4 border px-3 py-2 rounded"
+        className="mb-4 w-full rounded border px-3 py-2"
       />
 
-      <div className="bg-white p-6 rounded shadow">
+      <div className="rounded bg-white p-4 shadow sm:p-6">
         <h2 className="text-xl font-semibold mb-4">
           {showTrash ? "Trash" : "Patients"}
         </h2>
@@ -396,74 +410,79 @@ export default function Dashboard() {
             {showTrash ? "No trashed patients." : "No patients found."}
           </p>
         ) : (
-          <table className="w-full border border-gray-300">
-            <thead className="bg-gray-200">
-              <tr>
-                <th
-                  onClick={() => requestSort("name")}
-                  className="border px-4 py-2 cursor-pointer"
-                >
-                  Name
-                </th>
-                <th
-                  onClick={() => requestSort("age")}
-                  className="border px-4 py-2 cursor-pointer"
-                >
-                  Age
-                </th>
-                <th className="border px-4 py-2">Card Number</th>
-                <th className="border px-4 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(showTrash ? filteredTrash : filteredPatients).map((p) => {
-                const isToday = patientsToday.some((tp) => tp._id === p._id);
-                return (
-                  <tr
-                    key={p._id}
-                    className={`text-center ${!showTrash && isToday ? "bg-green-100 font-semibold" : ""}`}
+          <div className="overflow-x-auto">
+            <table className="min-w-[640px] w-full border border-gray-300">
+              <thead className="bg-gray-200">
+                <tr>
+                  <th
+                    onClick={() => requestSort("name")}
+                    className="cursor-pointer border px-4 py-2"
                   >
-                    <td className="border px-4 py-2">{p.name}</td>
-                    <td className="border px-4 py-2">{p.age}</td>
-                    <td className="border px-4 py-2">{p.cardNumber || "--"}</td>
-                    <td className="border px-4 py-2">
-                      {!showTrash && (
-                        <button
-                          onClick={() => handleViewRecords(p._id)}
-                          className="bg-blue-600 text-white px-2 py-1 rounded mr-2"
-                        >
-                          View Records
-                        </button>
-                      )}
-                      {showTrash ? (
-                        <div className="flex justify-center gap-2">
+                    Name
+                  </th>
+                  <th
+                    onClick={() => requestSort("age")}
+                    className="cursor-pointer border px-4 py-2"
+                  >
+                    Age
+                  </th>
+                  <th className="border px-4 py-2">Card Number</th>
+                  <th className="border px-4 py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(showTrash ? filteredTrash : filteredPatients).map((p) => {
+                  const patientId = getEntityId(p);
+                  const isToday = patientsToday.some(
+                    (todayPatient) => getEntityId(todayPatient) === patientId,
+                  );
+                  return (
+                    <tr
+                      key={patientId}
+                      className={`text-center ${!showTrash && isToday ? "bg-green-100 font-semibold" : ""}`}
+                    >
+                      <td className="border px-4 py-2">{p.name}</td>
+                      <td className="border px-4 py-2">{p.age}</td>
+                      <td className="border px-4 py-2">{p.cardNumber || "--"}</td>
+                      <td className="border px-4 py-2">
+                        {!showTrash && (
                           <button
-                            onClick={() => handleRestore(p._id)}
-                            className="bg-green-600 text-white px-2 py-1 rounded"
+                            onClick={() => handleViewRecords(patientId)}
+                            className="mr-2 rounded bg-blue-600 px-2 py-1 text-white"
                           >
-                            Restore
+                            View Records
                           </button>
+                        )}
+                        {showTrash ? (
+                          <div className="flex justify-center gap-2">
+                            <button
+                              onClick={() => handleRestore(patientId)}
+                              className="rounded bg-green-600 px-2 py-1 text-white"
+                            >
+                              Restore
+                            </button>
+                            <button
+                              onClick={() => handlePermanentDelete(patientId)}
+                              className="rounded bg-red-700 px-2 py-1 text-white"
+                            >
+                              Delete Permanently
+                            </button>
+                          </div>
+                        ) : (
                           <button
-                            onClick={() => handlePermanentDelete(p._id)}
-                            className="bg-red-700 text-white px-2 py-1 rounded"
+                            onClick={() => handleDelete(patientId)}
+                            className="rounded bg-red-600 px-2 py-1 text-white"
                           >
-                            Delete Permanently
+                            Delete
                           </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => handleDelete(p._id)}
-                          className="bg-red-600 text-white px-2 py-1 rounded"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

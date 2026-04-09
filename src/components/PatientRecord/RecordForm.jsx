@@ -1,11 +1,6 @@
 // src/components/PatientRecord/RecordForm.jsx
-import React, { useState, useMemo, useEffect, useCallback } from "react";
-import api from "../../services/api";
-import {
-  createEmptyRecord,
-  isImageAttachment,
-  normalizeAttachmentApiPath,
-} from "./recordUtils";
+import React, { useState, useCallback } from "react";
+import { createEmptyRecord } from "./recordUtils";
 
 const ADULT_TEETH = [
   18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28, 48, 47, 46,
@@ -224,17 +219,13 @@ const groupByQuadrant = (teeth, dentition) => {
 };
 
 export default function RecordForm({
-  patientId,
   recordData,
   setRecordData,
   onSubmit,
   submitLabel,
   loading,
-  onRemovedAttachmentsChange,
 }) {
-  const [removedFiles, setRemovedFiles] = useState([]);
   const [activeExamTab, setActiveExamTab] = useState("extraoral");
-  const [existingAttachmentUrls, setExistingAttachmentUrls] = useState({});
 
   const initialRecord = { ...createEmptyRecord(), ...recordData };
   const initialTeethState = initializeTeethState(
@@ -249,85 +240,6 @@ export default function RecordForm({
 
   const teeth = dentition === "adult" ? adultTeeth : childTeeth;
   const setTeeth = dentition === "adult" ? setAdultTeeth : setChildTeeth;
-
-  const previews = useMemo(
-    () =>
-      (recordData.attachments || []).map((file) => {
-        const isImage = isImageAttachment(file);
-        const fileKey = file?.name || file?.url || "";
-        return {
-          type: isImage ? "image" : "file",
-          url:
-            isImage && file instanceof File
-              ? URL.createObjectURL(file)
-              : existingAttachmentUrls[fileKey] || "",
-          name: file?.name || file?.url || "Attachment",
-          existing: Boolean(file?.url),
-        };
-      }),
-    [existingAttachmentUrls, recordData.attachments],
-  );
-
-  useEffect(() => {
-    const existingFiles = (recordData.attachments || []).filter((file) => file?.url);
-    if (existingFiles.length === 0) {
-      setExistingAttachmentUrls({});
-      return undefined;
-    }
-
-    let isCancelled = false;
-    const objectUrls = [];
-
-    const loadExistingAttachments = async () => {
-      try {
-        const nextUrls = {};
-
-        await Promise.all(
-          existingFiles.map(async (file) => {
-            const fileKey = file?.name || file?.url || "";
-            if (!fileKey || !file?.url) return;
-            const normalizedRequestUrl = normalizeAttachmentApiPath(
-              patientId,
-              file.url,
-            );
-            if (!normalizedRequestUrl) return;
-
-            const response = await api.get(normalizedRequestUrl, {
-              responseType: "blob",
-            });
-
-            const objectUrl = URL.createObjectURL(response.data);
-            objectUrls.push(objectUrl);
-            nextUrls[fileKey] = objectUrl;
-          }),
-        );
-
-        if (!isCancelled) {
-          setExistingAttachmentUrls(nextUrls);
-        }
-      } catch (error) {
-        console.error("Failed to load existing attachments:", error);
-      }
-    };
-
-    loadExistingAttachments();
-
-    return () => {
-      isCancelled = true;
-      objectUrls.forEach((url) => URL.revokeObjectURL(url));
-      setExistingAttachmentUrls({});
-    };
-  }, [patientId, recordData.attachments]);
-
-  useEffect(() => {
-    return () => {
-      previews.forEach((preview) => {
-        if (preview.type === "image" && !preview.existing && preview.url.startsWith("blob:")) {
-          URL.revokeObjectURL(preview.url);
-        }
-      });
-    };
-  }, [previews]);
 
   const syncRecordTeeth = useCallback(
     (nextDentition, nextTeeth) => {
@@ -370,32 +282,11 @@ export default function RecordForm({
   const handleChange = (e) =>
     setRecordData({ ...recordData, [e.target.name]: e.target.value });
 
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files || []);
-    const existingFiles = (recordData.attachments || []).filter((f) => f?.url);
-    setRecordData({ ...recordData, attachments: [...existingFiles, ...files] });
-  };
-
-  const handleRemoveAttachment = (idx) => {
-    const removed = recordData.attachments[idx];
-    if (removed?.url) {
-      const updatedRemovedFiles = [...removedFiles, removed.name];
-      setRemovedFiles(updatedRemovedFiles);
-      onRemovedAttachmentsChange?.(updatedRemovedFiles);
-    }
-
-    const updated = [...recordData.attachments];
-    updated.splice(idx, 1);
-    setRecordData({ ...recordData, attachments: updated });
-  };
-
   const handleReset = () => {
     const emptyRecord = createEmptyRecord();
     const emptyTeethState = initializeTeethState("adult", []);
 
     setRecordData(emptyRecord);
-    setRemovedFiles([]);
-    onRemovedAttachmentsChange?.([]);
     setDentition("adult");
     setAdultTeeth(emptyTeethState.adult);
     setChildTeeth(emptyTeethState.child);
@@ -604,45 +495,6 @@ export default function RecordForm({
             rows={2}
           />
         </div>
-      </div>
-
-      <div className="p-4 border rounded shadow-sm bg-white">
-        <h2 className="font-bold mb-3 text-lg">Attachments (images, PDFs)</h2>
-        <input
-          type="file"
-          multiple
-          onChange={handleFileChange}
-          className="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        {previews.length > 0 && (
-          <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
-            {previews.map((preview, idx) => (
-              <div key={idx} className="relative">
-                {preview.type === "image" ? (
-                  <img
-                    src={preview.url}
-                    alt={preview.name}
-                    className="w-full h-24 object-cover border rounded"
-                  />
-                ) : (
-                  <div
-                    className="p-2 border rounded bg-gray-100 text-sm truncate"
-                    title={preview.name}
-                  >
-                    [File] {preview.name}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveAttachment(idx)}
-                  className="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded"
-                >
-                  x
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="flex gap-3">

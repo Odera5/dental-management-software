@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from "react";
 import api from "../../services/api";
 import Toast from "../Toast";
-
-const PROCEDURE_PRESETS = [
-  { description: "Consultation", category: "service", unitPrice: 5000 },
-  { description: "Scaling and Polishing", category: "procedure", unitPrice: 15000 },
-  { description: "Tooth Extraction", category: "procedure", unitPrice: 12000 },
-  { description: "Dental Filling", category: "procedure", unitPrice: 10000 },
-  { description: "Root Canal Treatment", category: "procedure", unitPrice: 45000 },
-  { description: "Dental X-Ray", category: "lab", unitPrice: 8000 },
-  { description: "Medication Dispensing", category: "medication", unitPrice: 3500 },
-];
+import {
+  DEFAULT_PROCEDURE_PRESETS,
+  formatNaira,
+  normalizeProcedurePresets,
+} from "../../constants/billing";
+import { getEntityId } from "../../utils/entityId";
 
 export default function InvoiceForm({ patientId = null, onSuccess, onCancel }) {
   const [formData, setFormData] = useState({
@@ -31,11 +27,13 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel }) {
   });
 
   const [patients, setPatients] = useState([]);
+  const [procedurePresets, setProcedurePresets] = useState(DEFAULT_PROCEDURE_PRESETS);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
   useEffect(() => {
     fetchPatients();
+    fetchClinicProfile();
   }, []);
 
   const fetchPatients = async () => {
@@ -91,6 +89,18 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel }) {
         },
       ],
     }));
+  };
+
+  const fetchClinicProfile = async () => {
+    try {
+      const response = await api.get("/auth/clinic-profile");
+      setProcedurePresets(
+        normalizeProcedurePresets(response.data?.clinic?.procedurePresetPrices),
+      );
+    } catch (error) {
+      console.error("Failed to fetch clinic billing shortcuts:", error);
+      setProcedurePresets(DEFAULT_PROCEDURE_PRESETS);
+    }
   };
 
   const handleAddPreset = (preset) => {
@@ -183,7 +193,7 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel }) {
             >
               <option value="">Select Patient</option>
               {patients.map((patient) => (
-                <option key={patient._id} value={patient._id}>
+                <option key={getEntityId(patient)} value={getEntityId(patient)}>
                   {patient.name}
                 </option>
               ))}
@@ -220,17 +230,20 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel }) {
               Dental Procedure Shortcuts
             </p>
             <div className="flex flex-wrap gap-2">
-              {PROCEDURE_PRESETS.map((preset) => (
+              {procedurePresets.map((preset) => (
                 <button
                   key={preset.description}
                   type="button"
                   onClick={() => handleAddPreset(preset)}
                   className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm text-blue-700 hover:bg-blue-100"
                 >
-                  {preset.description} (${preset.unitPrice.toFixed(2)})
+                  {preset.description} ({formatNaira(preset.unitPrice)})
                 </button>
               ))}
             </div>
+            <p className="mt-2 text-xs text-gray-500">
+              Shortcut prices come from Clinic Settings and can be updated by your admin.
+            </p>
           </div>
 
           <div className="overflow-x-auto">
@@ -306,7 +319,7 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel }) {
                       />
                     </td>
                     <td className="py-2 text-right font-semibold pr-2">
-                      ${item.totalPrice.toFixed(2)}
+                      {formatNaira(item.totalPrice)}
                     </td>
                     <td className="py-2 text-center">
                       {formData.items.length > 1 && (
@@ -344,7 +357,7 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel }) {
 
           <div>
             <label className="block text-sm font-semibold mb-2">
-              Discount $
+              Discount (NGN)
             </label>
             <input
               type="number"
@@ -362,25 +375,23 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel }) {
         <div className="bg-gray-50 p-4 rounded border border-gray-200">
           <div className="flex justify-between mb-2">
             <span>Subtotal</span>
-            <span className="font-semibold">${subtotal.toFixed(2)}</span>
+            <span className="font-semibold">{formatNaira(subtotal)}</span>
           </div>
           {formData.taxPercentage > 0 && (
             <div className="flex justify-between mb-2">
               <span>Tax ({formData.taxPercentage}%)</span>
-              <span className="font-semibold">${tax.toFixed(2)}</span>
+              <span className="font-semibold">{formatNaira(tax)}</span>
             </div>
           )}
           {formData.discount > 0 && (
             <div className="flex justify-between mb-2 text-green-600">
               <span>Discount</span>
-              <span className="font-semibold">
-                -${formData.discount.toFixed(2)}
-              </span>
+              <span className="font-semibold">-{formatNaira(formData.discount)}</span>
             </div>
           )}
           <div className="flex justify-between border-t pt-2 text-lg font-bold">
             <span>Total</span>
-            <span className="text-blue-600">${total.toFixed(2)}</span>
+            <span className="text-blue-600">{formatNaira(total)}</span>
           </div>
         </div>
 

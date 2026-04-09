@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import api from "../../services/api";
 import Toast from "../Toast";
 import InvoiceForm from "./InvoiceForm";
+import { getEntityId } from "../../utils/entityId";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("en-NG", {
@@ -91,7 +92,7 @@ function InvoiceViewer({ invoice, onClose }) {
     setLoading(true);
 
     try {
-      await api.put(`/invoices/${invoice._id}/payment`, {
+      await api.put(`/invoices/${getEntityId(invoice)}/payment`, {
         amountPaid: parseFloat(paymentAmount),
         paymentMethod,
         notes: paymentNotes,
@@ -132,6 +133,9 @@ function InvoiceViewer({ invoice, onClose }) {
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-teal-700">
               Dental Clinic Invoice
             </p>
+            <p className="mt-2 text-sm font-medium text-slate-500">
+              BHF by PrimuxCare
+            </p>
             <h2 className="mt-2 text-3xl font-bold text-slate-900">{invoice.invoiceNumber}</h2>
             <p className="mt-2 text-sm text-slate-600">
               Generated on {new Date(invoice.invoiceDate).toLocaleDateString()}
@@ -166,7 +170,7 @@ function InvoiceViewer({ invoice, onClose }) {
                 </thead>
                 <tbody>
                   {(invoice.items || []).map((item, index) => (
-                    <tr key={`${invoice._id}-${index}`} className="border-t border-slate-200">
+                    <tr key={`${getEntityId(invoice)}-${index}`} className="border-t border-slate-200">
                       <td className="px-4 py-3">{item.description}</td>
                       <td className="px-4 py-3 capitalize">{item.category || "service"}</td>
                       <td className="px-4 py-3 text-right">{item.quantity}</td>
@@ -433,7 +437,7 @@ export default function InvoiceList({ patientId = null }) {
     const summaryMap = new Map();
 
     invoices.forEach((invoice) => {
-      const currentPatientId = invoice.patientId?._id;
+      const currentPatientId = getEntityId(invoice.patientId);
       if (!currentPatientId) return;
 
       const summary = summaryMap.get(currentPatientId) || {
@@ -471,7 +475,7 @@ export default function InvoiceList({ patientId = null }) {
         return false;
       }
 
-      if (selectedPatientId && invoice.patientId?._id !== selectedPatientId) {
+      if (selectedPatientId && getEntityId(invoice.patientId) !== selectedPatientId) {
         return false;
       }
 
@@ -494,9 +498,9 @@ export default function InvoiceList({ patientId = null }) {
   const selectedPatientSummary = useMemo(() => {
     if (!selectedPatientId) return null;
     return (
-      patientSummaries.find((summary) => summary.patient?._id === selectedPatientId) ||
+      patientSummaries.find((summary) => getEntityId(summary.patient) === selectedPatientId) ||
       {
-        patient: patients.find((patient) => patient._id === selectedPatientId) || null,
+        patient: patients.find((patient) => getEntityId(patient) === selectedPatientId) || null,
         outstanding: 0,
         unpaidInvoices: 0,
         lastVisit: null,
@@ -552,6 +556,9 @@ export default function InvoiceList({ patientId = null }) {
           <div>
             <p className="text-sm uppercase tracking-[0.3em] text-emerald-200">
               Dental Billing Desk
+            </p>
+            <p className="mt-2 text-sm font-medium text-emerald-100">
+              BHF by PrimuxCare
             </p>
             <h2 className="mt-2 text-3xl font-bold">Collections and patient balances</h2>
             <p className="mt-2 max-w-2xl text-sm text-emerald-100">
@@ -638,7 +645,7 @@ export default function InvoiceList({ patientId = null }) {
               >
                 <option value="">All patients</option>
                 {patients.map((patient) => (
-                  <option key={patient._id} value={patient._id}>
+                  <option key={getEntityId(patient)} value={getEntityId(patient)}>
                     {getPatientLabel(patient)}
                   </option>
                 ))}
@@ -708,7 +715,7 @@ export default function InvoiceList({ patientId = null }) {
             <div className="space-y-4">
               {filteredInvoices.map((invoice) => (
                 <div
-                  key={invoice._id}
+                  key={getEntityId(invoice)}
                   className="rounded-xl border border-gray-200 p-5 shadow-sm transition hover:shadow-md"
                 >
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -732,7 +739,7 @@ export default function InvoiceList({ patientId = null }) {
                       <div className="flex flex-wrap gap-2">
                         {(invoice.items || []).slice(0, 3).map((item, index) => (
                           <span
-                            key={`${invoice._id}-${index}`}
+                            key={`${getEntityId(invoice)}-${index}`}
                             className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"
                           >
                             {item.description}
@@ -767,7 +774,7 @@ export default function InvoiceList({ patientId = null }) {
 
                     {invoice.status === "draft" && (
                       <button
-                        onClick={() => handleIssueInvoice(invoice._id)}
+                        onClick={() => handleIssueInvoice(getEntityId(invoice))}
                         className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
                       >
                         Issue to Patient
@@ -810,8 +817,8 @@ export default function InvoiceList({ patientId = null }) {
                 .slice(0, 6)
                 .map((summary) => (
                   <button
-                    key={summary.patient?._id}
-                    onClick={() => setSelectedPatientId(summary.patient?._id || "")}
+                    key={getEntityId(summary.patient)}
+                    onClick={() => setSelectedPatientId(getEntityId(summary.patient))}
                     className="flex w-full items-center justify-between rounded-lg border border-gray-200 p-3 text-left hover:border-emerald-300 hover:bg-emerald-50"
                   >
                     <div>
