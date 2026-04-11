@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import Toast from "../Toast";
 import { getEntityId } from "../../utils/entityId";
@@ -22,7 +23,11 @@ const ACTION_LABEL = {
   in_consultation: "Complete",
 };
 
-export default function WaitingRoomBoard() {
+export default function WaitingRoomBoard({
+  newPatient = null,
+  preselectPatientId = "",
+}) {
+  const navigate = useNavigate();
   const [entries, setEntries] = useState([]);
   const [patients, setPatients] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,6 +36,12 @@ export default function WaitingRoomBoard() {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
+
+  useEffect(() => {
+    if (preselectPatientId) {
+      setSelectedPatient(preselectPatientId);
+    }
+  }, [preselectPatientId]);
 
   const fetchPatients = useCallback(async () => {
     try {
@@ -97,6 +108,11 @@ export default function WaitingRoomBoard() {
         "error",
       );
     }
+  };
+
+  const handleOpenRecord = (patientId) => {
+    if (!patientId) return;
+    navigate(`/patients/${patientId}/records`);
   };
 
   const handleStatusUpdate = async (item) => {
@@ -166,6 +182,47 @@ export default function WaitingRoomBoard() {
           Refresh Queue
         </button>
       </div>
+
+      {newPatient && (
+        <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                Newly Registered Patient
+              </p>
+              <h3 className="mt-1 text-lg font-bold text-gray-900">
+                {newPatient.name}
+              </h3>
+              <p className="text-sm text-gray-700">
+                Card number: {newPatient.cardNumber || "Pending"}
+              </p>
+              <p className="text-sm text-gray-700">
+                Next step: add this patient to the queue or open the chart to begin notes.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                onClick={() => {
+                  if (preselectPatientId) {
+                    setSelectedPatient(preselectPatientId);
+                  }
+                }}
+                className="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+              >
+                Prepare Queue Entry
+              </button>
+              <button
+                onClick={() =>
+                  handleOpenRecord(getEntityId(newPatient))
+                }
+                className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+              >
+                Open Patient Record
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-blue-50 p-4 rounded border border-blue-100">
@@ -297,6 +354,14 @@ export default function WaitingRoomBoard() {
                   )}
 
                   <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      onClick={() =>
+                        handleOpenRecord(getEntityId(entry.patientId) || entry.patientId)
+                      }
+                      className="bg-slate-700 text-white px-3 py-2 rounded hover:bg-slate-800"
+                    >
+                      Open Record
+                    </button>
                     {NEXT_ACTION[entry.status] && (
                       <button
                         onClick={() => handleStatusUpdate(entry)}

@@ -1,9 +1,12 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import WaitingRoomBoard from "../components/WaitingRoom/WaitingRoomBoard";
 
 export default function WaitingRoom() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const newPatient = location.state?.newPatient || null;
+  const preselectPatientId = location.state?.preselectPatientId || "";
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -23,7 +26,10 @@ export default function WaitingRoom() {
             Back to Dashboard
           </button>
         </div>
-        <WaitingRoomBoard />
+        <WaitingRoomBoard
+          newPatient={newPatient}
+          preselectPatientId={preselectPatientId}
+        />
       </div>
     </div>
   );

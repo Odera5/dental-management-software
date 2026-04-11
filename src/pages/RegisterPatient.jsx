@@ -57,8 +57,13 @@ export default function RegisterPatient() {
         address: "",
       });
 
-      // Redirect to dashboard with decrypted patient data
-      navigate("/dashboard", { state: { newPatient: res.data } });
+      // Redirect into the clinical flow so staff can queue or open the chart immediately.
+      navigate("/waiting-room", {
+        state: {
+          newPatient: res.data,
+          preselectPatientId: res.data?.id || res.data?._id || "",
+        },
+      });
     } catch (err) {
       console.error("Add patient error:", err.response?.data || err);
       const msg = err.response?.data?.message || "Failed to add patient. Please check your inputs.";
