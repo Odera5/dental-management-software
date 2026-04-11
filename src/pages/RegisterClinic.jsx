@@ -2,6 +2,52 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
 
+function PasswordToggleIcon({ visible }) {
+  return visible ? (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-5 w-5"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M10.58 10.58A2 2 0 0012 14a2 2 0 001.42-.58"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9.88 5.09A10.94 10.94 0 0112 4.91c5.05 0 8.27 4.48 9 5.59a1 1 0 010 1.09 18.8 18.8 0 01-4.24 4.53"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6.61 6.62A18.23 18.23 0 003 10.5a1 1 0 000 1.09c.73 1.11 3.95 5.59 9 5.59a10.9 10.9 0 004.04-.78"
+      />
+    </svg>
+  ) : (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-5 w-5"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M2.46 12.29C3.73 10.22 7.03 5.91 12 5.91s8.27 4.31 9.54 6.38a.94.94 0 010 .97C20.27 15.33 16.97 19.64 12 19.64s-8.27-4.31-9.54-6.38a.94.94 0 010-.97z"
+      />
+      <circle cx="12" cy="12.78" r="3" />
+    </svg>
+  );
+}
+
 const initialForm = {
   clinicName: "",
   clinicEmail: "",
@@ -15,6 +61,7 @@ const initialForm = {
 
 export default function RegisterClinic() {
   const [form, setForm] = useState(initialForm);
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -115,6 +162,15 @@ export default function RegisterClinic() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-900">
+                  Clinic Details
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Enter the clinic's contact details. This email can be the same as, or different from, the admin email below.
+                </p>
+              </div>
+
               <div>
                 <label htmlFor="clinicName" className="mb-1 block text-sm text-slate-700">
                   Clinic Name
@@ -188,10 +244,19 @@ export default function RegisterClinic() {
                 />
               </div>
 
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-900">
+                  Primary Admin Details
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  This is the first staff account for the clinic. It can belong to the owner or any trusted person managing the clinic software.
+                </p>
+              </div>
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label htmlFor="adminName" className="mb-1 block text-sm text-slate-700">
-                    Admin Name
+                    Primary Admin Name
                   </label>
                   <input
                     id="adminName"
@@ -206,7 +271,7 @@ export default function RegisterClinic() {
 
                 <div>
                   <label htmlFor="adminEmail" className="mb-1 block text-sm text-slate-700">
-                    Admin Email
+                    Primary Admin Email
                   </label>
                   <input
                     id="adminEmail"
@@ -222,18 +287,29 @@ export default function RegisterClinic() {
 
               <div>
                 <label htmlFor="password" className="mb-1 block text-sm text-slate-700">
-                  Admin Password
+                  Primary Admin Password
                 </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3"
-                  minLength={6}
-                  required
-                />
+                <div className="flex gap-2">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={form.password}
+                    onChange={handleChange}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3"
+                    minLength={6}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="rounded-xl border border-slate-200 px-4 py-3 text-slate-700 hover:bg-slate-50"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                  >
+                    <PasswordToggleIcon visible={showPassword} />
+                  </button>
+                </div>
               </div>
 
               <button
