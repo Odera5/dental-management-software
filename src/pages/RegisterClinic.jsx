@@ -77,19 +77,62 @@ export default function RegisterClinic() {
     setError("");
     setSuccess("");
 
+    const payload = {
+      ...form,
+      clinicName: form.clinicName.trim(),
+      clinicEmail: form.clinicEmail.trim(),
+      clinicPhone: form.clinicPhone.trim(),
+      clinicCity: form.clinicCity.trim(),
+      clinicAddress: form.clinicAddress.trim(),
+      adminName: form.adminName.trim(),
+      adminEmail: form.adminEmail.trim(),
+    };
+
+    if (
+      !payload.clinicName ||
+      !payload.clinicEmail ||
+      !payload.adminName ||
+      !payload.adminEmail ||
+      !form.password.trim()
+    ) {
+      setError(
+        "Clinic name, clinic email, admin name, admin email, and password are required.",
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await api.post("/auth/register-clinic", form);
+      const response = await api.post("/auth/register-clinic", payload);
       setSuccess(
         response.data?.message ||
           "Clinic registered successfully. Please check the admin email inbox to confirm the address and activate the account.",
       );
       setForm(initialForm);
     } catch (err) {
-      console.error("Clinic registration error:", err);
-      setError(
-        err.response?.data?.message ||
-          "Clinic registration failed. Please review the details and try again.",
-      );
+      const status = err.response?.status;
+      const responseData = err.response?.data;
+
+      console.error("Clinic registration error:", {
+        status,
+        data: responseData,
+        error: err,
+      });
+
+      if (responseData?.code === "CLINIC_EMAIL_EXISTS") {
+        setError(
+          "That clinic email is already registered. Try a different clinic email or sign in with the existing account.",
+        );
+      } else if (responseData?.code === "ADMIN_EMAIL_EXISTS") {
+        setError(
+          "That admin email already belongs to an existing user. Try a different admin email or sign in instead.",
+        );
+      } else {
+        setError(
+          responseData?.message ||
+            "Clinic registration failed. Please review the details and try again.",
+        );
+      }
     } finally {
       setLoading(false);
     }
