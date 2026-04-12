@@ -1,65 +1,22 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Mail, Lock, HeartPulse } from "lucide-react";
 import api from "../services/api";
-
-function PasswordToggleIcon({ visible }) {
-  return visible ? (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="h-5 w-5"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M10.58 10.58A2 2 0 0012 14a2 2 0 001.42-.58"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M9.88 5.09A10.94 10.94 0 0112 4.91c5.05 0 8.27 4.48 9 5.59a1 1 0 010 1.09 18.8 18.8 0 01-4.24 4.53"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M6.61 6.62A18.23 18.23 0 003 10.5a1 1 0 000 1.09c.73 1.11 3.95 5.59 9 5.59a10.9 10.9 0 004.04-.78"
-      />
-    </svg>
-  ) : (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="h-5 w-5"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M2.46 12.29C3.73 10.22 7.03 5.91 12 5.91s8.27 4.31 9.54 6.38a.94.94 0 010 .97C20.27 15.33 16.97 19.64 12 19.64s-8.27-4.31-9.54-6.38a.94.94 0 010-.97z"
-      />
-      <circle cx="12" cy="12.78" r="3" />
-    </svg>
-  );
-}
+import Input from "../components/ui/Input";
+import Button from "../components/ui/Button";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const navigate = useNavigate();
-  const canResendVerification =
-    error ===
-    "Please confirm your email address to activate your account before signing in.";
+  
+  const canResendVerification = error === "Please confirm your email address to activate your account before signing in.";
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -72,16 +29,15 @@ export default function Login() {
 
       const token = res.data.accessToken || res.data.token;
       if (!token) throw new Error("No access token returned from API");
-
       const refreshToken = res.data.refreshToken;
       if (!refreshToken) throw new Error("No refresh token returned from API");
-
       const user = res.data.user;
       if (!user) throw new Error("No user data returned from API");
 
-      localStorage.setItem("accessToken", token);
-      localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("user", JSON.stringify(user));
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem("accessToken", token);
+      storage.setItem("refreshToken", refreshToken);
+      storage.setItem("user", JSON.stringify(user));
 
       navigate("/dashboard");
     } catch (err) {
@@ -89,7 +45,7 @@ export default function Login() {
       setError(
         err.response?.data?.message ||
           err.message ||
-          "Invalid email or password",
+          "Invalid email or password"
       );
     } finally {
       setLoading(false);
@@ -101,28 +57,17 @@ export default function Login() {
       setError("Enter your email address first so we know where to send the verification link.");
       return;
     }
-
     try {
       setResending(true);
       setError("");
       setSuccess("");
-
-      const response = await api.post("/auth/resend-verification", {
-        email,
-      });
-
+      const response = await api.post("/auth/resend-verification", { email });
       setSuccess(
-        response.data?.message ||
-          "A new verification email has been sent. Please check your inbox and spam folder.",
+        response.data?.message || "A new verification email has been sent."
       );
     } catch (err) {
-      console.error(
-        "Resend verification error:",
-        err.response?.data || err.message || err,
-      );
       setError(
-        err.response?.data?.message ||
-          "We could not resend the verification email.",
+        err.response?.data?.message || "We could not resend the verification email."
       );
     } finally {
       setResending(false);
@@ -130,102 +75,144 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
-        <p className="text-center text-xs font-semibold uppercase tracking-[0.25em] text-blue-700 mb-3">
-          BHF by PrimuxCare
-        </p>
-        <h1 className="text-center text-2xl font-semibold mb-2">Clinic Login</h1>
-        <p className="text-center text-sm text-gray-500 mb-6">
-          Sign in with a staff account created by your clinic administrator.
-        </p>
+    <div className="flex min-h-screen bg-surface-50 font-sans">
+      {/* Left side - Branding/Image */}
+      <div className="relative hidden w-1/2 lg:block">
+        <div className="absolute inset-0 z-10 bg-gradient-to-tr from-primary-900/60 to-primary-600/20 mix-blend-multiply" />
+        <img
+          src="/auth_bg.png"
+          alt="Abstract Medical Tech"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center space-y-8 p-12 text-white">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center"
+          >
+            <div className="mb-6 flex justify-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md">
+                <HeartPulse size={36} className="text-white" />
+              </div>
+            </div>
+            <h1 className="mb-4 text-5xl font-semibold tracking-tight">
+              PrimuxCare
+            </h1>
+            <p className="max-w-md text-lg text-primary-50">
+              The modern, seamless operating system for forward-thinking clinics.
+            </p>
+          </motion.div>
+        </div>
+      </div>
 
-        {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
-        {success && <p className="text-green-600 text-sm mb-3">{success}</p>}
-
-        <form onSubmit={handleLogin} className="space-y-4">
+      {/* Right side - Form */}
+      <div className="flex w-full items-center justify-center px-4 py-12 lg:w-1/2 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="w-full max-w-md space-y-8"
+        >
           <div>
-            <label htmlFor="email" className="block text-sm mb-1">
-              Email
-            </label>
-            <input
+            <div className="mb-6 flex justify-center lg:hidden">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100">
+                <HeartPulse size={24} className="text-primary-600" />
+              </div>
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900">
+              Welcome back
+            </h2>
+            <p className="mt-2 text-slate-500">
+              Sign in with your clinic staff account.
+            </p>
+          </div>
+
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="rounded-xl bg-red-50 p-4 text-sm text-red-600 border border-red-100"
+            >
+              {error}
+            </motion.div>
+          )}
+
+          {success && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="rounded-xl bg-primary-50 p-4 text-sm text-primary-700 border border-primary-100"
+            >
+              {success}
+            </motion.div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <Input
+              label="Email Address"
               type="email"
-              id="email"
-              name="email"
-              className="w-full border rounded px-3 py-2"
+              icon={Mail}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@clinic.com"
               required
-              autoComplete="email"
             />
-          </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm mb-1">
-              Password
-            </label>
-            <div className="flex gap-2">
-              <input
-                type={showPassword ? "text" : "password"}
-                id="password"
-                name="password"
-                className="w-full border rounded px-3 py-2"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-              />
+            <Input
+              label="Password"
+              type="password"
+              icon={Lock}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+            />
+
+            <div className="flex items-center justify-between">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span className="ml-2 text-sm text-slate-600">Remember me</span>
+              </label>
+            </div>
+
+            <Button type="submit" isLoading={loading} size="lg">
+              Sign In
+            </Button>
+          </form>
+
+          {canResendVerification && (
+            <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900 border border-amber-100">
+              <p>Need another confirmation email?</p>
               <button
                 type="button"
-                onClick={() => setShowPassword((current) => !current)}
-                className="rounded border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50"
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                aria-pressed={showPassword}
+                onClick={handleResendVerification}
+                disabled={resending}
+                className="mt-2 font-medium text-amber-700 hover:text-amber-800 disabled:opacity-50"
               >
-                <PasswordToggleIcon visible={showPassword} />
+                {resending ? "Sending..." : "Resend verification email"}
               </button>
             </div>
-          </div>
+          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full py-2 rounded text-white ${loading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"}`}
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-
-        {canResendVerification && (
-          <div className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <p>Need another confirmation email?</p>
-            <button
-              type="button"
-              onClick={handleResendVerification}
-              disabled={resending}
-              className="mt-2 font-medium text-amber-700 hover:text-amber-800 disabled:text-amber-400"
-            >
-              {resending ? "Sending..." : "Resend verification email"}
-            </button>
-          </div>
-        )}
-
-        <div className="mt-5 rounded-lg bg-blue-50 px-4 py-3 text-sm text-gray-700">
-          <p className="font-medium text-gray-900">New clinic?</p>
-          <p className="mt-1">
+          <div className="rounded-xl border border-surface-200 bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-semibold text-slate-800">New Clinic?</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Set up your space and create the first admin account.
+            </p>
             <Link
               to="/register-clinic"
-              className="text-blue-700 hover:text-blue-800"
+              className="mt-4 inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
             >
-              Create a clinic account
-            </Link>{" "}
-            to register your clinic details and set up the first admin login.
-          </p>
-        </div>
-
-        <p className="mt-5 text-center text-xs text-gray-400">
-          Built by PrimuxCare
-        </p>
+              Create a free clinic account &rarr;
+            </Link>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

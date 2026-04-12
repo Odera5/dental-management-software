@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Search, Calendar, ArrowDownAZ, SortDesc } from "lucide-react";
 
 export default function SearchFilterSort({ records, onFiltered }) {
   const [searchText, setSearchText] = useState("");
@@ -6,11 +7,9 @@ export default function SearchFilterSort({ records, onFiltered }) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  // Only trigger onFiltered when the filtered list actually changes
   useEffect(() => {
     let filtered = [...records];
 
-    // Filter by search text
     if (searchText.trim()) {
       const text = searchText.toLowerCase();
       filtered = filtered.filter(
@@ -21,7 +20,6 @@ export default function SearchFilterSort({ records, onFiltered }) {
       );
     }
 
-    // Filter by date
     if (startDate) {
       const start = new Date(startDate);
       filtered = filtered.filter((r) => new Date(r.createdAt) >= start);
@@ -31,7 +29,6 @@ export default function SearchFilterSort({ records, onFiltered }) {
       filtered = filtered.filter((r) => new Date(r.createdAt) <= end);
     }
 
-    // Sort
     if (sortOption === "recent") {
       filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else if (sortOption === "oldest") {
@@ -40,50 +37,56 @@ export default function SearchFilterSort({ records, onFiltered }) {
       filtered.sort((a, b) => (a.diagnosis || "").localeCompare(b.diagnosis || ""));
     }
 
-    // Call onFiltered only if result changed
     onFiltered(filtered, searchText);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [records, searchText, sortOption, startDate, endDate]);
 
   return (
-    <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0 mb-4">
-      <input
-        type="text"
-        placeholder="Search by complaint, diagnosis..."
-        value={searchText}
-        onChange={(e) => setSearchText(e.target.value)}
-        className="border border-gray-300 rounded p-2 flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
+    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 group focus-within:border-primary-300 transition-colors">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        <div className="md:col-span-5 relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Search size={18} className="text-slate-400" /></div>
+          <input
+            type="text"
+            placeholder="Search by complaint, diagnosis or history..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 bg-slate-50 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-colors"
+          />
+        </div>
 
-      <div className="flex flex-col">
-        <label className="text-gray-700 mb-1">Start Date</label>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="md:col-span-2 relative">
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1 ml-1 flex items-center"><Calendar size={12} className="mr-1"/> From</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 bg-slate-50 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
+          />
+        </div>
+
+        <div className="md:col-span-2 relative">
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1 ml-1 flex items-center"><Calendar size={12} className="mr-1"/> To</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 bg-slate-50 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
+          />
+        </div>
+
+        <div className="md:col-span-3 relative">
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1 ml-1 flex items-center"><SortDesc size={12} className="mr-1"/> Sort By</label>
+          <select
+            value={sortOption}
+            onChange={(e) => setSortOption(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 pl-3 pr-8 py-2.5 bg-slate-50 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm appearance-none"
+          >
+            <option value="recent">Most Recent First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="diagnosis">Diagnosis (A-Z)</option>
+          </select>
+        </div>
       </div>
-
-      <div className="flex flex-col">
-        <label className="text-gray-700 mb-1">End Date</label>
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          className="border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      <select
-        value={sortOption}
-        onChange={(e) => setSortOption(e.target.value)}
-        className="border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="recent">Most Recent</option>
-        <option value="oldest">Oldest</option>
-        <option value="diagnosis">Diagnosis (A-Z)</option>
-      </select>
     </div>
   );
 }

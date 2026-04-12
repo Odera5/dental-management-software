@@ -1,54 +1,42 @@
-// src/components/PatientRecord/RecordItem.jsx
 import React, { useState, useCallback, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronDown, ChevronUp, FileText, Calendar, Activity, PenTool, Trash2, Edit2, Info, CheckCircle2, Clock } from "lucide-react";
 import RecordForm from "./RecordForm";
 import Modal from "./Modal";
 import HighlightText from "../../utils/HighlightText";
 import { createEmptyRecord, formatToothFindings } from "./recordUtils";
 import { getEntityId } from "../../utils/entityId";
+import Button from "../ui/Button";
 
-function RecordItem({
-  record,
-  expandedRecordId,
-  setExpandedRecordId,
-  handleDelete,
-  handleSaveEdit,
-  searchKeyword,
-  virtualizer,
-  canManageRecords = false,
-}) {
+function RecordSection({ title, content, icon: Icon, keyword }) {
+  if (!content) return null;
+  return (
+    <div className="mb-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
+      <h4 className="flex items-center text-sm font-bold text-slate-700 mb-2 uppercase tracking-widest"><Icon size={14} className="mr-2 text-primary-500" /> {title}</h4>
+      <div className="text-sm text-slate-700 leading-relaxed"><HighlightText text={content} keyword={keyword} /></div>
+    </div>
+  );
+}
+
+function RecordItem({ record, expandedRecordId, setExpandedRecordId, handleDelete, handleSaveEdit, searchKeyword, virtualizer, canManageRecords = false }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editingRecordData, setEditingRecordData] = useState({
-    ...createEmptyRecord(),
-    ...record,
-  });
+  const [editingRecordData, setEditingRecordData] = useState({ ...createEmptyRecord(), ...record });
   const [loading, setLoading] = useState(false);
 
   const recordId = getEntityId(record);
   const isExpanded = expandedRecordId === recordId;
 
-  useEffect(() => {
-    if (virtualizer) {
-      virtualizer.measure();
-    }
-  }, [isExpanded, virtualizer]);
+  useEffect(() => { if (virtualizer) virtualizer.measure(); }, [isExpanded, virtualizer]);
 
-  const cancelEditing = useCallback(() => {
-    setIsEditing(false);
-    setEditingRecordData({ ...createEmptyRecord(), ...record });
-    setLoading(false);
-  }, [record]);
+  const cancelEditing = useCallback(() => { setIsEditing(false); setEditingRecordData({ ...createEmptyRecord(), ...record }); setLoading(false); }, [record]);
 
   const saveEdit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       await handleSaveEdit(recordId, editingRecordData, []);
       cancelEditing();
-    } catch (err) {
-      console.error("Failed to update record:", err);
-      setLoading(false);
-    }
+    } catch (err) { console.error("Failed to update record:", err); setLoading(false); }
   };
 
   const examSections = [
@@ -61,150 +49,108 @@ function RecordItem({
   const toothFindings = formatToothFindings(record.teeth, record.dentition);
 
   return (
-    <div className="border rounded bg-gray-50 mb-2">
-      <div
-        onClick={() => setExpandedRecordId(isExpanded ? null : recordId)}
-        className="flex justify-between items-center cursor-pointer px-4 py-2 bg-gray-200"
+    <div className={`border rounded-2xl mb-4 transition-all duration-300 overflow-hidden ${isExpanded ? 'border-primary-300 shadow-md bg-white' : 'border-slate-200 bg-white hover:border-primary-200 hover:shadow-sm'}`}>
+      <div 
+        onClick={() => setExpandedRecordId(isExpanded ? null : recordId)} 
+        className={`flex flex-col sm:flex-row justify-between sm:items-center cursor-pointer p-5 transition-colors ${isExpanded ? 'bg-primary-50/50' : 'hover:bg-slate-50'}`}
       >
-        <span>
-          <strong>Date:</strong>{" "}
-          {record.createdAt ? new Date(record.createdAt).toLocaleDateString() : "-"} |{" "}
-          <strong>Complaint:</strong>{" "}
-          <HighlightText
-            text={record.presentingComplaint || ""}
-            keyword={searchKeyword}
-          />{" "}
-          | <strong>Diagnosis:</strong>{" "}
-          <HighlightText text={record.diagnosis || ""} keyword={searchKeyword} />
-        </span>
-        <span>{isExpanded ? "^" : "v"}</span>
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-3">
+             <span className="inline-flex items-center text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full"><Calendar size={12} className="mr-1.5" /> {record.createdAt ? new Date(record.createdAt).toLocaleDateString() : "-"}</span>
+             <h3 className="font-bold text-slate-900 text-lg flex items-center"><Activity size={16} className="mr-2 text-rose-500" /> <HighlightText text={record.diagnosis || "No Diagnosis Recorded"} keyword={searchKeyword} /></h3>
+          </div>
+          <p className="text-sm text-slate-600 line-clamp-1"><strong className="text-slate-800">C/O:</strong> <HighlightText text={record.presentingComplaint || "N/A"} keyword={searchKeyword} /></p>
+        </div>
+        <div className="mt-4 sm:mt-0 sm:ml-4 flex items-center justify-end">
+          <div className={`p-2 rounded-full transition-colors ${isExpanded ? 'bg-white shadow-sm text-primary-600' : 'text-slate-400 bg-slate-50'}`}>
+            {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </div>
+        </div>
       </div>
 
-      {isExpanded && (
-        <div className="p-4 space-y-3">
-          <p>
-            <strong>History:</strong>{" "}
-            <HighlightText text={record.history || ""} keyword={searchKeyword} />
-          </p>
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }} className="overflow-hidden">
+            <div className="p-6 border-t border-slate-100 bg-white">
+              
+              <RecordSection title="History of Presenting Complaint" content={record.history} icon={Clock} keyword={searchKeyword} />
 
-          {examSections.length > 0 ? (
-            <div className="space-y-1">
-              <strong>Clinical Examination:</strong>
-              {examSections.map(([label, value]) => (
-                <p key={label}>
-                  <span className="font-medium">{label}:</span>{" "}
-                  <HighlightText text={value || ""} keyword={searchKeyword} />
-                </p>
-              ))}
+              {examSections.length > 0 ? (
+                <div className="mb-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
+                  <h4 className="flex items-center text-sm font-bold text-slate-700 mb-3 uppercase tracking-widest"><Info size={14} className="mr-2 text-amber-500" /> Clinical Examination</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {examSections.map(([label, value]) => (
+                      <div key={label} className="bg-white p-3 rounded-lg border border-slate-200">
+                        <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</span>
+                        <div className="text-sm text-slate-800"><HighlightText text={value || ""} keyword={searchKeyword} /></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <RecordSection title="General Examination" content={record.examination} icon={Info} keyword={searchKeyword} />
+              )}
+
+              {toothFindings.length > 0 && (
+                <div className="mb-4 bg-blue-50/50 rounded-xl p-4 border border-blue-100">
+                  <div className="flex items-center justify-between mb-3">
+                     <h4 className="flex items-center text-sm font-bold text-blue-900 uppercase tracking-widest"><Activity size={14} className="mr-2 text-blue-500" /> Dental Chart Findings</h4>
+                     <span className="text-xs font-bold bg-white text-blue-700 px-2 py-1 rounded-full border border-blue-200 uppercase">{record.dentition === "child" ? "Child Dentition" : "Adult Dentition"}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {toothFindings.map((finding) => (
+                      <div key={finding.condition} className="bg-white border border-blue-200 rounded-lg p-2 text-sm">
+                        <span className="font-bold text-blue-800 mr-2">{finding.label}:</span>
+                        <span className="text-slate-700 font-mono">{finding.teeth.map((t) => t.notation).join(", ")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <RecordSection title="Investigation" content={record.investigation} icon={FileText} keyword={searchKeyword} />
+                 <RecordSection title="Treatment Plan" content={record.treatmentPlan} icon={PenTool} keyword={searchKeyword} />
+              </div>
+              
+              <RecordSection title="Medications Prescribed" content={record.medication} icon={Activity} keyword={searchKeyword} />
+
+              <div className="mt-6 border-t border-slate-100 pt-6 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
+                 <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-xl flex items-center justify-center shrink-0 ${record.consentObtained ? 'bg-emerald-100/50 text-emerald-600 border border-emerald-200' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
+                       <CheckCircle2 size={24} />
+                    </div>
+                    <div>
+                       <p className="text-sm font-bold text-slate-900 uppercase tracking-wide">Patient Consent</p>
+                       <p className={`text-sm ${record.consentObtained ? 'text-emerald-700' : 'text-slate-500 italic'}`}>
+                          {record.consentObtained 
+                            ? `Obtained on ${record.consentDate ? new Date(record.consentDate).toLocaleDateString() : 'Unknown Date'} by ${record.consentTakenBy || 'Unknown'}` 
+                            : 'Not documented'}
+                       </p>
+                       {record.consentNotes && <p className="text-xs text-slate-600 mt-1"><HighlightText text={record.consentNotes} keyword={searchKeyword} /></p>}
+                    </div>
+                 </div>
+
+                 {canManageRecords && (
+                   <div className="flex items-center gap-2 w-full md:w-auto">
+                     <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="flex-1 md:flex-none focus:ring-2 focus:ring-primary-500 bg-white"><Edit2 size={16} className="mr-2" /> Edit Record</Button>
+                     <Button variant="ghost" size="sm" onClick={() => handleDelete(recordId)} className="flex-1 md:flex-none text-red-600 hover:text-red-700 hover:bg-red-50 focus:ring-2 focus:ring-red-500"><Trash2 size={16} className="mr-2" /> Delete</Button>
+                   </div>
+                 )}
+              </div>
             </div>
-          ) : (
-            <p>
-              <strong>Examination:</strong>{" "}
-              <HighlightText text={record.examination || ""} keyword={searchKeyword} />
-            </p>
-          )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          {toothFindings.length > 0 && (
-            <div className="space-y-1">
-              <strong>Tooth Findings:</strong>
-              <p className="text-sm text-gray-600">
-                {record.dentition === "child" ? "Child" : "Adult"} dentition
-              </p>
-              {toothFindings.map((finding) => (
-                <p key={finding.condition}>
-                  <span className="font-medium">{finding.label}:</span>{" "}
-                  {finding.teeth
-                    .map((tooth) => tooth.notation)
-                    .join(", ")}
-                </p>
-              ))}
-            </div>
-          )}
-
-          <p>
-            <strong>Investigation:</strong>{" "}
-            <HighlightText text={record.investigation || ""} keyword={searchKeyword} />
-          </p>
-
-          <p>
-            <strong>Treatment Plan:</strong>{" "}
-            <HighlightText text={record.treatmentPlan || ""} keyword={searchKeyword} />
-          </p>
-
-          <p>
-            <strong>Medication:</strong>{" "}
-            <HighlightText text={record.medication || ""} keyword={searchKeyword} />
-          </p>
-
-          <div className="space-y-1">
-            <strong>Consent:</strong>
-            <p>
-              {record.consentObtained ? "Obtained" : "Not documented as obtained"}
-            </p>
-            {record.consentObtained && (
-              <>
-                <p>
-                  <span className="font-medium">Date:</span>{" "}
-                  {record.consentDate
-                    ? new Date(record.consentDate).toLocaleString()
-                    : "Not recorded"}
-                </p>
-                <p>
-                  <span className="font-medium">Taken By:</span>{" "}
-                  <HighlightText
-                    text={record.consentTakenBy || "Not recorded"}
-                    keyword={searchKeyword}
-                  />
-                </p>
-                {record.consentNotes && (
-                  <p>
-                    <span className="font-medium">Notes:</span>{" "}
-                    <HighlightText
-                      text={record.consentNotes || ""}
-                      keyword={searchKeyword}
-                    />
-                  </p>
-                )}
-              </>
-            )}
+      {isEditing && canManageRecords && (
+        <Modal onClose={cancelEditing}>
+          <div className="mb-6 border-b border-slate-100 pb-4">
+            <h2 className="text-2xl font-bold text-slate-900">Edit Clinical Record</h2>
+            <p className="text-slate-500 text-sm mt-1">Update assessment, dental chart, and treatment plan.</p>
           </div>
-
-          <p>
-            <strong>Created At:</strong>{" "}
-            {record.createdAt ? new Date(record.createdAt).toLocaleString() : "-"}
-          </p>
-
-          {canManageRecords && (
-            <div className="flex space-x-2 mt-2">
-              <button
-                onClick={() => setIsEditing(true)}
-                className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-              >
-                Edit
-              </button>
-
-              <button
-                onClick={() => handleDelete(recordId)}
-                className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          )}
-
-          {isEditing && canManageRecords && (
-            <Modal onClose={cancelEditing}>
-              <h2 className="text-xl font-semibold mb-4">Edit Record</h2>
-              <RecordForm
-                recordData={editingRecordData}
-                setRecordData={setEditingRecordData}
-                onSubmit={saveEdit}
-                submitLabel="Save"
-                loading={loading}
-              />
-            </Modal>
-          )}
-        </div>
+          <RecordForm recordData={editingRecordData} setRecordData={setEditingRecordData} onSubmit={saveEdit} submitLabel="Save Changes" loading={loading} />
+        </Modal>
       )}
     </div>
   );

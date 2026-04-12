@@ -1,52 +1,10 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Building2, Phone, MapPin, Mail, Lock, HeartPulse, User } from "lucide-react";
 import api from "../services/api";
-
-function PasswordToggleIcon({ visible }) {
-  return visible ? (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="h-5 w-5"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M10.58 10.58A2 2 0 0012 14a2 2 0 001.42-.58"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M9.88 5.09A10.94 10.94 0 0112 4.91c5.05 0 8.27 4.48 9 5.59a1 1 0 010 1.09 18.8 18.8 0 01-4.24 4.53"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M6.61 6.62A18.23 18.23 0 003 10.5a1 1 0 000 1.09c.73 1.11 3.95 5.59 9 5.59a10.9 10.9 0 004.04-.78"
-      />
-    </svg>
-  ) : (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="h-5 w-5"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M2.46 12.29C3.73 10.22 7.03 5.91 12 5.91s8.27 4.31 9.54 6.38a.94.94 0 010 .97C20.27 15.33 16.97 19.64 12 19.64s-8.27-4.31-9.54-6.38a.94.94 0 010-.97z"
-      />
-      <circle cx="12" cy="12.78" r="3" />
-    </svg>
-  );
-}
+import Input from "../components/ui/Input";
+import Button from "../components/ui/Button";
 
 const initialForm = {
   clinicName: "",
@@ -61,7 +19,6 @@ const initialForm = {
 
 export default function RegisterClinic() {
   const [form, setForm] = useState(initialForm);
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -113,12 +70,6 @@ export default function RegisterClinic() {
       const status = err.response?.status;
       const responseData = err.response?.data;
 
-      console.error("Clinic registration error:", {
-        status,
-        data: responseData,
-        error: err,
-      });
-
       if (responseData?.code === "CLINIC_EMAIL_EXISTS") {
         setError(
           "That clinic email is already registered. Try a different clinic email or sign in with the existing account.",
@@ -139,247 +90,189 @@ export default function RegisterClinic() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-10">
-      <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-200">
-        <div className="grid lg:grid-cols-[1.05fr,0.95fr]">
-          <div className="bg-slate-900 px-8 py-10 text-white">
-            <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
-              BHF Clinic Onboarding
-            </p>
-            <p className="mt-3 text-sm font-medium text-slate-300">
-              by PrimuxCare
-            </p>
-            <h1 className="mt-4 text-4xl font-bold leading-tight">
-              Register your clinic, enter your clinic details, and create your admin account.
-            </h1>
-            <p className="mt-4 max-w-lg text-sm text-slate-200">
-              Each clinic gets its own staff accounts and patient data space. Once
-              you finish registration, the admin email receives a verification link
-              to activate the account before signing in. Only staff accounts created
-              by that clinic admin can sign in.
-            </p>
-
-            <div className="mt-8 space-y-4 text-sm text-slate-200">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                Clinic administrators can create staff accounts for doctors, nurses,
-                and additional admins.
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                Patient records, appointments, billing, and waiting room activity stay
-                within your clinic.
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                Need help before onboarding? Visit the support page or contact the PrimuxCare
-                team directly.
+    <div className="flex min-h-screen bg-surface-50 font-sans">
+      {/* Left side - Branding/Image */}
+      <div className="relative hidden w-[45%] lg:block">
+        <div className="absolute inset-0 z-10 bg-gradient-to-br from-primary-950/80 via-primary-900/60 to-primary-600/40 mix-blend-multiply" />
+        <img
+          src="/auth_bg.png"
+          alt="Abstract Medical Tech"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 z-20 flex flex-col items-start justify-center space-y-8 px-16 text-white">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <div className="mb-6 flex">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md">
+                <HeartPulse size={36} className="text-white" />
               </div>
             </div>
+            <h1 className="mb-4 text-4xl font-bold leading-tight tracking-tight text-white">
+              The modern operating system for forward-thinking clinics.
+            </h1>
+            <p className="max-w-md text-lg text-primary-50/80">
+              Each clinic gets its own staff accounts and patient data space. Patient records, appointments, and billing stay perfectly isolated and secure within your clinic.
+            </p>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Right side - Form */}
+      <div className="flex w-full overflow-y-auto px-4 py-12 lg:w-[55%] lg:px-12 xl:px-24">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="m-auto w-full max-w-xl space-y-8"
+        >
+          <div>
+            <div className="mb-6 flex lg:hidden">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100">
+                <HeartPulse size={24} className="text-primary-600" />
+              </div>
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900">
+              Register Clinic
+            </h2>
+            <p className="mt-2 text-slate-500">
+              Set up the clinic and primary admin details to get started.
+            </p>
           </div>
 
-          <div className="px-8 py-10">
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-semibold text-slate-900">
-                  Register Clinic
-                </h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  Set up the clinic and primary admin details.
-                </p>
-              </div>
-              <Link
-                to="/login"
-                className="text-sm font-medium text-blue-700 hover:text-blue-800"
-              >
-                Back to login
-              </Link>
-            </div>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="rounded-xl bg-red-50 p-4 text-sm text-red-600 border border-red-100"
+            >
+              {error}
+            </motion.div>
+          )}
 
-            {error && (
-              <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </p>
-            )}
-            {success && (
-              <p className="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                {success}
-              </p>
-            )}
+          {success && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="rounded-xl bg-primary-50 p-4 text-sm text-primary-700 border border-primary-100"
+            >
+              {success}
+            </motion.div>
+          )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-900">
-                  Clinic Details
-                </h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  Enter the clinic's contact details. This email can be the same as, or different from, the admin email below.
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="clinicName" className="mb-1 block text-sm text-slate-700">
-                  Clinic Name
-                </label>
-                <input
-                  id="clinicName"
-                  name="clinicName"
-                  type="text"
-                  value={form.clinicName}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Phase 1: Clinic Details */}
+            <div className="space-y-4 rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-900">Clinic Details</h3>
+              <Input
+                label="Clinic Name"
+                name="clinicName"
+                type="text"
+                icon={Building2}
+                value={form.clinicName}
+                onChange={handleChange}
+                placeholder="e.g. Apex Medical Center"
+                required
+              />
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input
+                  label="Clinic Email"
+                  name="clinicEmail"
+                  type="email"
+                  icon={Mail}
+                  value={form.clinicEmail}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3"
+                  placeholder="contact@clinic.com"
                   required
                 />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label htmlFor="clinicEmail" className="mb-1 block text-sm text-slate-700">
-                    Clinic Email
-                  </label>
-                  <input
-                    id="clinicEmail"
-                    name="clinicEmail"
-                    type="email"
-                    value={form.clinicEmail}
-                    onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="clinicPhone" className="mb-1 block text-sm text-slate-700">
-                    Clinic Phone
-                  </label>
-                  <input
-                    id="clinicPhone"
-                    name="clinicPhone"
-                    type="text"
-                    value={form.clinicPhone}
-                    onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="clinicCity" className="mb-1 block text-sm text-slate-700">
-                  City
-                </label>
-                <input
-                  id="clinicCity"
-                  name="clinicCity"
+                <Input
+                  label="Phone Number"
+                  name="clinicPhone"
                   type="text"
-                  value={form.clinicCity}
+                  icon={Phone}
+                  value={form.clinicPhone}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3"
+                  placeholder="+1 (555) 000-0000"
                 />
               </div>
-
-              <div>
-                <label htmlFor="clinicAddress" className="mb-1 block text-sm text-slate-700">
-                  Clinic Address
-                </label>
+              <Input
+                label="City"
+                name="clinicCity"
+                type="text"
+                icon={MapPin}
+                value={form.clinicCity}
+                onChange={handleChange}
+                placeholder="e.g. New York"
+              />
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700">Clinic Address</label>
                 <textarea
-                  id="clinicAddress"
                   name="clinicAddress"
                   value={form.clinicAddress}
                   onChange={handleChange}
-                  className="min-h-24 w-full rounded-xl border border-slate-200 px-4 py-3"
+                  className="w-full rounded-xl border border-surface-200 px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                  rows={3}
+                  placeholder="Full street address"
                 />
               </div>
+            </div>
 
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-900">
-                  Primary Admin Details
-                </h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  This is the first staff account for the clinic. It can belong to the owner or any trusted person managing the clinic software.
-                </p>
-              </div>
-
+            {/* Phase 2: Admin Details */}
+            <div className="space-y-4 rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-900">Primary Admin Detail</h3>
               <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label htmlFor="adminName" className="mb-1 block text-sm text-slate-700">
-                    Primary Admin Name
-                  </label>
-                  <input
-                    id="adminName"
-                    name="adminName"
-                    type="text"
-                    value={form.adminName}
-                    onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="adminEmail" className="mb-1 block text-sm text-slate-700">
-                    Primary Admin Email
-                  </label>
-                  <input
-                    id="adminEmail"
-                    name="adminEmail"
-                    type="email"
-                    value={form.adminEmail}
-                    onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3"
-                    required
-                  />
-                </div>
+                <Input
+                  label="Admin Name"
+                  name="adminName"
+                  type="text"
+                  icon={User}
+                  value={form.adminName}
+                  onChange={handleChange}
+                  placeholder="Full Name"
+                  required
+                />
+                <Input
+                  label="Admin Email"
+                  name="adminEmail"
+                  type="email"
+                  icon={Mail}
+                  value={form.adminEmail}
+                  onChange={handleChange}
+                  placeholder="admin@clinic.com"
+                  required
+                />
               </div>
+              <Input
+                label="Password"
+                name="password"
+                type="password"
+                icon={Lock}
+                value={form.password}
+                onChange={handleChange}
+                placeholder="••••••••"
+                required
+              />
+            </div>
 
-              <div>
-                <label htmlFor="password" className="mb-1 block text-sm text-slate-700">
-                  Primary Admin Password
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    value={form.password}
-                    onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3"
-                    minLength={6}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((current) => !current)}
-                    className="rounded-xl border border-slate-200 px-4 py-3 text-slate-700 hover:bg-slate-50"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    aria-pressed={showPassword}
-                  >
-                    <PasswordToggleIcon visible={showPassword} />
-                  </button>
-                </div>
-              </div>
+            <Button type="submit" size="lg" isLoading={loading}>
+              Create Clinic Environment
+            </Button>
+          </form>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-white transition hover:bg-slate-800 disabled:bg-slate-400"
-              >
-                {loading ? "Creating clinic account..." : "Create Clinic Account"}
-              </button>
-            </form>
-
-            <p className="mt-5 text-sm text-slate-600">
-              Already registered?{" "}
-              <Link to="/login" className="font-medium text-blue-700 hover:text-blue-800">
-                Sign in here
-              </Link>
-              . Need support?{" "}
-              <Link to="/support" className="font-medium text-blue-700 hover:text-blue-800">
-                Contact us
-              </Link>
-              .
-            </p>
-            <p className="mt-3 text-xs text-slate-400">
-              BHF is built by PrimuxCare.
+          <div className="flex justify-between border-t border-surface-200 pt-6">
+            <Link
+              to="/login"
+              className="text-sm font-medium text-slate-500 hover:text-primary-600"
+            >
+              &larr; Back to Login
+            </Link>
+            <p className="text-sm text-slate-500">
+              Need support? <Link to="/support" className="font-medium text-primary-600 hover:text-primary-700 hover:underline">Contact us</Link>
             </p>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 // src/pages/TrashPatients.jsx
 import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import api from "../services/api";
 import Toast from "../components/Toast";
 import { getEntityId } from "../utils/entityId";
@@ -115,7 +116,7 @@ export default function TrashPatients() {
   };
 
   return (
-    <div className="p-4">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="p-4">
       <h1 className="text-xl font-bold mb-4">Trash Patients</h1>
 
       {toast.show && <Toast message={toast.message} type={toast.type} />}
@@ -219,6 +220,6 @@ export default function TrashPatients() {
           </button>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

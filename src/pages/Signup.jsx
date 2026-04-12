@@ -1,52 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { UserPlus, Users, Mail, Shield, ShieldAlert, Key, Link as LinkIcon, Trash2, Power, CheckCircle2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-
-function PasswordToggleIcon({ visible }) {
-  return visible ? (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="h-5 w-5"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M10.58 10.58A2 2 0 0012 14a2 2 0 001.42-.58"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M9.88 5.09A10.94 10.94 0 0112 4.91c5.05 0 8.27 4.48 9 5.59a1 1 0 010 1.09 18.8 18.8 0 01-4.24 4.53"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M6.61 6.62A18.23 18.23 0 003 10.5a1 1 0 000 1.09c.73 1.11 3.95 5.59 9 5.59a10.9 10.9 0 004.04-.78"
-      />
-    </svg>
-  ) : (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="h-5 w-5"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M2.46 12.29C3.73 10.22 7.03 5.91 12 5.91s8.27 4.31 9.54 6.38a.94.94 0 010 .97C20.27 15.33 16.97 19.64 12 19.64s-8.27-4.31-9.54-6.38a.94.94 0 010-.97z"
-      />
-      <circle cx="12" cy="12.78" r="3" />
-    </svg>
-  );
-}
+import { Card, CardContent } from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
+import Toast from "../components/Toast";
 
 const supportEmail = "primuxcare@gmail.com";
 const whatsappNumber = "08068073362";
@@ -59,318 +19,200 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("nurse");
   const [staff, setStaff] = useState([]);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [staffLoading, setStaffLoading] = useState(true);
   const [busyStaffId, setBusyStaffId] = useState("");
+  const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const navigate = useNavigate();
-  const currentUser = JSON.parse(localStorage.getItem("user") || "null");
+  const currentUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user")) || "null");
 
   useEffect(() => {
     if (!currentUser || currentUser.role !== "admin") {
       navigate("/login", { replace: true });
       return;
     }
-
     fetchStaff();
-  }, [navigate]);
+  }, [navigate, currentUser?.role]);
+
+  const showToast = (message, type = "success") => setToast({ show: true, message, type });
 
   const fetchStaff = async () => {
-    try {
-      setStaffLoading(true);
-      const response = await api.get("/auth/staff");
-      setStaff(response.data || []);
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Failed to load staff accounts");
-    } finally {
-      setStaffLoading(false);
-    }
+    try { setStaffLoading(true); const response = await api.get("/auth/staff"); setStaff(response.data || []); } 
+    catch (err) { showToast(err.response?.data?.message || "Failed to load staff accounts", "error"); } 
+    finally { setStaffLoading(false); }
   };
 
-  const resetForm = () => {
-    setName("");
-    setEmail("");
-    setPassword("");
-    setRole("nurse");
-  };
+  const resetForm = () => { setName(""); setEmail(""); setPassword(""); setRole("nurse"); };
 
-  const handleSignup = async () => {
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    if (!name || !email || !password) return showToast("All fields are required", "error");
     try {
       setLoading(true);
-      setError("");
-      setSuccess("");
-
       await api.post("/auth/signup", { name, email, password, role });
-
-      setSuccess("Staff account created successfully");
+      showToast("Staff account created successfully", "success");
       resetForm();
-      await fetchStaff();
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Staff creation failed");
-    } finally {
-      setLoading(false);
-    }
+      fetchStaff();
+    } catch (err) { showToast(err.response?.data?.message || "Staff creation failed", "error"); } 
+    finally { setLoading(false); }
   };
 
   const handleStatusChange = async (staffMember) => {
     const nextStatus = !staffMember.isActive;
-
     try {
       setBusyStaffId(staffMember.id);
-      setError("");
-      setSuccess("");
-
-      const response = await api.patch(`/auth/staff/${staffMember.id}/status`, {
-        isActive: nextStatus,
-      });
-
-      setSuccess(response.data?.message || "Staff status updated");
-      await fetchStaff();
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Failed to update staff status");
-    } finally {
-      setBusyStaffId("");
-    }
+      const response = await api.patch(`/auth/staff/${staffMember.id}/status`, { isActive: nextStatus });
+      showToast(response.data?.message || `Staff account ${nextStatus ? "activated" : "deactivated"}`, "success");
+      fetchStaff();
+    } catch (err) { showToast(err.response?.data?.message || "Failed to update status", "error"); } 
+    finally { setBusyStaffId(""); }
   };
 
   const handleDelete = async (staffMember) => {
-    const shouldDelete = window.confirm(
-      `Delete ${staffMember.name}'s account permanently?`,
-    );
-    if (!shouldDelete) return;
-
+    if (!window.confirm(`Delete ${staffMember.name}'s account permanently?`)) return;
     try {
       setBusyStaffId(staffMember.id);
-      setError("");
-      setSuccess("");
-
       const response = await api.delete(`/auth/staff/${staffMember.id}`);
-      setSuccess(response.data?.message || "Staff account deleted");
-      await fetchStaff();
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Failed to delete staff account");
-    } finally {
-      setBusyStaffId("");
-    }
+      showToast(response.data?.message || "Staff account deleted", "success");
+      fetchStaff();
+    } catch (err) { showToast(err.response?.data?.message || "Failed to delete account", "error"); } 
+    finally { setBusyStaffId(""); }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Manage Staff</h1>
-            <p className="text-sm text-gray-600">
-              Only admin-created, verified, and active staff accounts can log in.
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => navigate("/clinic-settings")}
-              className="rounded bg-slate-800 px-4 py-2 text-white hover:bg-slate-900"
-            >
-              Settings
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/dashboard")}
-              className="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
-            >
-              Back to Dashboard
-            </button>
-          </div>
-        </div>
-
-        {(error || success) && (
-          <div className="space-y-2">
-            {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-            {success && (
-              <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">
-                {success}
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="grid gap-6 lg:grid-cols-[360px,1fr]">
-          <div className="rounded-lg bg-white p-6 shadow-md">
-            <h2 className="mb-4 text-lg font-semibold">Create Staff Account</h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1 block text-sm">Full Name</label>
-                <input
-                  type="text"
-                  className="w-full rounded border px-3 py-2"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm">Email</label>
-                <input
-                  type="email"
-                  className="w-full rounded border px-3 py-2"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm">Password</label>
-                <div className="flex gap-2">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    className="w-full rounded border px-3 py-2"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((current) => !current)}
-                    className="rounded border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    aria-pressed={showPassword}
-                  >
-                    <PasswordToggleIcon visible={showPassword} />
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm">Role</label>
-                <select
-                  className="w-full rounded border px-3 py-2"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                >
-                  <option value="nurse">Nurse</option>
-                  <option value="doctor">Doctor</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleSignup}
-                disabled={loading}
-                className="w-full rounded bg-green-600 py-2 text-white hover:bg-green-700 disabled:bg-gray-400"
-              >
-                {loading ? "Creating..." : "Create Staff Account"}
-              </button>
-            </div>
-
-            <div className="mt-6 rounded-lg border border-teal-200 bg-teal-50 p-4">
-              <h3 className="text-sm font-semibold text-teal-900">Need help? Contact us</h3>
-              <p className="mt-2 text-sm text-teal-900">
-                If you need technical help with the product, contact us at{" "}
-                <a
-                  href={`mailto:${supportEmail}`}
-                  className="font-medium underline"
-                >
-                  {supportEmail}
-                </a>
-                .
-              </p>
-              <p className="mt-2 text-sm text-teal-900">
-                WhatsApp:{" "}
-                <a
-                  href={whatsappLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-medium underline"
-                >
-                  {whatsappNumber}
-                </a>
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded-lg bg-white p-6 shadow-md">
-            <h2 className="mb-4 text-lg font-semibold">Existing Staff</h2>
-
-            {staffLoading ? (
-              <p className="text-sm text-gray-500">Loading staff accounts...</p>
-            ) : staff.length === 0 ? (
-              <p className="text-sm text-gray-500">No staff accounts found.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border border-gray-200 text-sm">
-                  <thead className="bg-gray-100 text-left">
-                    <tr>
-                      <th className="border px-3 py-2">Name</th>
-                      <th className="border px-3 py-2">Email</th>
-                      <th className="border px-3 py-2">Role</th>
-                      <th className="border px-3 py-2">Status</th>
-                      <th className="border px-3 py-2">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {staff.map((staffMember) => {
-                      const isCurrentUser = staffMember.id === currentUser?.id;
-                      const isBusy = busyStaffId === staffMember.id;
-
-                      return (
-                        <tr key={staffMember.id}>
-                          <td className="border px-3 py-2 font-medium">
-                            {staffMember.name}
-                            {isCurrentUser ? " (You)" : ""}
-                          </td>
-                          <td className="border px-3 py-2">{staffMember.email}</td>
-                          <td className="border px-3 py-2 capitalize">{staffMember.role}</td>
-                          <td className="border px-3 py-2">
-                            <span
-                              className={`rounded px-2 py-1 text-xs font-medium ${
-                                staffMember.isActive
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-red-100 text-red-700"
-                              }`}
-                            >
-                              {staffMember.isActive ? "Active" : "Inactive"}
-                            </span>
-                          </td>
-                          <td className="border px-3 py-2">
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleStatusChange(staffMember)}
-                                disabled={isBusy}
-                                className={`rounded px-3 py-1 text-white ${
-                                  staffMember.isActive
-                                    ? "bg-amber-600 hover:bg-amber-700"
-                                    : "bg-blue-600 hover:bg-blue-700"
-                                } disabled:bg-gray-400`}
-                              >
-                                {staffMember.isActive ? "Deactivate" : "Activate"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(staffMember)}
-                                disabled={isBusy || isCurrentUser}
-                                className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700 disabled:bg-gray-400"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-surface-200">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">Staff Directory & Access</h2>
+          <p className="text-sm text-slate-500 max-w-xl">
+             Manage clinic personnel. Only active accounts configured here can sign in to the platform.
+          </p>
         </div>
       </div>
-    </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6">
+        {/* Left Col: Create & Support */}
+        <div className="space-y-6">
+          <Card className="border border-surface-200 shadow-sm">
+            <CardContent className="p-6">
+              <h3 className="font-bold text-lg mb-6 flex items-center text-slate-900"><UserPlus size={18} className="mr-2 text-primary-500" /> Provision Account</h3>
+              <form onSubmit={handleSignup} className="space-y-4">
+                <Input label="Full Name *" value={name} onChange={(e) => setName(e.target.value)} icon={UserPlus} className="bg-slate-50" />
+                <Input label="Email Address *" type="email" value={email} onChange={(e) => setEmail(e.target.value)} icon={Mail} className="bg-slate-50" />
+                
+                <div className="space-y-1.5">
+                   <label className="text-sm font-medium text-slate-700">Password *</label>
+                   <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Key size={18} className="text-slate-400" /></div>
+                      <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-xl border border-slate-200 pl-10 pr-12 py-3 bg-slate-50 text-sm focus:ring-primary-500 shadow-sm h-[46px]" />
+                      <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 font-medium text-xs uppercase tracking-wider">{showPassword ? "Hide" : "Show"}</button>
+                   </div>
+                </div>
+
+                <div className="space-y-1.5">
+                   <label className="text-sm font-medium text-slate-700">Account Role *</label>
+                   <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Shield size={18} className="text-slate-400" /></div>
+                      <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 bg-slate-50 text-sm focus:ring-primary-500 shadow-sm appearance-none h-[46px] capitalize">
+                        <option value="nurse">Nurse / Front Desk</option>
+                        <option value="doctor">Doctor</option>
+                        <option value="admin">Administrator</option>
+                      </select>
+                   </div>
+                </div>
+
+                <div className="pt-4">
+                   <Button type="submit" isLoading={loading} className="w-full shadow-md h-12 text-sm sm:text-base font-semibold">Generate Staff Credentials</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-teal-200 bg-gradient-to-br from-teal-50 to-emerald-50">
+             <CardContent className="p-6">
+                <h3 className="font-bold text-teal-900 mb-2 flex items-center"><ShieldAlert size={18} className="mr-2" /> Support Context</h3>
+                <p className="text-sm text-teal-800 leading-relaxed mb-4">If you require structural administrative assistance or need to verify billing parameters, reach out to our team.</p>
+                <div className="space-y-2">
+                   <a href={`mailto:${supportEmail}`} className="flex items-center text-sm font-medium text-teal-700 hover:text-teal-900 bg-white/50 px-3 py-2 rounded-lg transition-colors border border-teal-100"><Mail size={16} className="mr-3" /> {supportEmail}</a>
+                   <a href={whatsappLink} target="_blank" rel="noreferrer" className="flex items-center text-sm font-medium text-teal-700 hover:text-teal-900 bg-white/50 px-3 py-2 rounded-lg transition-colors border border-teal-100"><LinkIcon size={16} className="mr-3" /> WhatsApp Support</a>
+                </div>
+             </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Col: Staff List */}
+        <Card className="border border-surface-200 shadow-sm">
+           <CardContent className="p-0">
+             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="font-bold text-lg flex items-center text-slate-900"><Users size={18} className="mr-2 text-primary-500" /> Provisioned Accounts Directory</h3>
+                <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full">{staff.length} Active Accounts</span>
+             </div>
+
+             {staffLoading ? (
+               <div className="p-12 text-center flex flex-col items-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent mb-4" /><p className="text-slate-500 font-medium">Fetching directory...</p></div>
+             ) : staff.length === 0 ? (
+               <div className="p-16 text-center flex flex-col items-center"><Users size={48} className="text-slate-300 mb-4" /><p className="text-lg font-medium text-slate-700">No personnel accounts</p></div>
+             ) : (
+               <div className="overflow-x-auto">
+                 <table className="w-full text-sm">
+                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
+                     <tr><th className="px-6 py-4 text-left font-semibold">User details</th><th className="px-6 py-4 text-left font-semibold">Role assignment</th><th className="px-6 py-4 text-center font-semibold">System Access</th><th className="px-6 py-4 text-right font-semibold">Actions</th></tr>
+                   </thead>
+                   <tbody className="divide-y divide-slate-100">
+                     <AnimatePresence>
+                       {staff.map((member) => {
+                         const isCurrentUser = member.id === currentUser?.id;
+                         const isBusy = busyStaffId === member.id;
+                         
+                         return (
+                           <motion.tr key={member.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`hover:bg-slate-50/50 transition-colors ${!member.isActive ? "bg-slate-50/80" : "bg-white"}`}>
+                             <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                   <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 font-bold uppercase tracking-wider ${isCurrentUser ? "bg-primary-100 text-primary-700 border border-primary-200" : "bg-slate-100 text-slate-600 border border-slate-200"}`}>
+                                      {member.name.slice(0, 2)}
+                                   </div>
+                                   <div>
+                                      <p className="font-bold text-slate-900 flex items-center">
+                                         {member.name} {isCurrentUser && <span className="ml-2 text-[10px] bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full uppercase tracking-wider">You</span>}
+                                      </p>
+                                      <p className="text-xs text-slate-500">{member.email}</p>
+                                   </div>
+                                </div>
+                             </td>
+                             <td className="px-6 py-4">
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold capitalize tracking-wider ${member.role === 'admin' ? 'bg-purple-100 text-purple-700' : member.role === 'doctor' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                  {member.role === "nurse" ? "Nurse / Desk" : member.role}
+                                </span>
+                             </td>
+                             <td className="px-6 py-4 text-center">
+                                <span className={`inline-flex items-center justify-center w-full max-w-[100px] px-2.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-widest ${member.isActive ? "bg-green-100 text-green-700 border border-green-200" : "bg-red-100 text-red-700 border border-red-200"}`}>
+                                   {member.isActive ? "Enabled" : "Suspended"}
+                                </span>
+                             </td>
+                             <td className="px-6 py-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button variant={member.isActive ? "outline" : "primary"} size="sm" onClick={() => handleStatusChange(member)} disabled={isBusy || isCurrentUser} className={member.isActive ? "hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200" : "bg-green-600 hover:bg-green-700 text-white"}>
+                                    {isBusy ? "..." : member.isActive ? <Power size={14} className="mr-1" /> : <CheckCircle2 size={14} className="mr-1" />}
+                                    {member.isActive ? <span className="hidden sm:inline">Suspend</span> : <span className="hidden sm:inline">Enable</span>}
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => handleDelete(member)} disabled={isBusy || isCurrentUser} className="text-slate-400 hover:text-red-600 hover:bg-red-50">
+                                    <Trash2 size={16} />
+                                  </Button>
+                                </div>
+                             </td>
+                           </motion.tr>
+                         );
+                       })}
+                     </AnimatePresence>
+                   </tbody>
+                 </table>
+               </div>
+             )}
+           </CardContent>
+        </Card>
+      </div>
+
+      {toast.show && <Toast message={toast.message} type={toast.type} duration={3000} onClose={() => setToast({ ...toast, show: false })} />}
+    </motion.div>
   );
 }

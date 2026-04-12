@@ -1,8 +1,12 @@
-// src/pages/RegisterPatient.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { User, Calendar, Mail, MapPin, Phone, Hash, Info, UserPlus } from "lucide-react";
 import api from "../services/api";
 import Toast from "../components/Toast";
+import Input from "../components/ui/Input";
+import Button from "../components/ui/Button";
+import { Card, CardContent } from "../components/ui/Card";
 
 export default function RegisterPatient() {
   const [form, setForm] = useState({
@@ -24,7 +28,6 @@ export default function RegisterPatient() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic validation
     if (!form.name.trim()) return showToast("Name cannot be empty.", "error");
     if (!form.age || Number(form.age) <= 0) return showToast("Age must be greater than 0.", "error");
     if (form.email && !/\S+@\S+\.\S+/.test(form.email)) return showToast("Invalid email address.", "error");
@@ -32,7 +35,6 @@ export default function RegisterPatient() {
     try {
       setLoading(true);
 
-      // Ensure all fields are strings for backend encryption
       const payload = {
         name: form.name.trim(),
         age: form.age.toString(),
@@ -42,22 +44,12 @@ export default function RegisterPatient() {
         email: form.email?.trim() || "",
       };
 
-      // Send patient to backend
       const res = await api.post("/patients", payload);
 
       showToast(`Patient "${res.data.name}" added successfully!`, "success");
 
-      // Reset form
-      setForm({
-        name: "",
-        age: "",
-        email: "",
-        gender: "other",
-        phone: "",
-        address: "",
-      });
+      setForm({ name: "", age: "", email: "", gender: "other", phone: "", address: "" });
 
-      // Redirect into the clinical flow so staff can queue or open the chart immediately.
       navigate("/waiting-room", {
         state: {
           newPatient: res.data,
@@ -74,120 +66,128 @@ export default function RegisterPatient() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+    <div className="p-6 md:p-8 max-w-4xl w-full mx-auto h-full overflow-y-auto">
       {toast && <Toast message={toast.message} type={toast.type} duration={3000} onClose={() => setToast(null)} />}
 
-      <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Register Patient</h1>
-        <p className="mb-6 rounded bg-blue-50 px-4 py-3 text-sm text-blue-800">
-          Patient card numbers are assigned automatically when you save the registration.
-        </p>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <Card className="border-0 shadow-lg bg-white overflow-hidden">
+          <div className="relative px-8 py-10 text-white overflow-hidden bg-gradient-to-r from-primary-600 via-primary-700 to-indigo-800 rounded-t-xl">
+            {/* Ambient background glows */}
+            <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-black/20 rounded-full blur-3xl pointer-events-none"></div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
-          <div>
-            <label className="block mb-1 font-medium">Name</label>
-            <input
-              type="text"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
-              disabled={loading}
-            />
+            <div className="absolute top-1/2 right-4 md:right-12 opacity-15 transform -translate-y-1/2 pointer-events-none">
+               <UserPlus size={180} />
+            </div>
+            
+            <div className="relative z-10 space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 text-sm font-medium border border-white/20 backdrop-blur-md shadow-sm">
+                 <Info size={16} className="text-cyan-200" />
+                 Card numbers are assigned automatically
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-white drop-shadow-sm">Patient Registration</h2>
+              <p className="text-primary-100 max-w-xl text-lg leading-relaxed">
+                 Fill out the details below to create a new patient record. Once registered, the patient will be placed directly in the waiting room triage queue.
+              </p>
+            </div>
           </div>
 
-          {/* Age */}
-          <div>
-            <label className="block mb-1 font-medium">Age</label>
-            <input
-              type="number"
-              name="age"
-              value={form.age}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
-              disabled={loading}
-            />
-          </div>
+          <CardContent className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="grid gap-6 md:grid-cols-2">
+                <Input
+                  label="Full Name"
+                  name="name"
+                  icon={User}
+                  value={form.name}
+                  onChange={handleChange}
+                  placeholder="e.g. Jane Doe"
+                  disabled={loading}
+                  required
+                />
+                
+                <Input
+                  label="Age"
+                  name="age"
+                  type="number"
+                  icon={Calendar}
+                  value={form.age}
+                  onChange={handleChange}
+                  placeholder="e.g. 34"
+                  disabled={loading}
+                  required
+                />
+              </div>
 
-          {/* Email */}
-          <div>
-            <label className="block mb-1 font-medium">Email</label>
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
-              disabled={loading}
-              placeholder="patient@example.com"
-            />
-          </div>
+              <div className="grid gap-6 md:grid-cols-2">
+                 <div className="space-y-1.5">
+                   <label className="text-sm font-medium text-slate-700">Gender</label>
+                   <div className="relative">
+                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                       <Hash size={18} className="text-slate-400" />
+                     </div>
+                     <select
+                       name="gender"
+                       value={form.gender}
+                       onChange={handleChange}
+                       className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none h-[46px]"
+                       disabled={loading}
+                     >
+                       <option value="male">Male</option>
+                       <option value="female">Female</option>
+                       <option value="other">Other</option>
+                     </select>
+                   </div>
+                 </div>
 
-          {/* Gender */}
-          <div>
-            <label className="block mb-1 font-medium">Gender</label>
-            <select
-              name="gender"
-              value={form.gender}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
-              disabled={loading}
-            >
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
+                 <Input
+                  label="Phone Number"
+                  name="phone"
+                  icon={Phone}
+                  value={form.phone}
+                  onChange={handleChange}
+                  placeholder="+1 (555) 000-0000"
+                  disabled={loading}
+                />
+              </div>
 
-          {/* Phone */}
-          <div>
-            <label className="block mb-1 font-medium">Phone</label>
-            <input
-              type="text"
-              name="phone"
-              value={form.phone}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
-              disabled={loading}
-            />
-          </div>
+              <Input
+                label="Email Address"
+                name="email"
+                type="email"
+                icon={Mail}
+                value={form.email}
+                onChange={handleChange}
+                placeholder="patient@example.com"
+                disabled={loading}
+              />
 
-          {/* Address */}
-          <div>
-            <label className="block mb-1 font-medium">Address</label>
-            <input
-              type="text"
-              name="address"
-              value={form.address}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
-              disabled={loading}
-            />
-          </div>
+              <Input
+                label="Residential Address"
+                name="address"
+                icon={MapPin}
+                value={form.address}
+                onChange={handleChange}
+                placeholder="Full street address"
+                disabled={loading}
+              />
 
-          {/* Buttons */}
-          <div className="flex justify-between mt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className={`px-4 py-2 rounded text-white ${
-                loading ? "bg-blue-300 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              {loading ? "Adding..." : "Add Patient"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate("/dashboard")}
-              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-            >
-              Back
-            </button>
-          </div>
-        </form>
-      </div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-6 mt-6 border-t border-slate-100">
+                <Button type="submit" size="lg" isLoading={loading} className="w-full sm:w-auto whitespace-nowrap">
+                  Complete Registration
+                </Button>
+                <Button type="button" variant="ghost" size="lg" onClick={() => navigate("/dashboard")} disabled={loading} className="w-full sm:w-auto whitespace-nowrap">
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }

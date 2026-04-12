@@ -1,36 +1,19 @@
 import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
 import WaitingRoomBoard from "../components/WaitingRoom/WaitingRoomBoard";
 
 export default function WaitingRoom() {
-  const navigate = useNavigate();
   const location = useLocation();
   const newPatient = location.state?.newPatient || null;
   const preselectPatientId = location.state?.preselectPatientId || "";
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="container mx-auto space-y-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Waiting Room</h1>
-            <p className="text-gray-600">
-              Track arrivals, update queue status, and keep the clinic moving.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate("/dashboard")}
-            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 w-full md:w-auto"
-          >
-            Back to Dashboard
-          </button>
-        </div>
-        <WaitingRoomBoard
-          newPatient={newPatient}
-          preselectPatientId={preselectPatientId}
-        />
-      </div>
-    </div>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="p-6 md:p-8 h-full overflow-y-auto">
+      <WaitingRoomBoard
+        newPatient={newPatient}
+        preselectPatientId={preselectPatientId}
+      />
+    </motion.div>
   );
 }

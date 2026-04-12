@@ -8,13 +8,13 @@ const api = axios.create({
 let refreshPromise = null;
 
 const clearAuthState = () => {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("user");
+  (localStorage.removeItem("accessToken"), sessionStorage.removeItem("accessToken"));
+  (localStorage.removeItem("refreshToken"), sessionStorage.removeItem("refreshToken"));
+  (localStorage.removeItem("user"), sessionStorage.removeItem("user"));
 };
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
+  const token = (localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken"));
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -23,7 +23,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    const refreshToken = localStorage.getItem("refreshToken");
+    const refreshToken = (localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken"));
     const isAuthEndpoint = originalRequest?.url?.includes("/auth/login");
     const isRefreshEndpoint = originalRequest?.url?.includes("/auth/refresh-token");
     const shouldAttemptRefresh =
@@ -50,7 +50,11 @@ api.interceptors.response.use(
           throw new Error("No refreshed access token returned");
         }
 
-        localStorage.setItem("accessToken", newAccessToken);
+        if (sessionStorage.getItem("accessToken") || sessionStorage.getItem("refreshToken")) {
+          sessionStorage.setItem("accessToken", newAccessToken);
+        } else {
+          localStorage.setItem("accessToken", newAccessToken);
+        }
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
         return api(originalRequest);
@@ -71,7 +75,7 @@ api.interceptors.response.use(
 );
 
 export const logoutCurrentUser = async () => {
-  const refreshToken = localStorage.getItem("refreshToken");
+  const refreshToken = (localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken"));
 
   try {
     if (refreshToken) {

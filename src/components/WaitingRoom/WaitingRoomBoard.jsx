@@ -1,34 +1,35 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { Users, Activity, CheckCircle, ChevronDown, ChevronUp, Bell, Clock, Search, LogOut, FileText, ArrowRight, UserPlus } from "lucide-react";
 import api from "../../services/api";
 import Toast from "../Toast";
 import { getEntityId } from "../../utils/entityId";
+import Button from "../ui/Button";
+import Input from "../ui/Input";
+import { Card, CardContent } from "../ui/Card";
 
-const STATUS_LABELS = {
-  waiting: "Waiting",
-  called: "Called",
-  in_consultation: "In Consultation",
-  completed: "Completed",
+const STATUS_LABELS = { waiting: "Waiting", called: "Called", in_consultation: "In Consultation", completed: "Completed" };
+const NEXT_ACTION = { waiting: "called", called: "in_consultation", in_consultation: "completed" };
+const ACTION_LABEL = { waiting: "Call Patient", called: "Start Consultation", in_consultation: "Complete" };
+
+const STATUS_STYLES = {
+  waiting: "bg-blue-50 text-blue-700 border-blue-200",
+  called: "bg-amber-50 text-amber-700 border-amber-200",
+  in_consultation: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  completed: "bg-slate-50 text-slate-700 border-slate-200"
 };
 
-const NEXT_ACTION = {
-  waiting: "called",
-  called: "in_consultation",
-  in_consultation: "completed",
+const METRIC_COLORS = {
+  waiting: "bg-blue-600 text-white shadow-blue-500/20",
+  called: "bg-amber-500 text-white shadow-amber-500/20",
+  in_consultation: "bg-emerald-600 text-white shadow-emerald-500/20",
+  completed: "bg-slate-600 text-white shadow-slate-500/20"
 };
 
-const ACTION_LABEL = {
-  waiting: "Call Patient",
-  called: "Start Consultation",
-  in_consultation: "Complete",
-};
-
-export default function WaitingRoomBoard({
-  newPatient = null,
-  preselectPatientId = "",
-}) {
+export default function WaitingRoomBoard({ newPatient = null, preselectPatientId = "" }) {
   const navigate = useNavigate();
-  const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+  const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
   const isFrontDesk = storedUser.role === "nurse";
   const [entries, setEntries] = useState([]);
   const [patients, setPatients] = useState([]);
@@ -41,24 +42,10 @@ export default function WaitingRoomBoard({
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
-  useEffect(() => {
-    if (preselectPatientId) {
-      setSelectedPatient(preselectPatientId);
-    }
-  }, [preselectPatientId]);
+  useEffect(() => { if (preselectPatientId) setSelectedPatient(preselectPatientId); }, [preselectPatientId]);
 
   const fetchPatients = useCallback(async () => {
-    try {
-      const response = await api.get("/patients");
-      setPatients(response.data || []);
-    } catch (error) {
-      console.error("Failed to load patients:", error);
-      setToast({
-        show: true,
-        message: "Failed to load patients",
-        type: "error",
-      });
-    }
+    try { const response = await api.get("/patients"); setPatients(response.data || []); } catch (error) { console.error(error); }
   }, []);
 
   const fetchQueue = useCallback(async () => {
@@ -69,416 +56,249 @@ export default function WaitingRoomBoard({
       if (searchQuery) params.append("search", searchQuery);
       const response = await api.get(`/waiting-room?${params}`);
       setEntries(response.data || []);
-    } catch (error) {
-      console.error("Failed to load waiting room:", error);
-      setToast({
-        show: true,
-        message: "Failed to load waiting room",
-        type: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error(error); } finally { setLoading(false); }
   }, [searchQuery, statusFilter]);
 
-  useEffect(() => {
-    fetchPatients();
-    fetchQueue();
-    const interval = setInterval(fetchQueue, 8000);
-    return () => clearInterval(interval);
-  }, [fetchPatients, fetchQueue]);
+  useEffect(() => { fetchPatients(); fetchQueue(); const interval = setInterval(fetchQueue, 8000); return () => clearInterval(interval); }, [fetchPatients, fetchQueue]);
 
-  const showToast = (message, type = "success") =>
-    setToast({ show: true, message, type });
+  const showToast = (message, type = "success") => setToast({ show: true, message, type });
 
   const handleAddToWaitingRoom = async () => {
-    if (!selectedPatient) {
-      showToast("Select a patient to add", "error");
-      return;
-    }
-
+    if (!selectedPatient) return showToast("Select a patient to add", "error");
     try {
-      await api.post("/waiting-room", {
-        patientId: selectedPatient,
-        notes,
-      });
-      setSelectedPatient("");
-      setPatientSearchQuery("");
-      setPatientPickerOpen(false);
-      setNotes("");
+      await api.post("/waiting-room", { patientId: selectedPatient, notes });
+      setSelectedPatient(""); setPatientSearchQuery(""); setPatientPickerOpen(false); setNotes("");
       showToast("Patient added to waiting room", "success");
       fetchQueue();
-    } catch (error) {
-      showToast(
-        error.response?.data?.message || "Failed to add patient",
-        "error",
-      );
-    }
+    } catch (error) { showToast(error.response?.data?.message || "Failed to add patient", "error"); }
   };
 
   const handleOpenRecord = (patientId) => {
     if (!patientId) return;
-    navigate(`/patients/${patientId}/records`, {
-      state: { returnTo: "/waiting-room" },
-    });
+    navigate(`/patients/${patientId}/records`, { state: { returnTo: "/waiting-room" } });
   };
 
   const handleStatusUpdate = async (item) => {
     const nextStatus = NEXT_ACTION[item.status];
     if (!nextStatus) return;
-    if (isFrontDesk && nextStatus !== "called") {
-      showToast("Front desk can only move patients to Called.", "error");
-      return;
-    }
+    if (isFrontDesk && nextStatus !== "called") return showToast("Front desk can only move patients to Called.", "error");
 
     try {
       await api.put(`/waiting-room/${getEntityId(item)}`, { status: nextStatus });
-      showToast(
-        `${item.patientName || item.patientId?.name} moved to ${STATUS_LABELS[nextStatus]}`,
-        "success",
-      );
+      showToast(`${item.patientName || item.patientId?.name} moved to ${STATUS_LABELS[nextStatus]}`, "success");
       fetchQueue();
-    } catch (error) {
-      showToast(
-        error.response?.data?.message || "Failed to update status",
-        "error",
-      );
-    }
+    } catch (error) { showToast(error.response?.data?.message || "Failed to update status", "error"); }
   };
 
   const handleRemove = async (item) => {
-    if (
-      !window.confirm(
-        `Remove ${item.patientName || item.patientId?.name} from the queue?`,
-      )
-    ) {
-      return;
-    }
-
+    if (!window.confirm(`Remove ${item.patientName || item.patientId?.name} from the queue?`)) return;
     try {
       await api.delete(`/waiting-room/${getEntityId(item)}`);
       showToast("Patient removed from waiting list", "success");
       fetchQueue();
-    } catch (error) {
-      showToast(
-        error.response?.data?.message || "Failed to remove patient",
-        "error",
-      );
-    }
+    } catch (error) { showToast(error.response?.data?.message || "Failed to remove patient", "error"); }
   };
 
-  const sectionItems = (status) =>
-    entries.filter((entry) => entry.status === status);
+  const sectionItems = (status) => entries.filter((entry) => entry.status === status);
 
   const filteredPatients = patients.filter((patient) => {
     const query = patientSearchQuery.trim().toLowerCase();
     if (!query) return true;
-
-    const searchableText = [
-      patient?.name,
-      patient?.cardNumber,
-      patient?.phone,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
+    const searchableText = [patient?.name, patient?.cardNumber, patient?.phone].filter(Boolean).join(" ").toLowerCase();
     return searchableText.includes(query);
   });
 
-  const selectedPatientDetails =
-    patients.find((patient) => getEntityId(patient) === selectedPatient) || null;
+  const selectedPatientDetails = patients.find((p) => getEntityId(p) === selectedPatient) || null;
 
   const formatDate = (value) => {
     if (!value) return "--";
-    return new Date(value).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-surface-200">
         <div>
-          <h2 className="text-2xl font-bold">Waiting Room</h2>
-          <p className="text-gray-600">
-            Live queue management for every patient in the clinic.
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">Waiting Room</h2>
+          <p className="text-sm text-slate-500 max-w-xl">
+            Live queue management. Manage patient flow seamlessly from check-in to consultation completion.
           </p>
         </div>
-        <button
-          onClick={fetchQueue}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full md:w-auto"
-        >
-          Refresh Queue
-        </button>
+        <Button onClick={fetchQueue} variant="outline" className="w-full md:w-auto bg-white border-slate-200">
+          <Activity size={18} className="mr-2" /> Refresh Queue
+        </Button>
       </div>
 
       {newPatient && (
-        <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                Newly Registered Patient
-              </p>
-              <h3 className="mt-1 text-lg font-bold text-gray-900">
-                {newPatient.name}
-              </h3>
-              <p className="text-sm text-gray-700">
-                Card number: {newPatient.cardNumber || "Pending"}
-              </p>
-              <p className="text-sm text-gray-700">
-                Next step: add this patient to the queue or open the chart to begin notes.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                onClick={() => {
-                  if (preselectPatientId) {
-                    setSelectedPatient(preselectPatientId);
-                  }
-                }}
-                className="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
-              >
-                Prepare Queue Entry
-              </button>
-              {!isFrontDesk && (
-                <button
-                  onClick={() =>
-                    handleOpenRecord(getEntityId(newPatient))
-                  }
-                  className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-                >
-                  Open Patient Record
-                </button>
-              )}
-            </div>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-2xl border border-primary-200 bg-primary-50 p-6 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm">
+          <div>
+             <p className="text-xs font-bold uppercase tracking-widest text-primary-600 mb-1 flex items-center"><UserPlus size={14} className="mr-1" /> Newly Registered</p>
+             <h3 className="text-xl font-bold text-slate-900">{newPatient.name}</h3>
+             <p className="text-sm text-slate-600 mt-1">Card: <span className="font-mono bg-white px-2 py-0.5 rounded border border-slate-200">{newPatient.cardNumber || "Pending"}</span></p>
           </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-blue-50 p-4 rounded border border-blue-100">
-          <p className="text-sm text-gray-600">Waiting</p>
-          <p className="mt-2 text-3xl font-semibold">
-            {sectionItems("waiting").length}
-          </p>
-        </div>
-        <div className="bg-yellow-50 p-4 rounded border border-yellow-100">
-          <p className="text-sm text-gray-600">Called</p>
-          <p className="mt-2 text-3xl font-semibold">
-            {sectionItems("called").length}
-          </p>
-        </div>
-        <div className="bg-green-50 p-4 rounded border border-green-100">
-          <p className="text-sm text-gray-600">In Consultation</p>
-          <p className="mt-2 text-3xl font-semibold">
-            {sectionItems("in_consultation").length}
-          </p>
-        </div>
-        <div className="bg-gray-50 p-4 rounded border border-gray-100">
-          <p className="text-sm text-gray-600">Completed</p>
-          <p className="mt-2 text-3xl font-semibold">
-            {sectionItems("completed").length}
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="bg-gray-50 p-4 rounded border border-gray-200">
-          <label className="block text-sm font-semibold mb-2">
-            Add to Waiting Room
-          </label>
-          <div className="relative mb-3">
-            <button
-              type="button"
-              onClick={() => setPatientPickerOpen((open) => !open)}
-              className="flex w-full items-center justify-between rounded border border-gray-300 bg-white p-2 text-left"
-            >
-              <span className={selectedPatientDetails ? "text-gray-900" : "text-gray-500"}>
-                {selectedPatientDetails
-                  ? [
-                      selectedPatientDetails.name,
-                      selectedPatientDetails.cardNumber || "no card",
-                      selectedPatientDetails.phone || "no phone",
-                    ].join(" | ")
-                  : "Select existing patient"}
-              </span>
-              <span className="text-sm text-gray-500">
-                {patientPickerOpen ? "▲" : "▼"}
-              </span>
-            </button>
-
-            {patientPickerOpen && (
-              <div className="absolute z-20 mt-2 w-full rounded border border-gray-300 bg-white shadow-lg">
-                <div className="border-b border-gray-200 p-2">
-                  <input
-                    autoFocus
-                    value={patientSearchQuery}
-                    onChange={(e) => setPatientSearchQuery(e.target.value)}
-                    className="w-full rounded border border-gray-300 p-2"
-                    placeholder="Search by patient name, card number, or phone"
-                  />
-                </div>
-
-                <div className="max-h-64 overflow-y-auto p-2">
-                  {filteredPatients.length === 0 ? (
-                    <p className="p-2 text-sm text-gray-500">
-                      No patients matched that search.
-                    </p>
-                  ) : (
-                    filteredPatients.map((patient) => (
-                      <button
-                        key={getEntityId(patient)}
-                        type="button"
-                        onClick={() => {
-                          setSelectedPatient(getEntityId(patient));
-                          setPatientPickerOpen(false);
-                        }}
-                        className={`mb-1 w-full rounded px-3 py-2 text-left hover:bg-blue-50 ${
-                          selectedPatient === getEntityId(patient)
-                            ? "bg-blue-100"
-                            : "bg-white"
-                        }`}
-                      >
-                        <p className="font-medium text-gray-900">{patient.name}</p>
-                        <p className="text-sm text-gray-600">
-                          {[patient.cardNumber || "no card", patient.phone || "no phone"].join(" | ")}
-                        </p>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <Button onClick={() => { if (preselectPatientId) setSelectedPatient(preselectPatientId); }} className="w-full sm:w-auto shadow-md">
+              Prepare Queue Entry
+            </Button>
+            {!isFrontDesk && (
+              <Button variant="outline" onClick={() => handleOpenRecord(getEntityId(newPatient))} className="bg-white hover:bg-slate-100">
+                Open Patient Record
+              </Button>
             )}
           </div>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="w-full border border-gray-300 rounded p-2 mb-3"
-            rows="3"
-            placeholder="Optional notes for receptionist or dentist"
-          />
-          <button
-            onClick={handleAddToWaitingRoom}
-            className="w-full bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-          >
-            Add Patient
-          </button>
-        </div>
+        </motion.div>
+      )}
 
-        <div className="lg:col-span-2 bg-gray-50 p-4 rounded border border-gray-200">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-            <div>
-              <p className="text-sm text-gray-600">Filter</p>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-gray-300 rounded p-2"
-              >
-                <option value="all">All statuses</option>
-                {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+      {/* Metric Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {Object.entries(STATUS_LABELS).map(([key, label]) => (
+           <Card key={key} className="border-0 shadow-sm relative overflow-hidden bg-white">
+             <div className={`absolute top-0 left-0 w-1.5 h-full ${METRIC_COLORS[key].split(' ')[0]}`} />
+             <CardContent className="p-5 pl-6 flex flex-col items-start">
+               <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2">{label}</p>
+               <div className="flex items-end gap-3 tracking-tight">
+                 <span className="text-4xl font-bold text-slate-900 leading-none">{sectionItems(key).length}</span>
+                 <span className="text-sm font-medium text-slate-400 mb-1 shrink-0">Patients</span>
+               </div>
+             </CardContent>
+           </Card>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Check-in panel */}
+        <Card className="h-fit">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center"><UserPlus size={20} className="mr-2 text-primary-500" /> Walk-in / Check-in</h3>
+            <div className="space-y-4">
+              <div className="relative">
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Select Patient</label>
+                <div 
+                  onClick={() => setPatientPickerOpen(!patientPickerOpen)}
+                  className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-slate-300 transition-colors"
+                >
+                  <span className={selectedPatientDetails ? "text-slate-900 font-medium" : "text-slate-400"}>
+                    {selectedPatientDetails ? selectedPatientDetails.name : "Choose a patient..."}
+                  </span>
+                  {patientPickerOpen ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
+                </div>
+
+                <AnimatePresence>
+                  {patientPickerOpen && (
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute z-30 mt-2 w-full rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden">
+                      <div className="border-b border-slate-100 p-2">
+                        <Input autoFocus value={patientSearchQuery} onChange={(e) => setPatientSearchQuery(e.target.value)} placeholder="Search name or card..." icon={Search} className="h-10 text-sm" />
+                      </div>
+                      <div className="max-h-60 overflow-y-auto p-1">
+                        {filteredPatients.length === 0 ? (
+                          <p className="p-4 text-center text-sm text-slate-500 italic">No patients matched.</p>
+                        ) : (
+                          filteredPatients.map((p) => (
+                            <button
+                              key={getEntityId(p)} type="button"
+                              onClick={() => { setSelectedPatient(getEntityId(p)); setPatientPickerOpen(false); }}
+                              className={`w-full rounded-lg px-3 py-2.5 text-left transition-colors flex flex-col items-start ${selectedPatient === getEntityId(p) ? "bg-primary-50 pl-4 border-l-2 border-primary-500" : "hover:bg-slate-50 pl-4"}`}
+                            >
+                              <span className="font-semibold text-slate-900 text-sm">{p.name}</span>
+                              <span className="text-xs text-slate-500 font-mono mt-0.5">{p.cardNumber || "No Card"}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">Triage Notes</label>
+                <textarea
+                  value={notes} onChange={(e) => setNotes(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none"
+                  rows="3" placeholder="Symptoms, priority..."
+                />
+              </div>
+
+              <Button onClick={handleAddToWaitingRoom} className="w-full shadow-md py-6">
+                Add to Waiting Queue
+              </Button>
             </div>
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search patient"
-              className="border border-gray-300 rounded p-2 w-full md:w-72"
-            />
+          </CardContent>
+        </Card>
+
+        {/* Live Queue tracking list */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full sm:w-auto rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 focus:outline-none shadow-sm">
+                <option value="all">All Statuses</option>
+                {Object.entries(STATUS_LABELS).map(([key, label]) => (<option key={key} value={key}>{label}</option>))}
+             </select>
+             <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search queue..." icon={Search} className="bg-white rounded-full shadow-sm" />
           </div>
 
           {loading ? (
-            <div className="text-center py-8 text-gray-500">
-              Loading queue...
-            </div>
+             <div className="py-20 text-center"><div className="h-8 w-8 mx-auto animate-spin rounded-full border-4 border-primary-600 border-t-transparent mb-4" /><p className="text-slate-500 font-medium">Loading queue data...</p></div>
           ) : entries.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No patients are queued right now.
-            </div>
+             <Card className="border-dashed border-2 bg-slate-50/50"><CardContent className="py-20 flex flex-col items-center justify-center text-slate-500"><Users size={48} className="text-slate-300 mb-4" /><p className="text-lg font-semibold text-slate-700">Empty Queue</p><p className="text-sm">There are no patients waiting matching your criteria.</p></CardContent></Card>
           ) : (
-            <div className="space-y-4">
-              {entries.map((entry) => (
-                <div
-                  key={getEntityId(entry)}
-                  className="border border-gray-200 rounded-lg p-4 bg-white"
-                >
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                    <div>
-                      <p className="font-semibold text-lg">
-                        {entry.patientName || entry.patientId?.name}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {[
-                          entry.patientId?.phone || "No phone",
-                          entry.patientId?.email || "No email",
-                        ].join(" | ")}
-                      </p>
-                      <p className="text-sm text-gray-600 mt-2">
-                        {STATUS_LABELS[entry.status]}
-                      </p>
-                    </div>
-                    <div className="text-right text-sm text-gray-500">
-                      <p>Arrived: {formatDate(entry.arrivalTime)}</p>
-                      <p>Called: {formatDate(entry.calledAt)}</p>
-                      <p>
-                        Consultation: {formatDate(entry.consultationStartedAt)}
-                      </p>
-                    </div>
-                  </div>
+            <div className="space-y-3">
+              <AnimatePresence>
+                {entries.map((entry) => (
+                  <motion.div key={getEntityId(entry)} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.95, height: 0 }}>
+                    <Card className="border border-surface-200 hover:shadow-md transition-all group overflow-hidden relative">
+                      <div className={`absolute top-0 left-0 w-1.5 h-full ${STATUS_STYLES[entry.status].split(' ')[0]}`} />
+                      <CardContent className="p-4 pl-6 md:p-5 md:pl-7">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex-1">
+                             <div className="flex items-center gap-3 mb-1">
+                               <h4 className="font-bold text-slate-900 text-lg">{entry.patientName || entry.patientId?.name}</h4>
+                               <span className={`px-2 py-0.5 rounded textxs font-semibold uppercase tracking-wider border ${STATUS_STYLES[entry.status]}`}>{STATUS_LABELS[entry.status]}</span>
+                             </div>
+                             {(entry.patientId?.phone || entry.patientId?.cardNumber) && (
+                               <p className="text-sm text-slate-500 mt-1 font-mono">{[entry.patientId?.cardNumber, entry.patientId?.phone].filter(Boolean).join(" • ")}</p>
+                             )}
+                             
+                             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3.5 pt-3.5 border-t border-slate-100 text-xs font-medium text-slate-500">
+                                <span className="flex items-center"><LogOut size={12} className="mr-1 shrink-0" /> Arrived: {formatDate(entry.arrivalTime)}</span>
+                                {entry.calledAt && <span className="flex items-center"><Bell size={12} className="mr-1 shrink-0 text-amber-500" /> Called: {formatDate(entry.calledAt)}</span>}
+                                {entry.consultationStartedAt && <span className="flex items-center"><CheckCircle size={12} className="mr-1 shrink-0 text-emerald-500" /> Consult: {formatDate(entry.consultationStartedAt)}</span>}
+                             </div>
 
-                  {entry.notes && (
-                    <p className="mt-3 text-sm text-gray-700">
-                      Notes: {entry.notes}
-                    </p>
-                  )}
+                             {entry.notes && (
+                                <div className="mt-3 bg-slate-50 italic text-slate-600 text-sm p-3 rounded-lg border border-slate-100 flex items-start">
+                                  <FileText size={16} className="text-slate-400 mr-2 shrink-0 mt-0.5" /> {entry.notes}
+                                </div>
+                             )}
+                          </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {!isFrontDesk && (
-                      <button
-                        onClick={() =>
-                          handleOpenRecord(getEntityId(entry.patientId) || entry.patientId)
-                        }
-                        className="bg-slate-700 text-white px-3 py-2 rounded hover:bg-slate-800"
-                      >
-                        Open Record
-                      </button>
-                    )}
-                    {NEXT_ACTION[entry.status] && (
-                      (!isFrontDesk || NEXT_ACTION[entry.status] === "called") && (
-                      <button
-                        onClick={() => handleStatusUpdate(entry)}
-                        className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700"
-                      >
-                        {ACTION_LABEL[entry.status]}
-                      </button>
-                      )
-                    )}
-                    <button
-                      onClick={() => handleRemove(entry)}
-                      className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))}
+                          <div className="flex flex-col sm:flex-row md:flex-col gap-2 min-w-[140px] shrink-0 border-t pt-3 md:border-t-0 md:pt-0 border-slate-100">
+                             {NEXT_ACTION[entry.status] && (!isFrontDesk || NEXT_ACTION[entry.status] === "called") && (
+                               <Button onClick={() => handleStatusUpdate(entry)} size="sm" className="w-full bg-slate-800 hover:bg-slate-900 shadow text-white">
+                                 {ACTION_LABEL[entry.status]} <ArrowRight size={14} className="ml-1.5" />
+                               </Button>
+                             )}
+                             {!isFrontDesk && (
+                               <Button variant="outline" size="sm" onClick={() => handleOpenRecord(getEntityId(entry.patientId) || entry.patientId)} className="w-full bg-white">
+                                 Open Chart
+                               </Button>
+                             )}
+                             {(isFrontDesk || entry.status === "completed") && (
+                               <Button variant="ghost" size="sm" onClick={() => handleRemove(entry)} className="w-full text-red-500 hover:bg-red-50 hover:text-red-700">
+                                 Remove
+                               </Button>
+                             )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </div>
       </div>
-
-      {toast.show && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast({ ...toast, show: false })}
-        />
-      )}
+      {toast.show && <Toast message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, show: false })} duration={3000} />}
     </div>
   );
 }

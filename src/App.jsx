@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
+import DashboardLayout from "./components/layout/DashboardLayout";
 
 const Login = lazy(() => import("./pages/Login"));
 const RegisterClinic = lazy(() => import("./pages/RegisterClinic"));
@@ -22,11 +23,17 @@ const Support = lazy(() => import("./pages/Support"));
 
 function RouteLoader() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
-      <p className="text-sm font-medium text-gray-700">Loading page...</p>
+    <div className="flex min-h-screen items-center justify-center bg-surface-50 px-4">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent"></div>
     </div>
   );
 }
+
+const ProtectedLayout = () => (
+  <ProtectedRoute>
+    <DashboardLayout />
+  </ProtectedRoute>
+);
 
 function App() {
   return (
@@ -41,72 +48,41 @@ function App() {
           <Route path="/register-clinic" element={<RegisterClinic />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/support" element={<Support />} />
-          <Route
-            path="/signup"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <Signup />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/clinic-settings"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <ClinicSettings />
-              </ProtectedRoute>
-            }
-          />
 
-          {/* Protected routes */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/register-patient"
-            element={
-              <ProtectedRoute>
-                <RegisterPatient />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/patients/:id/records"
-            element={
-              <ProtectedRoute allowedRoles={["admin", "doctor", "nurse"]}>
-                <PatientRecord />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/appointments"
-            element={
-              <ProtectedRoute>
-                <Appointments />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/waiting-room"
-            element={
-              <ProtectedRoute>
-                <WaitingRoom />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/billing"
-            element={
-              <ProtectedRoute>
-                <Billing />
-              </ProtectedRoute>
-            }
-          />
+          {/* Protected routes - wrapped with Sidebar Layout */}
+          <Route element={<ProtectedLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/register-patient" element={<RegisterPatient />} />
+            <Route path="/appointments" element={<Appointments />} />
+            <Route path="/waiting-room" element={<WaitingRoom />} />
+            <Route path="/billing" element={<Billing />} />
+            
+            {/* Require admin/specific roles */}
+            <Route
+              path="/signup"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Signup />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/clinic-settings"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <ClinicSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patients/:id/records"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "doctor", "nurse"]}>
+                  <PatientRecord />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
 
           {/* Fallback for unknown routes */}
           <Route path="*" element={<Navigate to="/login" />} />

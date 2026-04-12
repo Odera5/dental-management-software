@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import api, { logoutCurrentUser } from "../services/api";
+import { motion } from "framer-motion";
+import { 
+  Users, Calendar, Activity, CreditCard, Search, RefreshCw, ArchiveRestore, Trash2
+} from "lucide-react";
+import api from "../services/api";
 import Toast from "../components/Toast";
 import { getEntityId } from "../utils/entityId";
+import { Card, CardContent } from "../components/ui/Card";
+import Input from "../components/ui/Input";
+import Button from "../components/ui/Button";
 
 const PATIENTS_PER_PAGE = 25;
 
@@ -11,50 +18,29 @@ const formatLocalDateKey = (value = new Date()) => {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
   const day = `${date.getDate()}`.padStart(2, "0");
-
   return `${year}-${month}-${day}`;
 };
 
-const defaultWaitingSummary = {
-  waiting: 0,
-  called: 0,
-  in_consultation: 0,
-  completed: 0,
-  total: 0,
-};
+const defaultWaitingSummary = { waiting: 0, called: 0, in_consultation: 0, completed: 0, total: 0 };
 
 const shouldSuppressDashboardError = (error) => {
   const status = error?.response?.status;
-  const message = String(error?.response?.data?.message || error?.message || "")
-    .toLowerCase()
-    .trim();
-
+  const message = String(error?.response?.data?.message || error?.message || "").toLowerCase().trim();
   if ([400, 404].includes(status)) return true;
-
-  return (
-    message.includes("not found") ||
-    message.includes("no appointment") ||
-    message.includes("no invoice") ||
-    message.includes("no record") ||
-    message.includes("no data")
-  );
+  return message.includes("not found") || message.includes("no appointment") || message.includes("no invoice") || message.includes("no record") || message.includes("no data");
 };
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+  const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
   const user = {
-    name: storedUser.name || storedUser.email || "User",
-    email: storedUser.email || "",
     role: storedUser.role || "nurse",
-    clinicName: storedUser.clinic?.name || "Clinic",
   };
-  const canViewRecords =
-    user.role === "admin" || user.role === "doctor" || user.role === "nurse";
-  const canDeletePatients =
-    user.role === "admin" || user.role === "doctor" || user.role === "nurse";
+  
+  const canViewRecords = ["admin", "doctor", "nurse"].includes(user.role);
+  const canDeletePatients = ["admin", "doctor", "nurse"].includes(user.role);
 
   const [patients, setPatients] = useState([]);
   const [patientsToday, setPatientsToday] = useState([]);
@@ -65,33 +51,20 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [loading, setLoading] = useState(true);
-  const [showTrash, setShowTrash] = useState(false);
   const [toast, setToast] = useState(null);
   const [currentDay, setCurrentDay] = useState(formatLocalDateKey());
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [authChecked, setAuthChecked] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const showTrash = location.search.includes("tab=trash");
 
   const showToast = (message, type = "success") => setToast({ message, type });
 
-  // Redirect if not logged in
-  useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) navigate("/login");
-    else setAuthChecked(true);
-  }, [navigate]);
-
-  // Fetch patients
   const fetchPatients = async () => {
     try {
       setLoading(true);
       const res = await api.get("/patients");
       const activePatients = (res.data || []).filter((p) => p && !p.isDeleted);
-      setPatients(
-        activePatients.sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-        ),
-      );
+      setPatients(activePatients.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
     } catch (err) {
       console.error(err);
       showToast("Failed to load patients", "error");
@@ -100,40 +73,27 @@ export default function Dashboard() {
     }
   };
 
-  // Fetch trash
   const fetchTrash = async () => {
     if (user.role !== "admin") return;
     try {
       const res = await api.get("/patients/trash/all");
-      // Ensure name is always present
-      setTrash(
-        (res.data || []).map((p) => ({
-          ...p,
-          name: p.name || p.fullName || "Unknown",
-        })),
-      );
+      setTrash((res.data || []).map((p) => ({ ...p, name: p.name || p.fullName || "Unknown" })));
     } catch (err) {
       console.error(err);
       setTrash([]);
-      if (!shouldSuppressDashboardError(err)) {
-        showToast("Failed to load trash", "error");
-      }
+      if (!shouldSuppressDashboardError(err)) showToast("Failed to load trash", "error");
     }
   };
 
   const fetchAppointmentsToday = async () => {
     try {
       const today = formatLocalDateKey();
-      const res = await api.get(
-        `/appointments?startDate=${today}&endDate=${today}`,
-      );
+      const res = await api.get(`/appointments?startDate=${today}&endDate=${today}`);
       setAppointmentsToday(res.data?.length || 0);
     } catch (err) {
       console.error(err);
       setAppointmentsToday(0);
-      if (!shouldSuppressDashboardError(err)) {
-        showToast("Failed to load today's appointments", "error");
-      }
+      if (!shouldSuppressDashboardError(err)) showToast("Failed to load today's appointments", "error");
     }
   };
 
@@ -144,44 +104,32 @@ export default function Dashboard() {
     } catch (err) {
       console.error(err);
       setWaitingSummary(defaultWaitingSummary);
-      if (!shouldSuppressDashboardError(err)) {
-        showToast("Failed to load waiting room summary", "error");
-      }
+      if (!shouldSuppressDashboardError(err)) showToast("Failed to load waiting room summary", "error");
     }
   };
 
   const fetchMonthlyRevenue = async () => {
     try {
       const now = new Date();
-      const startDate = formatLocalDateKey(
-        new Date(now.getFullYear(), now.getMonth(), 1),
-      );
-      const endDate = formatLocalDateKey(
-        new Date(now.getFullYear(), now.getMonth() + 1, 0),
-      );
-      const res = await api.get(
-        `/invoices/report?startDate=${startDate}&endDate=${endDate}`,
-      );
+      const startDate = formatLocalDateKey(new Date(now.getFullYear(), now.getMonth(), 1));
+      const endDate = formatLocalDateKey(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+      const res = await api.get(`/invoices/report?startDate=${startDate}&endDate=${endDate}`);
       setMonthlyRevenue(res.data?.totalRevenue || 0);
     } catch (err) {
       console.error(err);
       setMonthlyRevenue(0);
-      if (!shouldSuppressDashboardError(err)) {
-        showToast("Failed to load revenue summary", "error");
-      }
+      if (!shouldSuppressDashboardError(err)) showToast("Failed to load revenue summary", "error");
     }
   };
 
   useEffect(() => {
-    if (!authChecked) return;
     fetchPatients();
     fetchTrash();
     fetchAppointmentsToday();
     fetchWaitingSummary();
     fetchMonthlyRevenue();
-  }, [authChecked]);
+  }, []);
 
-  // Add new patient from navigation state
   useEffect(() => {
     if (location.state?.newPatient) {
       setPatients((prev) => [location.state.newPatient, ...prev]);
@@ -189,34 +137,18 @@ export default function Dashboard() {
     }
   }, [location.state]);
 
-  // Update current time every minute
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60 * 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Reset current day if date changes
   useEffect(() => {
     const today = formatLocalDateKey();
     if (today !== currentDay) setCurrentDay(today);
   }, [currentDay]);
 
-  // Patients registered today
   useEffect(() => {
-    setPatientsToday(
-      patients.filter((p) => formatLocalDateKey(p.createdAt) === currentDay),
-    );
+    setPatientsToday(patients.filter((p) => formatLocalDateKey(p.createdAt) === currentDay));
   }, [patients, currentDay]);
-
-  const handleLogout = async () => {
-    await logoutCurrentUser();
-    navigate("/login");
-  };
 
   const requestSort = (key) => {
     let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc")
-      direction = "desc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") direction = "desc";
     setSortConfig({ key, direction });
   };
 
@@ -224,73 +156,38 @@ export default function Dashboard() {
     ? [...patients].sort((a, b) => {
         if (!a[sortConfig.key]) return 1;
         if (!b[sortConfig.key]) return -1;
-        if (a[sortConfig.key] < b[sortConfig.key])
-          return sortConfig.direction === "asc" ? -1 : 1;
-        if (a[sortConfig.key] > b[sortConfig.key])
-          return sortConfig.direction === "asc" ? 1 : -1;
+        if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === "asc" ? -1 : 1;
+        if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === "asc" ? 1 : -1;
         return 0;
       })
     : [...patients];
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
-
-  const matchesPatientSearch = (patient) => {
+  const matchesSearch = (patient) => {
     if (!normalizedSearchQuery) return true;
-
-    const searchableValues = [patient?.name, patient?.cardNumber]
-      .filter(Boolean)
-      .map((value) => String(value).toLowerCase());
-
-    return searchableValues.some((value) => value.includes(normalizedSearchQuery));
+    return [patient?.name, patient?.cardNumber].filter(Boolean).map(v => String(v).toLowerCase()).some(v => v.includes(normalizedSearchQuery));
   };
 
-  const filteredPatients = sortedPatients
-    .filter((p) => p && p.name)
-    .filter(matchesPatientSearch);
-
-  const filteredTrash = trash
-    .filter((p) => p && p.name)
-    .filter(matchesPatientSearch);
-
-  const activeList = showTrash ? filteredTrash : filteredPatients;
+  const activeList = showTrash ? trash.filter(matchesSearch) : sortedPatients.filter(p => p && p.name).filter(matchesSearch);
   const totalPages = Math.max(1, Math.ceil(activeList.length / PATIENTS_PER_PAGE));
   const currentPageSafe = Math.min(currentPage, totalPages);
   const pageStartIndex = (currentPageSafe - 1) * PATIENTS_PER_PAGE;
-  const paginatedPatients = activeList.slice(
-    pageStartIndex,
-    pageStartIndex + PATIENTS_PER_PAGE,
-  );
+  const paginatedPatients = activeList.slice(pageStartIndex, pageStartIndex + PATIENTS_PER_PAGE);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, showTrash, sortConfig]);
+  useEffect(() => setCurrentPage(1), [searchQuery, showTrash, sortConfig]);
+  useEffect(() => { if (currentPage > totalPages) setCurrentPage(totalPages); }, [currentPage, totalPages]);
 
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  // Soft delete
   const handleDelete = async (patientId) => {
     if (!window.confirm("Move this patient to Trash?")) return;
     try {
       const res = await api.delete(`/patients/${patientId}`);
       if (res.status === 200) {
-        // Remove from active patients
-        setPatients((prev) =>
-          prev.filter((patient) => getEntityId(patient) !== patientId),
-        );
-        // Refresh trash immediately from backend
+        setPatients((prev) => prev.filter((patient) => getEntityId(patient) !== patientId));
         fetchTrash();
         showToast(res.data.message || "Patient moved to Trash");
       } else showToast("Failed to delete patient", "error");
     } catch (err) {
-      console.error(err);
-      showToast(
-        err.response?.data?.message || "Failed to delete patient",
-        "error",
-      );
+      showToast(err.response?.data?.message || "Failed to delete patient", "error");
     }
   };
 
@@ -303,11 +200,7 @@ export default function Dashboard() {
         showToast("Patient restored successfully");
       }
     } catch (err) {
-      console.error(err);
-      showToast(
-        err.response?.data?.message || "Failed to restore patient",
-        "error",
-      );
+      showToast(err.response?.data?.message || "Failed to restore patient", "error");
     }
   };
 
@@ -320,287 +213,181 @@ export default function Dashboard() {
         showToast("Patient permanently deleted");
       }
     } catch (err) {
-      console.error(err);
-      showToast(
-        err.response?.data?.message || "Failed to permanently delete patient",
-        "error",
-      );
+      showToast(err.response?.data?.message || "Failed to permanently delete patient", "error");
     }
   };
 
-  const handleViewRecords = (patientId) => navigate(`/patients/${patientId}/records`);
-
-  const formattedTime = currentTime.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-  const formattedDate = currentTime.toLocaleDateString();
-
   return (
-    <div className="flex min-h-screen flex-col bg-gray-100 p-3 sm:p-4 lg:p-6">
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          duration={3000}
-          onClose={() => setToast(null)}
-        />
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="p-6 md:p-8 space-y-8 h-full">
+      {toast && <Toast message={toast.message} type={toast.type} duration={3000} onClose={() => setToast(null)} />}
+
+      {!showTrash && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">Patients Today</p>
+                  <h3 className="text-3xl font-bold text-slate-900 mt-2">{patientsToday.length}</h3>
+                </div>
+                <div className="p-3 bg-emerald-100 rounded-xl text-emerald-600">
+                  <Users size={24} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">Appointments</p>
+                  <h3 className="text-3xl font-bold text-slate-900 mt-2">{appointmentsToday}</h3>
+                </div>
+                <div className="p-3 bg-blue-100 rounded-xl text-blue-600">
+                  <Calendar size={24} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">Waiting Room</p>
+                  <h3 className="text-3xl font-bold text-slate-900 mt-2">{waitingSummary.waiting}</h3>
+                </div>
+                <div className="p-3 bg-amber-100 rounded-xl text-amber-600">
+                  <Activity size={24} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">Revenue</p>
+                  <h3 className="text-3xl font-bold text-slate-900 mt-2 tracking-tight">
+                    <span className="text-lg text-slate-400 font-medium align-top mr-1">₦</span>
+                    {monthlyRevenue.toLocaleString()}
+                  </h3>
+                </div>
+                <div className="p-3 bg-primary-100 rounded-xl text-primary-600">
+                  <CreditCard size={24} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
-      <main className="flex-1" aria-labelledby="dashboard-heading">
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 id="dashboard-heading" className="text-xl font-bold sm:text-2xl">
-              Welcome, {user.name}
-            </h1>
-            <p className="flex flex-wrap items-center gap-2 text-sm text-gray-700 sm:gap-4">
-              Role: {user.role} <span className="text-gray-500">|</span>{" "}
-              {formattedDate} {formattedTime}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-            {(user.role === "admin" ||
-              user.role === "nurse" ||
-              user.role === "doctor") && (
-              <>
-                {user.role === "admin" && (
-                  <button
-                    onClick={() => navigate("/signup")}
-                    className="rounded bg-purple-600 px-4 py-2 text-sm text-white hover:bg-purple-700"
-                  >
-                    Manage Staff
-                  </button>
-                )}
-                <button
-                  onClick={() => navigate("/register-patient")}
-                  className="rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700"
-                >
-                  Register Patient
-                </button>
-                <button
-                  onClick={() => navigate("/appointments")}
-                  className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
-                >
-                  Appointments
-                </button>
-                <button
-                  onClick={() => navigate("/waiting-room")}
-                  className="rounded bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
-                >
-                  Waiting Room
-                </button>
-                <button
-                  onClick={() => navigate("/billing")}
-                  className="rounded bg-orange-600 px-4 py-2 text-sm text-white hover:bg-orange-700"
-                >
-                  Billing
-                </button>
-              </>
-            )}
-            <button
-              onClick={handleLogout}
-              className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-            >
-              Logout
-            </button>
-            {user.role === "admin" && (
-              <button
-                onClick={() => setShowTrash(!showTrash)}
-                className="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
-              >
-                {showTrash ? "Back to Patients" : "Trash"}
-              </button>
-            )}
+      <div className="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-surface-200 bg-surface-50 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+          <h2 className="text-lg font-semibold text-slate-800">
+            {showTrash ? "Deleted Records" : "Patient Directory"}
+          </h2>
+          <div className="w-full sm:w-72">
+            <Input 
+              placeholder="Search by name or card..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              icon={Search}
+              className="bg-white h-10"
+            />
           </div>
         </div>
 
-        {!showTrash && (
-          <section aria-labelledby="dashboard-overview-heading" className="mb-6">
-            <h2
-              id="dashboard-overview-heading"
-              className="mb-3 text-lg font-semibold text-gray-900"
-            >
-              Dashboard Overview
-            </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded bg-white p-4 text-center shadow">
-                <h3 className="text-sm font-medium text-gray-700">
-                  Patients Registered Today
-                </h3>
-                <p className="text-2xl font-bold">{patientsToday.length}</p>
-              </div>
-              <div className="rounded bg-white p-4 text-center shadow">
-                <h3 className="text-sm font-medium text-gray-700">
-                  Appointments Today
-                </h3>
-                <p className="text-2xl font-bold">{appointmentsToday}</p>
-              </div>
-              <div className="rounded bg-white p-4 text-center shadow">
-                <h3 className="text-sm font-medium text-gray-700">
-                  Waiting Patients
-                </h3>
-                <p className="text-2xl font-bold">{waitingSummary.waiting}</p>
-              </div>
-              <div className="rounded bg-white p-4 text-center shadow">
-                <h3 className="text-sm font-medium text-gray-700">
-                  Monthly Revenue
-                </h3>
-                <p className="text-2xl font-bold">
-                  NGN {monthlyRevenue.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
-
-        <section
-          aria-labelledby="patient-list-heading"
-          className="rounded bg-white p-4 shadow sm:p-6"
-        >
-          <div className="mb-4 flex flex-col gap-3">
-            <h2 id="patient-list-heading" className="text-xl font-semibold text-gray-900">
-              {showTrash ? "Trash" : "Patients"}
-            </h2>
-            <div>
-              <label
-                htmlFor="patient-search"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Search patients
-              </label>
-              <input
-                id="patient-search"
-                type="text"
-                placeholder="Search patients by name or card number..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded border border-gray-300 px-3 py-2"
-              />
-            </div>
-          </div>
-
-          {loading ? (
-            <p className="text-center text-gray-600">Loading patients...</p>
-          ) : activeList.length === 0 ? (
-            <p className="text-gray-600">
-              {showTrash ? "No trashed patients." : "No patients found."}
-            </p>
-          ) : (
-            <div className="space-y-4">
-              <div className="overflow-x-auto">
-                <table className="min-w-[640px] w-full border border-gray-300">
-                  <thead className="bg-gray-200">
-                    <tr>
-                      <th
-                        onClick={() => requestSort("name")}
-                        className="cursor-pointer border px-4 py-2"
-                      >
-                        Name
-                      </th>
-                      <th
-                        onClick={() => requestSort("age")}
-                        className="cursor-pointer border px-4 py-2"
-                      >
-                        Age
-                      </th>
-                      <th className="border px-4 py-2">Card Number</th>
-                      <th className="border px-4 py-2">Actions</th>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-slate-600 whitespace-nowrap">
+            <thead className="bg-slate-50 text-slate-500 border-b border-surface-200">
+              <tr>
+                <th className="px-6 py-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => requestSort("name")}>
+                  Patient Name
+                </th>
+                <th className="px-6 py-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => requestSort("age")}>
+                  Age
+                </th>
+                <th className="px-6 py-4 font-semibold">Card Number</th>
+                <th className="px-6 py-4 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-100 bg-white">
+              {loading ? (
+                <tr>
+                  <td colSpan="4" className="px-6 py-12 text-center text-slate-500">
+                    <RefreshCw className="mx-auto h-6 w-6 animate-spin mb-2" />
+                    Loading records...
+                  </td>
+                </tr>
+              ) : paginatedPatients.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="px-6 py-12 text-center text-slate-500">
+                    {searchQuery ? "No patients match your search." : (showTrash ? "Trash is empty." : "No patients found.")}
+                  </td>
+                </tr>
+              ) : (
+                paginatedPatients.map((p) => {
+                  const patientId = getEntityId(p);
+                  const isToday = patientsToday.some((todayP) => getEntityId(todayP) === patientId);
+                  return (
+                    <tr key={patientId} className={`hover:bg-slate-50 transition-colors ${!showTrash && isToday ? "bg-primary-50/50" : ""}`}>
+                      <td className="px-6 py-4">
+                        <div className="font-medium text-slate-900">{p.name}</div>
+                        {isToday && !showTrash && <span className="inline-flex mt-1 items-center px-2 py-0.5 rounded text-[10px] font-medium bg-primary-100 text-primary-800">New Today</span>}
+                      </td>
+                      <td className="px-6 py-4">{p.age}</td>
+                      <td className="px-6 py-4"><span className="font-mono text-slate-500 bg-slate-100 px-2 py-1 rounded">{p.cardNumber || "--"}</span></td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          {!showTrash && canViewRecords && (
+                            <Button variant="outline" size="sm" onClick={() => navigate(`/patients/${patientId}/records`)}>
+                              Records
+                            </Button>
+                          )}
+                          {showTrash ? (
+                            <>
+                              <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-200 hover:text-emerald-800 hover:bg-emerald-50" onClick={() => handleRestore(patientId)}>
+                                <ArchiveRestore size={16} className="mr-1" /> Restore
+                              </Button>
+                              <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => handlePermanentDelete(patientId)}>
+                                Delete Forever
+                              </Button>
+                            </>
+                          ) : canDeletePatients ? (
+                            <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(patientId)}>
+                              <Trash2 size={18} />
+                            </Button>
+                          ) : null}
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedPatients.map((p) => {
-                      const patientId = getEntityId(p);
-                      const isToday = patientsToday.some(
-                        (todayPatient) => getEntityId(todayPatient) === patientId,
-                      );
-                      return (
-                        <tr
-                          key={patientId}
-                          className={`text-center ${!showTrash && isToday ? "bg-green-100 font-semibold" : ""}`}
-                        >
-                          <td className="border px-4 py-2">{p.name}</td>
-                          <td className="border px-4 py-2">{p.age}</td>
-                          <td className="border px-4 py-2">{p.cardNumber || "--"}</td>
-                          <td className="border px-4 py-2">
-                            {!showTrash && canViewRecords && (
-                              <button
-                                onClick={() => handleViewRecords(patientId)}
-                                className="mr-2 rounded bg-blue-600 px-2 py-1 text-white"
-                              >
-                                View Records
-                              </button>
-                            )}
-                            {showTrash ? (
-                              <div className="flex justify-center gap-2">
-                                <button
-                                  onClick={() => handleRestore(patientId)}
-                                  className="rounded bg-green-600 px-2 py-1 text-white"
-                                >
-                                  Restore
-                                </button>
-                                <button
-                                  onClick={() => handlePermanentDelete(patientId)}
-                                  className="rounded bg-red-700 px-2 py-1 text-white"
-                                >
-                                  Delete Permanently
-                                </button>
-                              </div>
-                            ) : canDeletePatients ? (
-                              <button
-                                onClick={() => handleDelete(patientId)}
-                                className="rounded bg-red-600 px-2 py-1 text-white"
-                              >
-                                Delete
-                              </button>
-                            ) : (
-                              <span className="text-sm text-gray-500">Front desk access</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
 
-              <div className="flex flex-col gap-3 text-sm text-gray-700 sm:flex-row sm:items-center sm:justify-between">
-                <p>
-                  Showing {pageStartIndex + 1}-{Math.min(pageStartIndex + PATIENTS_PER_PAGE, activeList.length)} of{" "}
-                  {activeList.length} {showTrash ? "trashed patients" : "patients"}
-                </p>
-
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <button
-                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                    disabled={currentPageSafe === 1}
-                    className="rounded border border-gray-300 px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <span className="font-medium text-gray-700">
-                    Page {currentPageSafe} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() =>
-                      setCurrentPage((page) => Math.min(totalPages, page + 1))
-                    }
-                    disabled={currentPageSafe === totalPages}
-                    className="rounded border border-gray-300 px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
+        <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-surface-200 bg-surface-50 gap-4">
+          <p className="text-sm text-slate-500">
+            Showing <span className="font-medium text-slate-900">{activeList.length > 0 ? pageStartIndex + 1 : 0}</span> to <span className="font-medium text-slate-900">{Math.min(pageStartIndex + PATIENTS_PER_PAGE, activeList.length)}</span> of <span className="font-medium text-slate-900">{activeList.length}</span> results
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPageSafe <= 1}>
+              Previous
+            </Button>
+            <div className="flex items-center px-4 text-sm font-medium text-slate-700">
+              {currentPageSafe} / {totalPages}
             </div>
-          )}
-        </section>
-      </main>
-
-      <p className="pt-6 text-center text-xs font-semibold uppercase tracking-[0.25em] text-gray-600">
-        BHF by PrimuxCare
-      </p>
-    </div>
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPageSafe >= totalPages}>
+              Next
+            </Button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 }
