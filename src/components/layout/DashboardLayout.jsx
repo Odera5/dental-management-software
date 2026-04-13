@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Users, Calendar, Clock, CreditCard, UserPlus, 
-  LogOut, Trash2, Home, HeartPulse, Menu, X, Settings
+  LogOut, Trash2, Home, HeartPulse, Menu, X, Settings, Crown
 } from "lucide-react";
 import { logoutCurrentUser } from "../../services/api";
 import api from "../../services/api";
@@ -23,6 +23,16 @@ export default function DashboardLayout() {
     role: storedUser.role || "nurse",
     clinicName: storedUser.clinic?.name || "Clinic",
   };
+  
+  const clinicPlan = storedUser.clinic?.plan || "FREE";
+  const subscriptionEnds = storedUser.clinic?.subscriptionEnds;
+  let remainingTrialDays = 0;
+  
+  if (clinicPlan === "PRO" && subscriptionEnds) {
+    const end = new Date(subscriptionEnds);
+    const now = new Date();
+    remainingTrialDays = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+  }
   
   const canViewRecords = ["admin", "doctor", "nurse"].includes(user.role);
 
@@ -90,6 +100,7 @@ export default function DashboardLayout() {
   else if (location.pathname.includes("/signup")) headerTitle = "Manage Staff";
   else if (location.pathname.includes("/clinic-settings")) headerTitle = "Clinic Settings";
   else if (location.pathname.includes("/patients/")) headerTitle = "Patient Record";
+  else if (location.pathname.includes("/upgrade")) headerTitle = "Upgrade Plan";
   
   if (location.search.includes("tab=trash")) headerTitle = "Trash Management";
 
@@ -145,6 +156,11 @@ export default function DashboardLayout() {
               <NavItem icon={Trash2} label="Trash" path="/dashboard?tab=trash" />
             </div>
           )}
+
+          <div>
+             <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">SaaS Plan</p>
+             <NavItem icon={Crown} label="Upgrade Plan" path="/upgrade" />
+          </div>
         </div>
 
         <div className="p-4 border-t border-surface-100 bg-surface-50 shrink-0">
@@ -178,6 +194,13 @@ export default function DashboardLayout() {
              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
         </header>
+
+        {(clinicPlan === "PRO" && remainingTrialDays > 0) && (
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2.5 text-center text-sm font-bold shadow-sm shrink-0 relative z-10 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+            <span className="flex items-center gap-2"><Crown size={18} /> You have {remainingTrialDays} days left on your Free Pro Trial.</span>
+            <button onClick={() => navigate('/upgrade')} className="bg-white/20 hover:bg-white/30 px-4 py-1.5 rounded-full text-xs transition-colors border border-white/30 backdrop-blur-sm shadow-sm">Upgrade Now</button>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto w-full relative">
           <Outlet />

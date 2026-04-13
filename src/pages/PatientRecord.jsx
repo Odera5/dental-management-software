@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Plus, UserCog, ArrowLeft, Activity, User, Phone, MapPin, Hash } from "lucide-react";
@@ -144,6 +144,11 @@ export default function PatientRecord() {
   useEffect(() => { setCurrentPage(1); }, [filteredRecords.length, searchKeyword]);
   useEffect(() => { if (currentPage > totalPages) setCurrentPage(totalPages); }, [currentPage, totalPages]);
 
+  const handleFiltered = useCallback((filtered, keyword) => {
+    setFilteredRecords(filtered);
+    setSearchKeyword(keyword);
+  }, []);
+
   if (loading) return <div className="p-8 text-center flex flex-col items-center justify-center min-h-[50vh]"><div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div><p className="text-slate-500 font-medium">Loading patient data...</p></div>;
   if (!patient) return <div className="p-8 text-center text-rose-500 font-medium"><p>Patient not found or you don't have access.</p></div>;
 
@@ -167,7 +172,7 @@ export default function PatientRecord() {
         </div>
       </div>
 
-      <SearchFilterSort records={records} onFiltered={(filtered, keyword) => { setFilteredRecords(filtered); setSearchKeyword(keyword); }} />
+      <SearchFilterSort records={records} onFiltered={handleFiltered} />
 
       <div className="space-y-4">
         {filteredRecords.length === 0 ? (

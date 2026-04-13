@@ -1,8 +1,11 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { createEmptyRecord } from "./recordUtils";
+import { useNavigate } from "react-router-dom";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
-import { CheckCircle2, Shield, AlertCircle } from "lucide-react";
+import { CheckCircle2, Shield, AlertCircle, BookOpen, Lock, ImagePlus, X, FileText } from "lucide-react";
+import { DENTAL_FORMULARY } from "../../utils/dentalFormulary";
+import api from "../../services/api";
 
 const ADULT_TEETH = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28, 48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 const CHILD_TEETH = [55, 54, 53, 52, 51, 61, 62, 63, 64, 65, 85, 84, 83, 82, 81, 71, 72, 73, 74, 75];
@@ -138,7 +141,63 @@ const groupByQuadrant = (teeth, dentition) => {
 };
 
 export default function RecordForm({ recordData, setRecordData, onSubmit, submitLabel, loading }) {
+  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [activeExamTab, setActiveExamTab] = useState("extraoral");
+  const [showFormulary, setShowFormulary] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [formularyCategory, setFormularyCategory] = useState("Antibiotics");
+
+  const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
+  const clinicPlan = storedUser?.clinic?.plan || "FREE";
+
+  const handleFormularySelect = (medValue) => {
+    const currentMed = recordData.medication ? recordData.medication.trim() : "";
+    const updatedMed = currentMed ? `${currentMed}\n${medValue}` : medValue;
+    setRecordData({ ...recordData, medication: updatedMed });
+    setShowFormulary(false);
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await api.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      
+      // Parse current attachments (handles stringified JSON if it came from DB as string)
+      let currentAttachments = [];
+      if (typeof recordData.attachments === 'string') {
+        try { currentAttachments = JSON.parse(recordData.attachments); } catch(e) {}
+      } else if (Array.isArray(recordData.attachments)) {
+        currentAttachments = recordData.attachments;
+      }
+
+      setRecordData({ ...recordData, attachments: [...currentAttachments, { url: res.data.url, name: res.data.fileName, type: res.data.mimetype }] });
+    } catch (err) {
+      console.error("Upload failed", err);
+      if (err.response?.status === 403 || err.response?.data?.errorCode === 'UPGRADE_REQUIRED') {
+         setShowUpgradeModal(true);
+      } else {
+         alert("Failed to upload file. " + (err.response?.data?.message || err.message));
+      }
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removeAttachment = (index) => {
+    let currentAttachments = Array.isArray(recordData.attachments) ? [...recordData.attachments] : [];
+    if (typeof recordData.attachments === 'string') {
+        try { currentAttachments = JSON.parse(recordData.attachments); } catch(e) {}
+    }
+    currentAttachments.splice(index, 1);
+    setRecordData({ ...recordData, attachments: currentAttachments });
+  };
 
   const initialRecord = { ...createEmptyRecord(), ...recordData };
   const initialTeethState = initializeTeethState(initialRecord.dentition, initialRecord.teeth);
@@ -264,8 +323,60 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
           <FormField label="Diagnosis" name="diagnosis" value={recordData.diagnosis} onChange={handleChange} type="textarea" rows={3} required placeholder="Definitive or provisional diagnosis..." />
           <FormField label="Treatment Plan" name="treatmentPlan" value={recordData.treatmentPlan} onChange={handleChange} type="textarea" rows={3} required placeholder="Proposed procedures..." />
           <FormField label="Investigations Ordered" name="investigation" value={recordData.investigation} onChange={handleChange} type="textarea" rows={2} placeholder="X-rays, lab tests..." />
-          <FormField label="Medications Prescribed" name="medication" value={recordData.medication} onChange={handleChange} type="textarea" rows={2} placeholder="Prescriptions..." />
+          <div className="space-y-1.5 focus-within:text-primary-600 transition-colors md:col-span-2">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-slate-700 leading-none">Medications Prescribed</label>
+              <button 
+                type="button" 
+                onClick={() => clinicPlan === "FREE" ? setShowUpgradeModal(true) : setShowFormulary(true)}
+                className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-3 py-1.5 rounded-full border border-primary-200"
+              >
+                <BookOpen size={14} className="mr-1.5" /> 1-Click Formulary {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500" />}
+              </button>
+            </div>
+            <textarea name="medication" value={recordData.medication || ""} onChange={handleChange} rows={3} placeholder="Prescriptions..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
+          </div>
         </div>
+      </div>
+
+      <div className="p-6 border border-slate-200 rounded-2xl shadow-sm bg-white">
+        <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
+          <h2 className="font-bold text-lg text-slate-900 flex items-center"><ImagePlus size={20} className="mr-2 text-primary-500" /> Media & Attachments</h2>
+          <button 
+            type="button" 
+            onClick={() => clinicPlan === "FREE" ? setShowUpgradeModal(true) : fileInputRef.current?.click()}
+            className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-3 py-1.5 rounded-full border border-primary-200"
+          >
+            Attach File {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500" />}
+          </button>
+          <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/jpeg,image/png,image/webp,application/pdf" />
+        </div>
+        
+        {(() => {
+          let atts = [];
+          if (Array.isArray(recordData.attachments)) atts = recordData.attachments;
+          else if (typeof recordData.attachments === 'string') { try { atts = JSON.parse(recordData.attachments); } catch(e) {} }
+          
+          if (atts.length === 0) {
+            return <p className="text-sm text-slate-400 italic text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">No attachments. Upload X-Rays, Lab Results, or Photos.</p>;
+          }
+
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {atts.map((att, idx) => (
+                  <div key={idx} className="relative group bg-slate-50 border border-slate-200 rounded-xl p-2 flex flex-col items-center justify-center aspect-square overflow-hidden">
+                    {att.type?.includes('pdf') ? (
+                      <FileText size={32} className="text-rose-500 mb-2"/>
+                    ) : (
+                      <img src={`${api.defaults.baseURL.replace('/api', '')}${att.url}`} alt={att.name} className="w-full h-full object-cover rounded-lg mb-1" />
+                    )}
+                    <span className="text-[10px] text-slate-500 truncate w-full text-center block font-medium absolute bottom-0 left-0 bg-white/90 px-1 py-0.5 backdrop-blur-sm rounded-b-xl border-t border-slate-100">{att.name}</span>
+                    <button type="button" onClick={() => removeAttachment(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600"><X size={12}/></button>
+                  </div>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       <div className="p-6 border border-slate-200 rounded-2xl shadow-sm bg-gradient-to-br from-slate-50 to-white">
@@ -291,6 +402,69 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
         <div className="flex-1"></div>
         <Button type="submit" isLoading={loading} size="lg" className="w-full sm:w-auto shadow-md">{submitLabel}</Button>
       </div>
+
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-200 text-center flex flex-col items-center">
+            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
+              <Lock size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Pro Plan Feature</h3>
+            <p className="text-slate-500 text-sm mb-6">
+              The 1-Click Dental Formulary allows you to instantly insert pre-formatted prescription dosages, saving you massive amounts of typing. Upgrade to the Pro Plan to unlock this feature.
+            </p>
+            <div className="flex w-full gap-3">
+              <Button type="button" variant="outline" className="flex-1 border-slate-200" onClick={() => setShowUpgradeModal(false)}>Close</Button>
+              <Button type="button" className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg font-bold" onClick={() => navigate("/upgrade")}>Upgrade Now</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showFormulary && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full flex flex-col border border-slate-200 max-h-[80vh]">
+            <div className="flex justify-between items-center p-5 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center"><BookOpen size={20} className="mr-2 text-primary-600" /> Dental Formulary</h3>
+              <button type="button" onClick={() => setShowFormulary(false)} className="text-slate-400 hover:text-slate-600 font-bold p-1">&times;</button>
+            </div>
+            
+            <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-[300px]">
+              <div className="w-full md:w-1/3 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-100 p-3 overflow-y-auto">
+                <div className="space-y-1">
+                  {Object.keys(DENTAL_FORMULARY).map(category => (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => setFormularyCategory(category)}
+                      className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${formularyCategory === category ? "bg-primary-600 text-white shadow-md transform scale-[1.02]" : "text-slate-600 hover:bg-slate-200"}`}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="w-full md:w-2/3 p-4 overflow-y-auto">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">{formularyCategory} Prescriptions</p>
+                <div className="space-y-2">
+                  {DENTAL_FORMULARY[formularyCategory].map((med, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleFormularySelect(med.value)}
+                      className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-primary-400 hover:bg-primary-50 transition-all group flex flex-col focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                    >
+                      <span className="font-bold text-slate-800 text-sm mb-1">{med.label}</span>
+                      <span className="text-sm text-slate-500 font-mono group-hover:text-primary-700 bg-white px-2 py-1 rounded inline-block w-fit mt-1 border border-slate-100">{med.value}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

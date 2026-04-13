@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, Calendar, Mail, MapPin, Phone, Hash, Info, UserPlus } from "lucide-react";
+import { User, Calendar, Mail, MapPin, Phone, Hash, Info, UserPlus, ArrowRight } from "lucide-react";
 import api from "../services/api";
 import Toast from "../components/Toast";
 import Input from "../components/ui/Input";
@@ -22,6 +22,9 @@ export default function RegisterPatient() {
 
   const navigate = useNavigate();
   const showToast = (message, type = "success") => setToast({ message, type });
+
+  const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user")) || {};
+  const currentPlan = storedUser?.clinic?.plan || "FREE";
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -74,6 +77,18 @@ export default function RegisterPatient() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
+        {currentPlan === "FREE" && (
+          <div className="mb-6 bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-bold text-indigo-900">You are on the Free Plan</h4>
+              <p className="text-sm text-indigo-700 mt-0.5">Free plans are limited to 100 patient records. Need to scale?</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => navigate('/upgrade')} className="whitespace-nowrap bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-100">
+               View Pro Plan <ArrowRight size={14} className="ml-1.5" />
+            </Button>
+          </div>
+        )}
+
         <Card className="border-0 shadow-lg bg-white overflow-hidden">
           <div className="relative px-8 py-10 text-white overflow-hidden bg-gradient-to-r from-primary-600 via-primary-700 to-indigo-800 rounded-t-xl">
             {/* Ambient background glows */}

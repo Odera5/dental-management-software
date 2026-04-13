@@ -1,12 +1,13 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronUp, Calendar, Activity, PenTool, Trash2, Edit2, Info, CheckCircle2, Clock, FileText } from "lucide-react";
+import { ChevronDown, ChevronUp, Calendar, Activity, PenTool, Trash2, Edit2, Info, CheckCircle2, Clock, FileText, ImagePlus } from "lucide-react";
 import RecordForm from "./RecordForm";
 import Modal from "./Modal";
 import HighlightText from "../../utils/HighlightText";
 import { createEmptyRecord, formatToothFindings } from "./recordUtils";
 import { getEntityId } from "../../utils/entityId";
 import Button from "../ui/Button";
+import api from "../../services/api";
 
 function RecordSection({ title, content, icon: Icon, keyword }) {
   if (!content) return null;
@@ -114,6 +115,29 @@ function RecordItem({ record, expandedRecordId, setExpandedRecordId, handleDelet
               </div>
               
               <RecordSection title="Medications Prescribed" content={record.medication} icon={Activity} keyword={searchKeyword} />
+
+              {(() => {
+                 let atts = [];
+                 if (Array.isArray(record.attachments)) atts = record.attachments;
+                 else if (typeof record.attachments === 'string') { try { atts = JSON.parse(record.attachments); } catch(e) {} }
+                 
+                 if (atts.length > 0) {
+                   return (
+                     <div className="mb-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
+                       <h4 className="flex items-center text-sm font-bold text-slate-700 mb-3 uppercase tracking-widest"><ImagePlus size={14} className="mr-2 text-primary-500" /> Attached Media</h4>
+                       <div className="flex flex-wrap gap-4">
+                         {atts.map((att, idx) => (
+                           <a key={idx} href={`${api.defaults.baseURL.replace('/api', '')}${att.url}`} target="_blank" rel="noopener noreferrer" className="relative group bg-white border border-slate-200 hover:border-primary-300 rounded-xl p-2 flex flex-col items-center justify-center w-24 h-24 sm:w-32 sm:h-32 shadow-sm transition-all hover:shadow-md overflow-hidden">
+                             {att.type?.includes('pdf') ? <FileText size={32} className="text-rose-500 mb-2"/> : <img src={`${api.defaults.baseURL.replace('/api', '')}${att.url}`} alt={att.name} className="w-full h-full object-cover rounded-lg mb-1" />}
+                             <span className="text-[10px] text-slate-500 truncate w-full text-center block font-medium absolute bottom-0 left-0 bg-white/90 px-1 py-0.5 backdrop-blur-sm rounded-b-xl border-t border-slate-100 group-hover:text-primary-700">{att.name}</span>
+                           </a>
+                         ))}
+                       </div>
+                     </div>
+                   );
+                 }
+                 return null;
+              })()}
 
               <div className="mt-6 border-t border-slate-100 pt-6 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
                  <div className="flex items-center gap-4">

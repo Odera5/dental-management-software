@@ -20,6 +20,7 @@ const Appointments = lazy(() => import("./pages/Appointments"));
 const Billing = lazy(() => import("./pages/Billing"));
 const WaitingRoom = lazy(() => import("./pages/WaitingRoom"));
 const Support = lazy(() => import("./pages/Support"));
+const UpgradePlan = lazy(() => import("./pages/UpgradePlan"));
 
 function RouteLoader() {
   return (
@@ -56,6 +57,7 @@ function App() {
             <Route path="/appointments" element={<Appointments />} />
             <Route path="/waiting-room" element={<WaitingRoom />} />
             <Route path="/billing" element={<Billing />} />
+            <Route path="/upgrade" element={<UpgradePlan />} />
             
             {/* Require admin/specific roles */}
             <Route
