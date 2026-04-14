@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
-  Users, Calendar, Activity, CreditCard, Search, RefreshCw, ArchiveRestore, Trash2, Upload
+  Users, Calendar, Activity, CreditCard, Search, RefreshCw, ArchiveRestore, Trash2, Upload, Download, Lock
 } from "lucide-react";
+import Papa from "papaparse";
 import CsvImportModal from "../components/Patients/CsvImportModal";
 import api from "../services/api";
 import Toast from "../components/Toast";
@@ -56,10 +57,52 @@ export default function Dashboard() {
   const [currentDay, setCurrentDay] = useState(formatLocalDateKey());
   const [currentPage, setCurrentPage] = useState(1);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const showTrash = location.search.includes("tab=trash");
+  const clinicPlan = storedUser?.clinic?.plan || "FREE";
 
   const showToast = (message, type = "success") => setToast({ message, type });
+
+  const exportCSV = () => {
+    if (clinicPlan === "FREE") {
+      setShowUpgradeModal(true);
+      return;
+    }
+    if (patients.length === 0) {
+      showToast("No patients to export", "error");
+      return;
+    }
+
+    const csvData = patients.map((p) => ({
+      Name: p.name,
+      Age: p.age,
+      Gender: p.gender,
+      Phone: p.phone,
+      Email: p.email,
+      Address: p.address,
+      CardNumber: p.cardNumber,
+      CreatedAt: new Date(p.createdAt).toLocaleString()
+    }));
+
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", `patients_export_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Export successful!");
+  };
+
+  const handleImportClick = () => {
+    if (clinicPlan === "FREE") {
+      setShowUpgradeModal(true);
+      return;
+    }
+    setShowImportModal(true);
+  };
 
   const handleImportSuccess = (count) => {
     setShowImportModal(false);
@@ -308,9 +351,16 @@ export default function Dashboard() {
           </h2>
           <div className="flex flex-col sm:flex-row-reverse gap-3 items-center w-full sm:w-auto">
             {!showTrash && canViewRecords && (
-              <Button variant="outline" onClick={() => setShowImportModal(true)} className="w-full sm:w-auto bg-white shadow-sm border-slate-300">
-                <Upload size={16} className="mr-2" /> Import CSV
-              </Button>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button variant="outline" onClick={exportCSV} className="flex-1 sm:flex-none bg-white shadow-sm border-slate-300">
+                  <Download size={16} className="mr-2" /> Export
+                  {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500" />}
+                </Button>
+                <Button variant="outline" onClick={handleImportClick} className="flex-1 sm:flex-none bg-white shadow-sm border-slate-300">
+                  <Upload size={16} className="mr-2" /> Import
+                  {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500" />}
+                </Button>
+              </div>
             )}
             <div className="w-full sm:w-72">
               <Input 
@@ -412,6 +462,24 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-200 text-center flex flex-col items-center">
+            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
+              <Lock size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Pro Plan Feature</h3>
+            <p className="text-slate-500 text-sm mb-6">
+              Bulk Importing legacy patients and Exporting your patient database are restricted to the PRO tier. Upgrade your clinic to automatically migrate unlimited patients.
+            </p>
+            <div className="flex w-full gap-3">
+              <Button type="button" variant="outline" className="flex-1 border-slate-200" onClick={() => setShowUpgradeModal(false)}>Close</Button>
+              <Button type="button" className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg font-bold" onClick={() => navigate("/upgrade")}>Upgrade Now</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

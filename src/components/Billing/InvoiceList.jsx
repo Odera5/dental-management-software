@@ -50,6 +50,8 @@ function SummaryRow({ label, value, strong = false }) {
 }
 
 function InvoiceViewer({ invoice, onClose }) {
+  const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user")) || "null");
+  const clinic = storedUser?.clinic || {};
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentNotes, setPaymentNotes] = useState("");
@@ -76,14 +78,17 @@ function InvoiceViewer({ invoice, onClose }) {
       <div className="p-8">
         <div className="flex flex-col md:flex-row justify-between gap-8 mb-10">
           <div>
-            <div className="bg-primary-50 text-primary-700 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-widest w-fit mb-4 mix-blend-multiply">Invoice</div>
+            {clinic.logoUrl && (
+              <img src={clinic.logoUrl} alt="Clinic Logo" className="h-16 w-auto object-contain mb-6 print:h-12" />
+            )}
+            <div className="bg-primary-50 text-primary-700 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-widest w-fit mb-4 mix-blend-multiply" style={clinic.brandColor ? { backgroundColor: `${clinic.brandColor}20`, color: clinic.brandColor } : {}}>Invoice</div>
             <h2 className="text-4xl font-bold text-slate-900 tracking-tight">{invoice.invoiceNumber}</h2>
             <div className="mt-4 space-y-1 text-sm text-slate-600">
               <p>Generated: <span className="font-semibold text-slate-900">{new Date(invoice.invoiceDate).toLocaleDateString()}</span></p>
               {invoice.dueDate && <p>Due: <span className="font-semibold text-slate-900">{new Date(invoice.dueDate).toLocaleDateString()}</span></p>}
             </div>
           </div>
-          <div className="bg-slate-900 rounded-2xl p-6 text-white min-w-[300px]">
+          <div className="bg-slate-900 rounded-2xl p-6 text-white min-w-[300px]" style={clinic.brandColor ? { backgroundColor: clinic.brandColor } : {}}>
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Billed To</p>
             <p className="text-2xl font-bold mb-1">{invoice.patientId?.name || "Unknown patient"}</p>
             <p className="text-sm text-slate-300 font-mono mb-2">{invoice.patientId?.phone || "No phone"}</p>
@@ -93,7 +98,7 @@ function InvoiceViewer({ invoice, onClose }) {
 
         <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-8">
           <div>
-            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center"><FileText size={18} className="mr-2 text-primary-500" /> Items & Charges</h3>
+            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center"><FileText size={18} className="mr-2" style={{ color: clinic.brandColor || 'currentColor' }} /> Items & Charges</h3>
             <div className="rounded-xl border border-slate-200 overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200">
@@ -138,7 +143,7 @@ function InvoiceViewer({ invoice, onClose }) {
 
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-8 mt-8 pt-8 border-t border-slate-200">
           <div className="space-y-4">
-             <h3 className="text-lg font-bold text-slate-900 flex items-center"><CreditCard size={18} className="mr-2 text-primary-500" /> Payment History</h3>
+             <h3 className="text-lg font-bold text-slate-900 flex items-center"><CreditCard size={18} className="mr-2" style={{ color: clinic.brandColor || 'currentColor' }} /> Payment History</h3>
              {(invoice.payments || []).length === 0 ? (
                <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500 bg-slate-50/50">No payments verified yet.</div>
              ) : (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Calendar as CalendarIcon, Clock, User, FileText, CheckCircle, Trash2, Edit2, Plus, AlertCircle } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, FileText, CheckCircle, Trash2, Edit2, Plus, AlertCircle, Bell } from "lucide-react";
 import api from "../../services/api";
 import Toast from "../Toast";
 import AppointmentForm from "./AppointmentForm";
@@ -146,6 +146,11 @@ export default function AppointmentSchedule({ patientId = null }) {
                           {apt.patientId?.name || "Unknown Patient"}
                         </h3>
                         <p className="text-xs font-semibold text-primary-600 mt-1 uppercase tracking-wider">{getTypeLabel(apt.appointmentType)}</p>
+                        {apt.reminderSent && (
+                          <div className="flex items-center text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full mt-2 w-max">
+                            <Bell size={12} className="mr-1" /> Reminder Sent
+                          </div>
+                        )}
                       </div>
                       <span className={`text-[10px] font-bold px-2 py-1 rounded-full border uppercase tracking-wider ${getStatusStyle(apt.status)}`}>
                         {apt.status}

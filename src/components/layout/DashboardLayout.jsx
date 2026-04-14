@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Users, Calendar, Clock, CreditCard, UserPlus, 
-  LogOut, Trash2, Home, HeartPulse, Menu, X, Settings, Crown
+  LogOut, Trash2, Home, HeartPulse, Menu, X, Settings, Crown, BarChart3
 } from "lucide-react";
 import { logoutCurrentUser } from "../../services/api";
 import api from "../../services/api";
@@ -101,6 +101,7 @@ export default function DashboardLayout() {
   else if (location.pathname.includes("/clinic-settings")) headerTitle = "Clinic Settings";
   else if (location.pathname.includes("/patients/")) headerTitle = "Patient Record";
   else if (location.pathname.includes("/upgrade")) headerTitle = "Upgrade Plan";
+  else if (location.pathname.includes("/reports")) headerTitle = "Advanced Analytics";
   
   if (location.search.includes("tab=trash")) headerTitle = "Trash Management";
 
@@ -144,6 +145,7 @@ export default function DashboardLayout() {
                 <NavItem icon={Calendar} label="Appointments" path="/appointments" badge={appointmentCount} />
                 <NavItem icon={Clock} label="Waiting Room" path="/waiting-room" badge={waitingCount} />
                 <NavItem icon={CreditCard} label="Billing" path="/billing" />
+                <NavItem icon={BarChart3} label="Reports" path="/reports" />
               </>
             )}
           </div>

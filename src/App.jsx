@@ -21,6 +21,8 @@ const Billing = lazy(() => import("./pages/Billing"));
 const WaitingRoom = lazy(() => import("./pages/WaitingRoom"));
 const Support = lazy(() => import("./pages/Support"));
 const UpgradePlan = lazy(() => import("./pages/UpgradePlan"));
+const Reports = lazy(() => import("./pages/Reports"));
+const PatientIntakeForm = lazy(() => import("./pages/PatientIntakeForm"));
 
 function RouteLoader() {
   return (
@@ -49,6 +51,7 @@ function App() {
           <Route path="/register-clinic" element={<RegisterClinic />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/support" element={<Support />} />
+          <Route path="/intake/:clinicId" element={<PatientIntakeForm />} />
 
           {/* Protected routes - wrapped with Sidebar Layout */}
           <Route element={<ProtectedLayout />}>
@@ -58,6 +61,7 @@ function App() {
             <Route path="/waiting-room" element={<WaitingRoom />} />
             <Route path="/billing" element={<Billing />} />
             <Route path="/upgrade" element={<UpgradePlan />} />
+            <Route path="/reports" element={<Reports />} />
             
             {/* Require admin/specific roles */}
             <Route

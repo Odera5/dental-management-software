@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Settings, Building, Mail, Phone, MapPin, User, DollarSign, AlertTriangle, Save, Power, ArrowLeft } from "lucide-react";
+import { Settings, Building, Mail, Phone, MapPin, User, DollarSign, AlertTriangle, Save, Power, ArrowLeft, Image as ImageIcon, Palette, Lock, Link as LinkIcon, Copy, CheckCircle } from "lucide-react";
 import api, { logoutCurrentUser } from "../services/api";
 import { DEFAULT_PROCEDURE_PRESETS, formatNaira, normalizeProcedurePresets } from "../constants/billing";
 import { Card, CardContent } from "../components/ui/Card";
@@ -11,6 +11,7 @@ import Toast from "../components/Toast";
 
 const initialForm = {
   clinicName: "", clinicEmail: "", clinicPhone: "", clinicCity: "", clinicAddress: "", contactPerson: "",
+  logoUrl: "", brandColor: "#0f172a",
   procedurePresetPrices: DEFAULT_PROCEDURE_PRESETS,
 };
 
@@ -19,8 +20,21 @@ export default function ClinicSettings() {
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
+  
+  const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user")) || "null");
+  const isPro = storedUser?.clinic?.plan === "PRO" || storedUser?.clinic?.plan === "ENTERPRISE_AI";
+  const intakeUrl = `${window.location.origin}/intake/${storedUser?.clinic?.id}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(intakeUrl);
+    setCopied(true);
+    setToast({ show: true, message: "Intake link copied to clipboard", type: "success" });
+    setTimeout(() => setCopied(false), 3000);
+  };
 
   useEffect(() => {
     const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user")) || "null");
@@ -34,6 +48,7 @@ export default function ClinicSettings() {
         setForm({
           clinicName: clinic?.name || "", clinicEmail: clinic?.email || "", clinicPhone: clinic?.phone || "",
           clinicCity: clinic?.city || "", clinicAddress: clinic?.address || "", contactPerson: clinic?.contactPerson || "",
+          logoUrl: clinic?.logoUrl || "", brandColor: clinic?.brandColor || "#0f172a",
           procedurePresetPrices: normalizeProcedurePresets(clinic?.procedurePresetPrices),
         });
       } catch (err) { setToast({ show: true, message: err.response?.data?.message || "Failed to load profile", type: "error" }); } 
@@ -49,6 +64,23 @@ export default function ClinicSettings() {
     }));
   };
 
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setUploadingLogo(true);
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await api.post("/upload", formData, { headers: { "Content-Type": "multipart/form-data" } });
+      setForm((c) => ({ ...c, logoUrl: response.data.url }));
+      setToast({ show: true, message: "Logo uploaded successfully", type: "success" });
+    } catch (err) {
+      setToast({ show: true, message: err.response?.data?.message || "Logo upload failed", type: "error" });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -62,6 +94,7 @@ export default function ClinicSettings() {
       setForm({
         clinicName: clinic?.name || "", clinicEmail: clinic?.email || "", clinicPhone: clinic?.phone || "",
         clinicCity: clinic?.city || "", clinicAddress: clinic?.address || "", contactPerson: clinic?.contactPerson || "",
+        logoUrl: clinic?.logoUrl || "", brandColor: clinic?.brandColor || "#0f172a",
         procedurePresetPrices: normalizeProcedurePresets(clinic?.procedurePresetPrices),
       });
       setToast({ show: true, message: response.data?.message || "Profile updated successfully", type: "success" });
@@ -120,6 +153,91 @@ export default function ClinicSettings() {
                       </div>
                    </form>
                 </CardContent>
+             </Card>
+
+             {/* Custom Branding Box (Pro) */}
+             <Card className="border border-surface-200 shadow-sm relative overflow-hidden mb-6">
+                <CardContent className="p-8">
+                   <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-lg flex items-center mb-1"><Palette size={20} className="mr-2 text-primary-600" /> Custom Branding</h3>
+                        <p className="text-slate-500 text-sm">Add your logo and distinct color to Invoices.</p>
+                      </div>
+                      {!isPro && (
+                        <div className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center border border-amber-200">
+                          <Lock size={14} className="mr-1.5" /> PRO Feature
+                        </div>
+                      )}
+                   </div>
+
+                   <div className={`space-y-6 ${!isPro ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">Clinic Logo</label>
+                        <div className="flex items-center gap-4">
+                          {form.logoUrl ? (
+                             <img src={form.logoUrl} alt="Logo" className="h-16 w-16 object-contain rounded border border-slate-200 p-1 bg-white" />
+                          ) : (
+                             <div className="h-16 w-16 bg-slate-100 rounded border border-slate-200 flex items-center justify-center text-slate-400"><ImageIcon size={24} /></div>
+                          )}
+                          <div>
+                            <input type="file" id="logo-upload" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={!isPro || uploadingLogo} />
+                            <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('logo-upload').click()} isLoading={uploadingLogo} className="bg-white border-slate-300">
+                               Upload New Logo
+                            </Button>
+                            <p className="text-xs text-slate-400 mt-1">Recommended: PNG/JPG under 10MB.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">Brand Accent Color</label>
+                        <div className="flex items-center gap-3">
+                           <input type="color" name="brandColor" value={form.brandColor} onChange={handleChange} disabled={!isPro} className="h-10 w-16 rounded border border-slate-200 cursor-pointer p-0.5" />
+                           <Input name="brandColor" value={form.brandColor} onChange={handleChange} disabled={!isPro} placeholder="#HEX" className="bg-white" />
+                        </div>
+                      </div>
+                   </div>
+                   {!isPro && (
+                     <div className="absolute inset-0 bg-white/40 flex items-center justify-center z-10 backdrop-blur-[1px]">
+                        <Button onClick={() => navigate('/upgrade')} className="shadow-lg">Upgrade to Unlock</Button>
+                     </div>
+                   )}
+                </CardContent>
+             </Card>
+
+             {/* Patient Intake URL (Pro) */}
+             <Card className="border border-surface-200 shadow-sm relative overflow-hidden mb-6">
+                 <CardContent className="p-8">
+                    <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-4">
+                       <div>
+                         <h3 className="font-bold text-slate-900 text-lg flex items-center mb-1"><LinkIcon size={20} className="mr-2 text-primary-600" /> Patient Intake Form</h3>
+                         <p className="text-slate-500 text-sm">Share this link to let patients securely self-register online.</p>
+                       </div>
+                       {!isPro && (
+                         <div className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center border border-amber-200">
+                           <Lock size={14} className="mr-1.5" /> PRO Feature
+                         </div>
+                       )}
+                    </div>
+                    
+                    <div className={`mt-4 ${!isPro ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                       <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-600 font-mono truncate select-all">
+                             {intakeUrl}
+                          </div>
+                          <Button variant="outline" onClick={handleCopyLink} className="shrink-0 bg-white shadow-sm border-slate-300">
+                             {copied ? <CheckCircle size={18} className="text-emerald-500" /> : <Copy size={18} />}
+                          </Button>
+                       </div>
+                       <p className="text-xs text-slate-400 mt-3">Link connects directly to your secure patient directory.</p>
+                    </div>
+
+                    {!isPro && (
+                      <div className="absolute inset-0 bg-white/40 flex items-center justify-center z-10 backdrop-blur-[1px]">
+                         <Button onClick={() => navigate('/upgrade')} className="shadow-lg">Upgrade to Unlock</Button>
+                      </div>
+                    )}
+                 </CardContent>
              </Card>
 
              <Card className="border border-red-200 shadow-sm bg-gradient-to-br from-red-50 to-orange-50">
