@@ -5,6 +5,7 @@ import Button from "../ui/Button";
 import Input from "../ui/Input";
 import { CheckCircle2, Shield, AlertCircle, BookOpen, Lock, ImagePlus, X, FileText } from "lucide-react";
 import { DENTAL_FORMULARY } from "../../utils/dentalFormulary";
+import { CLINICAL_TEMPLATES } from "../../utils/clinicalTemplates";
 import api from "../../services/api";
 
 const ADULT_TEETH = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28, 48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
@@ -145,8 +146,10 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
   const fileInputRef = useRef(null);
   const [activeExamTab, setActiveExamTab] = useState("extraoral");
   const [showFormulary, setShowFormulary] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [formularyCategory, setFormularyCategory] = useState("Antibiotics");
+  const [activeTemplateType, setActiveTemplateType] = useState(null);
+  const [templateCategory, setTemplateCategory] = useState("");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
   const clinicPlan = storedUser?.clinic?.plan || "FREE";
@@ -156,6 +159,23 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
     const updatedMed = currentMed ? `${currentMed}\n${medValue}` : medValue;
     setRecordData({ ...recordData, medication: updatedMed });
     setShowFormulary(false);
+  };
+
+  const handleTemplateSelect = (value) => {
+    if (!activeTemplateType) return;
+    const currentText = recordData[activeTemplateType] ? recordData[activeTemplateType].trim() : "";
+    const updatedText = currentText ? `${currentText}\n${value}` : value;
+    setRecordData({ ...recordData, [activeTemplateType]: updatedText });
+    setActiveTemplateType(null);
+  };
+
+  const openTemplateModal = (type) => {
+    if (clinicPlan === "FREE") {
+      setShowUpgradeModal(true);
+      return;
+    }
+    setActiveTemplateType(type);
+    setTemplateCategory(CLINICAL_TEMPLATES[type].defaultCategory);
   };
 
   const handleFileUpload = async (e) => {
@@ -245,8 +265,52 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
       <div className="p-6 border border-slate-200 rounded-2xl shadow-sm bg-white">
         <h2 className="font-bold mb-4 text-lg text-slate-900 border-b border-slate-100 pb-2 flex items-center">Case History</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField label="Presenting Complaint" name="presentingComplaint" value={recordData.presentingComplaint} onChange={handleChange} type="textarea" rows={3} required placeholder="C/O..." />
-          <FormField label="History of Presenting Complaint" name="history" value={recordData.history} onChange={handleChange} type="textarea" rows={3} placeholder="HPC..." />
+          <div className="space-y-1.5 focus-within:text-primary-600 transition-colors">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-slate-700 leading-none">Presenting Complaint <span className="text-red-500">*</span></label>
+              <button 
+                type="button" 
+                onClick={() => openTemplateModal("presentingComplaint")}
+                className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
+              >
+                <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+              </button>
+            </div>
+            <textarea name="presentingComplaint" value={recordData.presentingComplaint || ""} onChange={handleChange} rows={3} required placeholder="C/O..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
+          </div>
+          <FormField label="History of Presenting Complaint" name="history" value={recordData.history || ""} onChange={handleChange} type="textarea" rows={3} placeholder="HPC..." />
+          <div className="space-y-1.5 focus-within:text-primary-600 transition-colors">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-slate-700 leading-none">Medical History / Comorbidities</label>
+              <button 
+                type="button" 
+                onClick={() => openTemplateModal("comorbidities")}
+                className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
+              >
+                <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+              </button>
+            </div>
+            <textarea name="comorbidities" value={recordData.comorbidities || ""} onChange={handleChange} rows={2} placeholder="Hypertension, Diabetes, Asthma, etc." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
+          </div>
+          <div className="space-y-1.5 focus-within:text-primary-600 transition-colors">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-slate-700 leading-none">Allergies</label>
+              <button 
+                type="button" 
+                onClick={() => openTemplateModal("allergies")}
+                className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
+              >
+                <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+              </button>
+            </div>
+            <textarea name="allergies" value={recordData.allergies || ""} onChange={handleChange} rows={2} placeholder="Penicillin, NSAIDs, Latex, etc. (Leave blank if none known)" className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
+          </div>
+          <div className="space-y-1.5 focus-within:text-primary-600 transition-colors">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-slate-700 leading-none">Current Medications</label>
+            </div>
+            <textarea name="currentMedication" value={recordData.currentMedication || ""} onChange={handleChange} rows={2} placeholder="E.g. Lisinopril 10mg daily..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
+          </div>
         </div>
       </div>
 
@@ -320,8 +384,32 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
       <div className="p-6 border border-slate-200 rounded-2xl shadow-sm bg-white">
         <h2 className="font-bold mb-4 text-lg text-slate-900 border-b border-slate-100 pb-2 flex items-center">Assessment & Plan</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField label="Diagnosis" name="diagnosis" value={recordData.diagnosis} onChange={handleChange} type="textarea" rows={3} required placeholder="Definitive or provisional diagnosis..." />
-          <FormField label="Treatment Plan" name="treatmentPlan" value={recordData.treatmentPlan} onChange={handleChange} type="textarea" rows={3} required placeholder="Proposed procedures..." />
+          <div className="space-y-1.5 focus-within:text-primary-600 transition-colors">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-slate-700 leading-none">Diagnosis <span className="text-red-500">*</span></label>
+              <button 
+                type="button" 
+                onClick={() => openTemplateModal("diagnosis")}
+                className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
+              >
+                <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+              </button>
+            </div>
+            <textarea name="diagnosis" value={recordData.diagnosis || ""} onChange={handleChange} rows={3} required placeholder="Definitive or provisional diagnosis..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
+          </div>
+          <div className="space-y-1.5 focus-within:text-primary-600 transition-colors">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-slate-700 leading-none">Treatment Plan <span className="text-red-500">*</span></label>
+              <button 
+                type="button" 
+                onClick={() => openTemplateModal("treatmentPlan")}
+                className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
+              >
+                <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+              </button>
+            </div>
+            <textarea name="treatmentPlan" value={recordData.treatmentPlan || ""} onChange={handleChange} rows={3} required placeholder="Proposed procedures..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
+          </div>
           <FormField label="Investigations Ordered" name="investigation" value={recordData.investigation} onChange={handleChange} type="textarea" rows={2} placeholder="X-rays, lab tests..." />
           <div className="space-y-1.5 focus-within:text-primary-600 transition-colors md:col-span-2">
             <div className="flex justify-between items-center">
@@ -416,6 +504,51 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
             <div className="flex w-full gap-3">
               <Button type="button" variant="outline" className="flex-1 border-slate-200" onClick={() => setShowUpgradeModal(false)}>Close</Button>
               <Button type="button" className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg font-bold" onClick={() => navigate("/upgrade")}>Upgrade Now</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTemplateType && CLINICAL_TEMPLATES[activeTemplateType] && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full flex flex-col border border-slate-200 max-h-[80vh]">
+            <div className="flex justify-between items-center p-5 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center"><BookOpen size={20} className="mr-2 text-primary-600" /> {CLINICAL_TEMPLATES[activeTemplateType].title}</h3>
+              <button type="button" onClick={() => setActiveTemplateType(null)} className="text-slate-400 hover:text-slate-600 font-bold p-1">&times;</button>
+            </div>
+            
+            <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-[300px]">
+              <div className="w-full md:w-1/3 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-100 p-3 overflow-y-auto">
+                <div className="space-y-1">
+                  {Object.keys(CLINICAL_TEMPLATES[activeTemplateType].categories).map(category => (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => setTemplateCategory(category)}
+                      className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${templateCategory === category ? "bg-primary-600 text-white shadow-md transform scale-[1.02]" : "text-slate-600 hover:bg-slate-200"}`}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="w-full md:w-2/3 p-4 overflow-y-auto">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">{templateCategory}</p>
+                <div className="space-y-2">
+                  {(CLINICAL_TEMPLATES[activeTemplateType].categories[templateCategory] || []).map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleTemplateSelect(item.value)}
+                      className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-primary-400 hover:bg-primary-50 transition-all group flex flex-col focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                    >
+                      <span className="font-bold text-slate-800 text-sm mb-1">{item.label}</span>
+                      <span className="text-sm text-slate-500 font-mono group-hover:text-primary-700 bg-white px-2 py-1 rounded inline-block w-fit mt-1 border border-slate-100">{item.value}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>

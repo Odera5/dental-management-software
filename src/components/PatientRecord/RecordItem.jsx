@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronUp, Calendar, Activity, PenTool, Trash2, Edit2, Info, CheckCircle2, Clock, FileText, ImagePlus } from "lucide-react";
+import { ChevronDown, ChevronUp, Calendar, Activity, PenTool, Trash2, Edit2, Info, CheckCircle2, Clock, FileText, ImagePlus, AlertCircle } from "lucide-react";
 import RecordForm from "./RecordForm";
 import Modal from "./Modal";
 import HighlightText from "../../utils/HighlightText";
@@ -75,6 +75,9 @@ function RecordItem({ record, expandedRecordId, setExpandedRecordId, handleDelet
             <div className="p-6 border-t border-slate-100 bg-white">
               
               <RecordSection title="History of Presenting Complaint" content={record.history} icon={Clock} keyword={searchKeyword} />
+              <RecordSection title="Medical History / Comorbidities" content={record.comorbidities} icon={Activity} keyword={searchKeyword} />
+              <RecordSection title="Allergies" content={record.allergies} icon={AlertCircle} keyword={searchKeyword} />
+              <RecordSection title="Current Medications" content={record.currentMedication} icon={Activity} keyword={searchKeyword} />
 
               {examSections.length > 0 ? (
                 <div className="mb-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
