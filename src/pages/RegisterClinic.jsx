@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Building2, Phone, MapPin, Mail, Lock, HeartPulse, User } from "lucide-react";
+import { Building2, Phone, MapPin, Mail, Lock, User } from "lucide-react";
 import api from "../services/api";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
@@ -110,8 +110,12 @@ export default function RegisterClinic() {
             transition={{ duration: 0.8 }}
           >
             <div className="mb-6 flex">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md">
-                <HeartPulse size={36} className="text-white" />
+              <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white/10 p-1 backdrop-blur-md">
+                <img
+                  src="/primuxcare-logo.png"
+                  alt="PrimuxCare logo"
+                  className="h-full w-full object-contain"
+                />
               </div>
             </div>
             <h1 className="mb-4 text-4xl font-bold leading-tight tracking-tight text-white">
@@ -134,8 +138,12 @@ export default function RegisterClinic() {
         >
           <div>
             <div className="mb-6 flex lg:hidden">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100">
-                <HeartPulse size={24} className="text-primary-600" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-100 p-1">
+                <img
+                  src="/primuxcare-logo.png"
+                  alt="PrimuxCare logo"
+                  className="h-full w-full object-contain"
+                />
               </div>
             </div>
             <h2 className="text-3xl font-bold tracking-tight text-slate-900">

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, MessageCircle, HeartPulse, ArrowLeft, ArrowRight } from "lucide-react";
+import { Mail, MessageCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import Button from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
 
@@ -24,8 +24,12 @@ export default function Support() {
         className="w-full max-w-2xl z-10 relative space-y-8"
       >
         <div className="text-center">
-          <div className="flex bg-white/10 backdrop-blur-md h-16 w-16 mx-auto rounded-2xl items-center justify-center mb-6 shadow-xl border border-white/20">
-            <HeartPulse size={36} className="text-white" />
+          <div className="flex bg-white/10 backdrop-blur-md h-24 w-24 mx-auto rounded-3xl items-center justify-center mb-6 shadow-xl border border-white/20 p-1">
+            <img
+              src="/primuxcare-logo.png"
+              alt="PrimuxCare logo"
+              className="h-full w-full object-contain"
+            />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
             How can we help?

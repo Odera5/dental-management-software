@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Users, Calendar, Clock, CreditCard, UserPlus, 
-  LogOut, Trash2, Home, HeartPulse, Menu, X, Settings, Crown, BarChart3
+  LogOut, Trash2, Home, Menu, X, Settings, Crown, BarChart3
 } from "lucide-react";
 import { logoutCurrentUser } from "../../services/api";
 import api from "../../services/api";
@@ -176,8 +176,12 @@ export default function DashboardLayout() {
       >
         <div className="flex items-center justify-between p-6 h-20 border-b border-surface-100 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="bg-primary-600 p-2 rounded-xl shadow-inner shadow-primary-800/30">
-              <HeartPulse className="text-white h-5 w-5" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-600 p-1 shadow-inner shadow-primary-800/30">
+              <img
+                src="/primuxcare-logo.png"
+                alt="PrimuxCare logo"
+                className="h-full w-full object-contain"
+              />
             </div>
             <div>
               <span className="font-bold text-slate-900 tracking-tight block leading-4">PrimuxCare</span>
