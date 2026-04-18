@@ -11,6 +11,7 @@ import Toast from "../components/Toast";
 import ConfirmModal from "../components/ui/ConfirmModal";
 import usePersistentState from "../hooks/usePersistentState";
 import { readStoredJson } from "../utils/persistence";
+import { resolveAssetUrl } from "../utils/assetUrl";
 
 const initialForm = {
   clinicName: "", clinicEmail: "", clinicPhone: "", clinicCity: "", clinicAddress: "", contactPerson: "",
@@ -227,7 +228,7 @@ export default function ClinicSettings() {
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Clinic Logo</label>
                         <div className="flex items-center gap-4">
                           {form.logoUrl ? (
-                             <img src={form.logoUrl} alt="Logo" className="h-16 w-16 object-contain rounded border border-slate-200 p-1 bg-white" />
+                             <img src={resolveAssetUrl(form.logoUrl)} alt="Logo" className="h-16 w-16 object-contain rounded border border-slate-200 p-1 bg-white" />
                           ) : (
                              <div className="h-16 w-16 bg-slate-100 rounded border border-slate-200 flex items-center justify-center text-slate-400"><ImageIcon size={24} /></div>
                           )}

@@ -5,6 +5,7 @@ import { CheckCircle, AlertCircle, Building, HeartPulse } from "lucide-react";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import api from "../services/api";
+import { resolveAssetUrl } from "../utils/assetUrl";
 
 export default function PatientIntakeForm() {
   const { clinicId } = useParams();
@@ -99,7 +100,7 @@ export default function PatientIntakeForm() {
       {/* HEADER LOGO */}
       <div className="flex flex-col items-center justify-center mb-10 w-full max-w-2xl mx-auto">
          {clinic?.logoUrl ? (
-            <img src={clinic.logoUrl} alt={clinic.name} className="h-20 w-20 object-contain mb-4 rounded-xl shadow-sm bg-white p-1 border border-white" />
+            <img src={resolveAssetUrl(clinic.logoUrl)} alt={clinic.name} className="h-20 w-20 object-contain mb-4 rounded-xl shadow-sm bg-white p-1 border border-white" />
          ) : (
             <div className="h-16 w-16 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center mb-4" style={brandStyle}>
                <HeartPulse size={32} />

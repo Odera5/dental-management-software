@@ -9,6 +9,7 @@ import Button from "../ui/Button";
 import Input from "../ui/Input";
 import { Card, CardContent } from "../ui/Card";
 import usePersistentState from "../../hooks/usePersistentState";
+import { resolveAssetUrl } from "../../utils/assetUrl";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 2 }).format(Number(value) || 0);
@@ -80,7 +81,7 @@ function InvoiceViewer({ invoice, onClose }) {
         <div className="flex flex-col md:flex-row justify-between gap-8 mb-10">
           <div>
             {clinic.logoUrl && (
-              <img src={clinic.logoUrl} alt="Clinic Logo" className="h-16 w-auto object-contain mb-6 print:h-12" />
+              <img src={resolveAssetUrl(clinic.logoUrl)} alt="Clinic Logo" className="h-16 w-auto object-contain mb-6 print:h-12" />
             )}
             <div className="bg-primary-50 text-primary-700 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-widest w-fit mb-4 mix-blend-multiply" style={clinic.brandColor ? { backgroundColor: `${clinic.brandColor}20`, color: clinic.brandColor } : {}}>Invoice</div>
             <h2 className="text-4xl font-bold text-slate-900 tracking-tight">{invoice.invoiceNumber}</h2>
@@ -346,9 +347,9 @@ export default function InvoiceList({ patientId = null }) {
                           <div><p className="text-[10px] uppercase font-bold text-rose-500 tracking-wider">Balance</p><p className="font-semibold text-rose-600">{formatCurrency(invoice.balance)}</p></div>
                        </div>
 
-                       <div className="flex flex-wrap items-center gap-2 pt-4 xl:pt-0 border-t xl:border-t-0 border-slate-100 min-w-fit">
-                          {invoice.status === "draft" && <Button size="sm" variant="outline" onClick={() => handleIssueInvoice(getEntityId(invoice))} className="bg-white">Issue</Button>}
-                          <Button size="sm" onClick={() => setViewingInvoice(invoice)} className="shadow">Open Bill</Button>
+                       <div className="flex flex-col gap-2 pt-4 border-t border-slate-100 xl:w-auto xl:pt-0 xl:border-t-0 shrink-0 items-end justify-center xl:mr-4">
+                          {invoice.status === "draft" && <Button variant="outline" onClick={() => handleIssueInvoice(getEntityId(invoice))} className="!w-[80px] !text-[11px] !h-7 !px-1 !py-0 !min-h-0 rounded-lg">Issue</Button>}
+                          <Button onClick={() => setViewingInvoice(invoice)} className="shadow flex items-center justify-center !w-[80px] !text-[11px] !h-7 !px-1 !py-0 !min-h-0 rounded-lg">Open Bill</Button>
                        </div>
                     </div>
                   ))}
