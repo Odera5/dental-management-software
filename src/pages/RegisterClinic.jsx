@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Building2, Phone, MapPin, Mail, Lock, User } from "lucide-react";
 import api from "../services/api";
@@ -20,6 +20,7 @@ const initialForm = {
 };
 
 export default function RegisterClinic() {
+  const navigate = useNavigate();
   const MotionDiv = motion.div;
   const [form, setForm, clearFormDraft] = usePersistentState(
     "primuxcare:draft:register-clinic",
@@ -67,11 +68,10 @@ export default function RegisterClinic() {
 
     try {
       const response = await api.post("/auth/register-clinic", payload);
-      setSuccess(
-        response.data?.message ||
-          "Clinic registered successfully. Please check the admin email inbox to confirm the address and activate the account.",
-      );
+      const successMessage = response.data?.message ||
+          "Clinic registered successfully. Please check the admin email inbox to confirm the address and activate the account.";
       clearFormDraft();
+      navigate("/login", { state: { successMessage } });
     } catch (err) {
       const responseData = err.response?.data;
 
@@ -138,7 +138,7 @@ export default function RegisterClinic() {
           className="m-auto w-full max-w-xl space-y-8"
         >
           <div>
-            <div className="mb-6 flex lg:hidden">
+            <div className="mb-6 flex justify-center lg:hidden">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-100 p-1">
                 <img
                   src={primuxFavicon}

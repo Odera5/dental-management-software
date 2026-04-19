@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Papa from "papaparse";
-import { Upload, FileText, X, AlertCircle } from "lucide-react";
+import { Upload, FileText, X, AlertCircle, Download } from "lucide-react";
 import Modal from "../PatientRecord/Modal";
 import Button from "../ui/Button";
 import api from "../../services/api";
@@ -10,6 +10,17 @@ export default function CsvImportModal({ onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [preview, setPreview] = useState([]);
+
+  const downloadSampleCsv = () => {
+    const csvContent = "Name,Age,Gender,Phone,Email,Address\nJohn Doe,35,Male,+1234567890,john@example.com,123 Main St\nJane Smith,28,Female,+0987654321,jane@example.com,456 Oak Ave";
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", "primuxcare_sample_import.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
@@ -87,7 +98,15 @@ export default function CsvImportModal({ onClose, onSuccess }) {
     <Modal onClose={onClose}>
       <div className="mb-6 border-b border-slate-100 pb-4">
         <h2 className="text-2xl font-bold text-slate-900">Import CSV</h2>
-        <p className="text-slate-500 text-sm mt-1">Upload a spreadsheet of your legacy patient records.</p>
+        <div className="flex items-center justify-between mt-1">
+          <p className="text-slate-500 text-sm">Upload a spreadsheet of your legacy patient records.</p>
+          <button 
+            onClick={downloadSampleCsv} 
+            className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline flex items-center gap-1 focus:outline-none"
+          >
+            <Download size={14} /> Sample CSV
+          </button>
+        </div>
       </div>
 
       <div className="space-y-6">

@@ -374,33 +374,36 @@ export default function Dashboard() {
       )}
 
       <div className="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-surface-200 bg-surface-50 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
-          <h2 className="text-lg font-semibold text-slate-800">
-            {showTrash ? "Deleted Records" : "Patient Directory"}
-          </h2>
-          <div className="flex flex-col sm:flex-row-reverse gap-3 items-center w-full sm:w-auto">
-            {!showTrash && canViewRecords && (
-              <div className="flex gap-2 w-full sm:w-auto">
-                <Button variant="outline" onClick={exportCSV} className="flex-1 sm:flex-none bg-white shadow-sm border-slate-300">
-                  <Download size={16} className="mr-2" /> Export
-                  {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500" />}
-                </Button>
-                <Button variant="outline" onClick={handleImportClick} className="flex-1 sm:flex-none bg-white shadow-sm border-slate-300">
-                  <Upload size={16} className="mr-2" /> Import
-                  {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500" />}
-                </Button>
-              </div>
-            )}
-            <div className="w-full sm:w-72">
+        <div className="p-4 border-b border-surface-200 bg-surface-50 flex flex-col lg:flex-row lg:items-center gap-4 justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full lg:w-auto">
+            <h2 className="text-lg font-semibold text-slate-800 shrink-0">
+              {showTrash ? "Deleted Records" : "Patient Directory"}
+            </h2>
+            
+            {/* Search Bar - Shifted towards the center/next to title */}
+            <div className="w-full sm:w-72 lg:ml-4">
               <Input 
                 placeholder="Search by name or card..."
                 value={searchQuery}
                 onChange={(e) => setDirectoryState((current) => ({ ...current, searchQuery: e.target.value }))}
                 icon={Search}
-                className="bg-white h-10"
+                className="bg-white"
               />
             </div>
           </div>
+
+          {!showTrash && canViewRecords && (
+            <div className="flex gap-2 w-full sm:w-auto shrink-0 justify-start sm:justify-end">
+              <Button variant="outline" size="sm" onClick={exportCSV} className="px-3 py-1.5 h-8 text-xs bg-white shadow-sm border-slate-300 flex-1 sm:flex-none">
+                <Download size={12} className="mr-1.5" /> Export
+                {clinicPlan === "FREE" && <Lock size={12} className="ml-1 text-amber-500" />}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleImportClick} className="px-3 py-1.5 h-8 text-xs bg-white shadow-sm border-slate-300 flex-1 sm:flex-none">
+                <Upload size={12} className="mr-1.5" /> Import
+                {clinicPlan === "FREE" && <Lock size={12} className="ml-1 text-amber-500" />}
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -496,7 +499,7 @@ export default function Dashboard() {
             <Button variant="outline" size="sm" onClick={() => setDirectoryState((current) => ({ ...current, currentPage: Math.max(1, current.currentPage - 1) }))} disabled={currentPageSafe <= 1}>
               Previous
             </Button>
-            <div className="flex items-center px-4 text-sm font-medium text-slate-700">
+            <div className="flex items-center px-4 text-sm font-medium text-slate-700 whitespace-nowrap">
               {currentPageSafe} / {totalPages}
             </div>
             <Button variant="outline" size="sm" onClick={() => setDirectoryState((current) => ({ ...current, currentPage: Math.min(totalPages, current.currentPage + 1) }))} disabled={currentPageSafe >= totalPages}>

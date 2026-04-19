@@ -224,7 +224,7 @@ export default function PatientRecord() {
             <p className="text-sm font-medium text-slate-600">Showing <strong className="text-slate-900">{pageStartIndex + 1}-{Math.min(pageStartIndex + RECORDS_PER_PAGE, filteredRecords.length)}</strong> of <strong className="text-slate-900">{filteredRecords.length}</strong> records</p>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPageSafe === 1} className="bg-white">Previous</Button>
-              <span className="text-sm font-bold text-slate-700 px-2 lg:px-4">{currentPageSafe} / {totalPages}</span>
+              <span className="text-sm font-bold text-slate-700 px-2 lg:px-4 whitespace-nowrap">{currentPageSafe} / {totalPages}</span>
               <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPageSafe === totalPages} className="bg-white">Next</Button>
             </div>
           </CardContent>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Mail, Lock } from "lucide-react";
 import api from "../services/api";
@@ -19,7 +19,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { email, password, rememberMe } = loginDraft;
+
+  React.useEffect(() => {
+    if (location.state?.successMessage) {
+      setSuccess(location.state.successMessage);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, setSuccess]);
   
   const canResendVerification = error === "Please confirm your email address to activate your account before signing in.";
 
@@ -213,7 +221,7 @@ export default function Login() {
                 type="button"
                 onClick={handleResendVerification}
                 disabled={resending}
-                className="mt-2 font-medium text-amber-700 hover:text-amber-800 disabled:opacity-50"
+                className="mt-2 font-medium text-amber-700 hover:text-amber-800 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {resending ? "Sending..." : "Resend verification email"}
               </button>

@@ -52,7 +52,7 @@ export default function VerifyEmail() {
     <div className="min-h-screen bg-slate-100 px-4 py-10">
       <div className="mx-auto max-w-xl rounded-3xl bg-white p-8 shadow-xl shadow-slate-200">
         <p className="text-sm uppercase tracking-[0.25em] text-teal-700">
-          PrimuxCare BHF
+          PrimuxCare
         </p>
         <h1 className="mt-4 text-3xl font-semibold text-slate-900">
           Email confirmation
