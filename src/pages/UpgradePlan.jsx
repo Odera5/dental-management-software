@@ -319,8 +319,8 @@ export default function UpgradePlan() {
           </div>
 
           <div className="mb-8 flex items-end gap-1">
-            <span className="text-4xl md:text-5xl font-extrabold text-white transition-all">
-              NGN {isAnnual ? "120,000" : "12,000"}
+            <span className="text-3xl md:text-4xl font-extrabold text-white transition-all">
+              NGN {isAnnual ? "1,000,000" : "100,000"}
             </span>
             <span className="text-slate-400 font-medium mb-1 transition-all"> / {isAnnual ? "year" : "month"}</span>
           </div>
