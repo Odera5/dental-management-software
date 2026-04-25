@@ -26,6 +26,7 @@ const UpgradePlan = lazy(() => import("./pages/UpgradePlan"));
 const Reports = lazy(() => import("./pages/Reports"));
 const PatientIntakeForm = lazy(() => import("./pages/PatientIntakeForm"));
 const PaystackCallback = lazy(() => import("./pages/PaystackCallback"));
+const Waitlist = lazy(() => import("./pages/Waitlist"));
 
 function RouteLoader() {
   return (
@@ -60,6 +61,7 @@ function App() {
           <Route path="/" element={<HomeRedirect />} />
 
           {/* Public routes */}
+          <Route path="/waitlist" element={<Waitlist />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register-clinic" element={<RegisterClinic />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
