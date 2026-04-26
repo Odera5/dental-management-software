@@ -298,7 +298,7 @@ export default function Dashboard() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="p-6 md:p-8 space-y-8 h-full">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="p-4 md:p-6 space-y-8 h-full">
       {toast && <Toast message={toast.message} type={toast.type} duration={3000} onClose={() => setToast(null)} />}
       {showImportModal && (
         <CsvImportModal 

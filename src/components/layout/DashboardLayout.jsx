@@ -211,7 +211,7 @@ export default function DashboardLayout() {
       </AnimatePresence>
 
       <MotionAside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-surface-200 flex flex-col transition-transform duration-300 lg:translate-x-0 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:relative lg:flex"}`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-surface-200 flex flex-col transition-transform duration-300 lg:translate-x-0 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:relative lg:flex"}`}
       >
         <div className="flex items-center justify-between p-6 h-20 border-b border-surface-100 shrink-0">
           <div className="flex items-center gap-3">

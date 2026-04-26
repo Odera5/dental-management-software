@@ -55,7 +55,10 @@ export default function Login() {
       setError("");
       setSuccess("");
 
-      const destination = readLastVisitedRoute() || "/dashboard";
+      let destination = readLastVisitedRoute() || "/dashboard";
+      if (destination.startsWith("/waitlist")) {
+        destination = "/dashboard";
+      }
       if (destination === "/dashboard") {
         clearLastVisitedRoute();
       }
