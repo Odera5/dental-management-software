@@ -133,5 +133,92 @@ export const CLINICAL_TEMPLATES = {
         { label: "None", value: "No known comorbidities" }
       ]
     }
+  },
+  extraOral: {
+    title: "Extra-Oral Examination",
+    defaultCategory: "General Appearance",
+    categories: {
+      "General Appearance": [
+        { label: "NAD", value: "NAD (No Abnormality Detected)." },
+        { label: "Facial Asymmetry", value: "Facial asymmetry noted." },
+        { label: "Swelling", value: "Extra-oral swelling present." }
+      ],
+      "TMJ & Muscles": [
+        { label: "Normal TMJ", value: "TMJ movements smooth, no clicking or deviation." },
+        { label: "TMJ Clicking", value: "Clicking noted on opening/closing." },
+        { label: "Limited Mouth Opening", value: "Limited mouth opening (trismus)." },
+        { label: "Muscle Tenderness", value: "Tenderness on palpation of muscles of mastication." }
+      ],
+      "Lymph Nodes": [
+        { label: "Not Palpable", value: "Lymph nodes not palpable." },
+        { label: "Enlarged/Tender", value: "Submandibular/cervical lymph nodes enlarged and tender." }
+      ]
+    }
+  },
+  softTissue: {
+    title: "Soft Tissue Findings",
+    defaultCategory: "Mucosa & Gingiva",
+    categories: {
+      "Mucosa & Gingiva": [
+        { label: "Healthy", value: "Mucosa appears pink and healthy." },
+        { label: "Ulceration", value: "Ulceration present on mucosa." },
+        { label: "White Lesion", value: "White patch/lesion observed." },
+        { label: "Sinus Tract", value: "Sinus tract/fistula present." }
+      ],
+      "Tongue & Floor of Mouth": [
+        { label: "Normal", value: "Tongue and floor of mouth normal." },
+        { label: "Coated Tongue", value: "Coated tongue." },
+        { label: "Geographic Tongue", value: "Geographic tongue noted." }
+      ],
+      "Palate & Throat": [
+        { label: "Normal", value: "Hard/soft palate and throat clear." },
+        { label: "Inflamed Throat", value: "Throat appears inflamed/red." }
+      ]
+    }
+  },
+  periodontal: {
+    title: "Periodontal Status",
+    defaultCategory: "Gingival Health",
+    categories: {
+      "Gingival Health": [
+        { label: "Healthy", value: "Gingiva pink, firm, no bleeding on probing." },
+        { label: "Mild Gingivitis", value: "Mild gingival inflammation, slight BOP." },
+        { label: "Moderate/Severe Gingivitis", value: "Moderate to severe gingivitis, spontaneous bleeding." }
+      ],
+      "Calculus & Plaque": [
+        { label: "Minimal Plaque", value: "Minimal plaque, good oral hygiene." },
+        { label: "Moderate Plaque/Calculus", value: "Moderate plaque and calculus present." },
+        { label: "Heavy Calculus", value: "Heavy calculus deposits, poor oral hygiene." }
+      ],
+      "Periodontitis & Mobility": [
+        { label: "Pocketing", value: "Periodontal pocketing present (>4mm)." },
+        { label: "Recession", value: "Gingival recession noted." },
+        { label: "Grade I Mobility", value: "Grade I mobility." },
+        { label: "Grade II/III Mobility", value: "Grade II/III mobility." }
+      ]
+    }
+  },
+  occlusion: {
+    title: "Occlusion",
+    defaultCategory: "Classification",
+    categories: {
+      "Classification": [
+        { label: "Class I", value: "Angle's Class I molar relationship." },
+        { label: "Class II", value: "Angle's Class II molar relationship." },
+        { label: "Class III", value: "Angle's Class III molar relationship." }
+      ],
+      "Overjet & Overbite": [
+        { label: "Normal", value: "Normal overjet and overbite." },
+        { label: "Increased Overjet", value: "Increased overjet." },
+        { label: "Deep Bite", value: "Deep overbite." },
+        { label: "Open Bite", value: "Anterior open bite." },
+        { label: "Crossbite", value: "Crossbite present." }
+      ],
+      "Alignment": [
+        { label: "Well Aligned", value: "Teeth well aligned." },
+        { label: "Crowding", value: "Anterior crowding." },
+        { label: "Spacing", value: "Generalized spacing/diastema." }
+      ]
+    }
   }
 };

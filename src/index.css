@@ -38,3 +38,30 @@ body {
   color: #1e293b;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Ensure pointer cursor on all standard clickable elements */
+button,
+a,
+select,
+label,
+input[type="checkbox"],
+input[type="radio"],
+input[type="file"],
+input[type="color"],
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+[role="button"],
+[role="link"],
+[role="menuitem"],
+[role="switch"],
+[role="tab"] {
+  cursor: pointer;
+}
+
+/* Ensure disabled elements show not-allowed cursor */
+:disabled,
+[disabled],
+[aria-disabled="true"] {
+  cursor: not-allowed !important;
+}

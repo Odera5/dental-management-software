@@ -179,16 +179,24 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
   const clinicPlan = storedUser?.clinic?.plan || "FREE";
 
   const handleFormularySelect = (medValue) => {
-    const currentMed = recordData.medication ? recordData.medication.trim() : "";
-    const updatedMed = currentMed ? `${currentMed}\n${medValue}` : medValue;
-    setRecordData({ ...recordData, medication: updatedMed });
+    let currentMed = recordData.medication ? recordData.medication.trim() : "";
+    if (currentMed.includes(medValue)) {
+      currentMed = currentMed.replace(medValue, "").replace(/\n\s*\n/g, '\n').trim();
+    } else {
+      currentMed = currentMed ? `${currentMed}\n${medValue}` : medValue;
+    }
+    setRecordData({ ...recordData, medication: currentMed });
   };
 
   const handleTemplateSelect = (value) => {
     if (!activeTemplateType) return;
-    const currentText = recordData[activeTemplateType] ? recordData[activeTemplateType].trim() : "";
-    const updatedText = currentText ? `${currentText}\n${value}` : value;
-    setRecordData({ ...recordData, [activeTemplateType]: updatedText });
+    let currentText = recordData[activeTemplateType] ? recordData[activeTemplateType].trim() : "";
+    if (currentText.includes(value)) {
+      currentText = currentText.replace(value, "").replace(/\n\s*\n/g, '\n').trim();
+    } else {
+      currentText = currentText ? `${currentText}\n${value}` : value;
+    }
+    setRecordData({ ...recordData, [activeTemplateType]: currentText });
   };
 
   const openTemplateModal = (type) => {
@@ -201,15 +209,24 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
   };
 
   const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await api.post("/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+      const uploadPromises = files.map(file => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return api.post("/upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
       });
+
+      const responses = await Promise.all(uploadPromises);
+      const newAttachments = responses.map(res => ({
+        url: res.data.url,
+        name: res.data.fileName,
+        type: res.data.mimetype
+      }));
       
       // Parse current attachments (handles stringified JSON if it came from DB as string)
       let currentAttachments = [];
@@ -219,13 +236,13 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
         currentAttachments = recordData.attachments;
       }
 
-      setRecordData({ ...recordData, attachments: [...currentAttachments, { url: res.data.url, name: res.data.fileName, type: res.data.mimetype }] });
+      setRecordData({ ...recordData, attachments: [...currentAttachments, ...newAttachments] });
     } catch (err) {
       console.error("Upload failed", err);
       if (err.response?.status === 403 || err.response?.data?.errorCode === 'UPGRADE_REQUIRED') {
          setShowUpgradeModal(true);
       } else {
-         alert("Failed to upload file. " + (err.response?.data?.message || err.message));
+         alert("Failed to upload some files. " + (err.response?.data?.message || err.message));
       }
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -344,17 +361,64 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
         </div>
 
         {activeExamTab === "extraoral" && (
-          <FormField label="Extra-Oral Examination Notes" name="examinationExtraOral" value={recordData.examinationExtraOral || ""} onChange={handleChange} type="textarea" rows={4} placeholder="Facial symmetry, TMJ, lymph nodes..." />
+          <div className="space-y-1.5 focus-within:text-primary-600 transition-colors">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-slate-700 leading-none">Extra-Oral Examination Notes</label>
+              <button 
+                type="button" 
+                onClick={() => openTemplateModal("extraOral")}
+                className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
+              >
+                <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+              </button>
+            </div>
+            <textarea name="examinationExtraOral" value={recordData.examinationExtraOral || ""} onChange={handleChange} rows={4} placeholder="Facial symmetry, TMJ, lymph nodes..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
+          </div>
         )}
 
         {activeExamTab === "intraoral" && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <FormField label="Soft Tissue Findings" name="softTissue" value={recordData.softTissue || ""} onChange={handleChange} type="textarea" rows={3} placeholder="Mucosa, tongue, palate..." />
-              <FormField label="Periodontal Status" name="periodontalStatus" value={recordData.periodontalStatus || ""} onChange={handleChange} type="textarea" rows={3} placeholder="Gingival condition, B.O.P..." />
+              <div className="space-y-1.5 focus-within:text-primary-600 transition-colors">
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-semibold text-slate-700 leading-none">Soft Tissue Findings</label>
+                  <button 
+                    type="button" 
+                    onClick={() => openTemplateModal("softTissue")}
+                    className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
+                  >
+                    <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+                  </button>
+                </div>
+                <textarea name="softTissue" value={recordData.softTissue || ""} onChange={handleChange} rows={3} placeholder="Mucosa, tongue, palate..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
+              </div>
+              
+              <div className="space-y-1.5 focus-within:text-primary-600 transition-colors">
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-semibold text-slate-700 leading-none">Periodontal Status</label>
+                  <button 
+                    type="button" 
+                    onClick={() => openTemplateModal("periodontal")}
+                    className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
+                  >
+                    <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+                  </button>
+                </div>
+                <textarea name="periodontalStatus" value={recordData.periodontalStatus || ""} onChange={handleChange} rows={3} placeholder="Gingival condition, B.O.P..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
+              </div>
             </div>
-            <div className="mb-8">
-              <FormField label="Occlusion" name="occlusion" value={recordData.occlusion || ""} onChange={handleChange} type="textarea" rows={2} placeholder="Class I/II/III..." />
+            <div className="mb-8 space-y-1.5 focus-within:text-primary-600 transition-colors">
+              <div className="flex justify-between items-center">
+                <label className="text-sm font-semibold text-slate-700 leading-none">Occlusion</label>
+                <button 
+                  type="button" 
+                  onClick={() => openTemplateModal("occlusion")}
+                  className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
+                >
+                  <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+                </button>
+              </div>
+              <textarea name="occlusion" value={recordData.occlusion || ""} onChange={handleChange} rows={2} placeholder="Class I/II/III..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
             </div>
 
             <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm">
@@ -459,7 +523,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
           >
             Attach File {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500" />}
           </button>
-          <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/jpeg,image/png,image/webp,application/pdf" />
+          <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/jpeg,image/png,image/webp,application/pdf" multiple />
         </div>
         
         {(() => {
@@ -481,7 +545,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
                       <img src={`${api.defaults.baseURL.replace('/api', '')}${att.url}`} alt={att.name} className="w-full h-full object-cover rounded-lg mb-1" />
                     )}
                     <span className="text-[10px] text-slate-500 truncate w-full text-center block font-medium absolute bottom-0 left-0 bg-white/90 px-1 py-0.5 backdrop-blur-sm rounded-b-xl border-t border-slate-100">{att.name}</span>
-                    <button type="button" onClick={() => removeAttachment(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600"><X size={12}/></button>
+                    <button type="button" onClick={() => removeAttachment(idx)} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600 z-10"><X size={12}/></button>
                   </div>
               ))}
             </div>
@@ -558,17 +622,20 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
               <div className="w-full md:w-2/3 p-4 overflow-y-auto">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">{templateCategory}</p>
                 <div className="space-y-2">
-                  {(CLINICAL_TEMPLATES[activeTemplateType].categories[templateCategory] || []).map((item, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleTemplateSelect(item.value)}
-                      className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-primary-400 hover:bg-primary-50 transition-all group flex flex-col focus:ring-2 focus:ring-primary-500 focus:outline-none"
-                    >
-                      <span className="font-bold text-slate-800 text-sm mb-1">{item.label}</span>
-                      <span className="text-sm text-slate-500 font-mono group-hover:text-primary-700 bg-white px-2 py-1 rounded inline-block w-fit mt-1 border border-slate-100">{item.value}</span>
-                    </button>
-                  ))}
+                  {(CLINICAL_TEMPLATES[activeTemplateType].categories[templateCategory] || []).map((item, idx) => {
+                    const isSelected = recordData[activeTemplateType]?.includes(item.value);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleTemplateSelect(item.value)}
+                        className={`w-full text-left p-3 rounded-xl border transition-all group flex flex-col focus:outline-none ${isSelected ? "border-primary-500 bg-primary-50 ring-1 ring-primary-500 shadow-sm" : "border-slate-200 hover:border-primary-400 hover:bg-primary-50 focus:ring-2 focus:ring-primary-500"}`}
+                      >
+                        <span className={`font-bold text-sm mb-1 ${isSelected ? "text-primary-800" : "text-slate-800"}`}>{item.label}</span>
+                        <span className={`text-sm font-mono px-2 py-1 rounded inline-block w-fit mt-1 border ${isSelected ? "text-primary-700 bg-primary-100 border-primary-200" : "text-slate-500 group-hover:text-primary-700 bg-white border-slate-100"}`}>{item.value}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -603,17 +670,20 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
               <div className="w-full md:w-2/3 p-4 overflow-y-auto">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">{formularyCategory} Prescriptions</p>
                 <div className="space-y-2">
-                  {DENTAL_FORMULARY[formularyCategory].map((med, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleFormularySelect(med.value)}
-                      className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-primary-400 hover:bg-primary-50 transition-all group flex flex-col focus:ring-2 focus:ring-primary-500 focus:outline-none"
-                    >
-                      <span className="font-bold text-slate-800 text-sm mb-1">{med.label}</span>
-                      <span className="text-sm text-slate-500 font-mono group-hover:text-primary-700 bg-white px-2 py-1 rounded inline-block w-fit mt-1 border border-slate-100">{med.value}</span>
-                    </button>
-                  ))}
+                  {DENTAL_FORMULARY[formularyCategory].map((med, idx) => {
+                    const isSelected = recordData.medication?.includes(med.value);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleFormularySelect(med.value)}
+                        className={`w-full text-left p-3 rounded-xl border transition-all group flex flex-col focus:outline-none ${isSelected ? "border-primary-500 bg-primary-50 ring-1 ring-primary-500 shadow-sm" : "border-slate-200 hover:border-primary-400 hover:bg-primary-50 focus:ring-2 focus:ring-primary-500"}`}
+                      >
+                        <span className={`font-bold text-sm mb-1 ${isSelected ? "text-primary-800" : "text-slate-800"}`}>{med.label}</span>
+                        <span className={`text-sm font-mono px-2 py-1 rounded inline-block w-fit mt-1 border ${isSelected ? "text-primary-700 bg-primary-100 border-primary-200" : "text-slate-500 group-hover:text-primary-700 bg-white border-slate-100"}`}>{med.value}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

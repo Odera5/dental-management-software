@@ -67,7 +67,7 @@ export default function ClinicSettings() {
       setCustomInputs(prev => ({...prev, [`${index}_desc`]: false, [`${index}_cat`]: false}));
       
       const desc = preset.description.trim() || "Procedure";
-      await handleSubmit(null, form, `${desc} saved successfully`);
+      await saveSection("presets", form, `${desc} saved successfully`);
     } else {
       setEditingPresets(prev => ({...prev, [index]: true}));
     }
@@ -90,7 +90,7 @@ export default function ClinicSettings() {
         return acc;
       }, {});
     });
-    await handleSubmit(null, updatedForm, `${desc} deleted successfully`);
+    await saveSection("presets", updatedForm, `${desc} deleted successfully`);
   };
 
   const handleAddPreset = () => {
@@ -189,25 +189,82 @@ export default function ClinicSettings() {
     }
   };
 
-  const handleSubmit = async (e, customForm = null, customSuccessMsg = null) => {
-    if (e && e.preventDefault) e.preventDefault();
+  const saveSection = async (section, dataToSave, successMsg) => {
     setSaving(true);
-    const formToSave = customForm || form;
+    
+    let payload = { ...dataToSave };
+    
+    if (section === "profile") {
+      payload.brandColor = billingInfo?.brandColor || "#0f172a";
+      payload.logoUrl = billingInfo?.logoUrl || "";
+      payload.procedurePresetPrices = billingInfo?.procedurePresetPrices ? normalizeProcedurePresets(billingInfo.procedurePresetPrices) : payload.procedurePresetPrices;
+    } else if (section === "branding") {
+      payload.clinicName = billingInfo?.name || payload.clinicName;
+      payload.clinicEmail = billingInfo?.email || payload.clinicEmail;
+      payload.clinicPhone = billingInfo?.phone || payload.clinicPhone;
+      payload.clinicCountry = billingInfo?.country || payload.clinicCountry;
+      payload.clinicCity = billingInfo?.city || payload.clinicCity;
+      payload.clinicAddress = billingInfo?.address || payload.clinicAddress;
+      payload.contactPerson = billingInfo?.contactPerson || payload.contactPerson;
+      payload.procedurePresetPrices = billingInfo?.procedurePresetPrices ? normalizeProcedurePresets(billingInfo.procedurePresetPrices) : payload.procedurePresetPrices;
+    } else if (section === "presets") {
+      payload.clinicName = billingInfo?.name || payload.clinicName;
+      payload.clinicEmail = billingInfo?.email || payload.clinicEmail;
+      payload.clinicPhone = billingInfo?.phone || payload.clinicPhone;
+      payload.clinicCountry = billingInfo?.country || payload.clinicCountry;
+      payload.clinicCity = billingInfo?.city || payload.clinicCity;
+      payload.clinicAddress = billingInfo?.address || payload.clinicAddress;
+      payload.contactPerson = billingInfo?.contactPerson || payload.contactPerson;
+      payload.brandColor = billingInfo?.brandColor || "#0f172a";
+      payload.logoUrl = billingInfo?.logoUrl || "";
+    }
+
     try {
-      const response = await api.put("/auth/clinic-profile", formToSave);
+      const response = await api.put("/auth/clinic-profile", payload);
       const clinic = response.data?.clinic;
       syncStoredClinic(clinic);
-      clearFormDraft();
-      setForm({
-        clinicName: clinic?.name || "", clinicEmail: clinic?.email || "", clinicPhone: clinic?.phone || "",
-        clinicCountry: clinic?.country || "", clinicCity: clinic?.city || "", clinicAddress: clinic?.address || "", contactPerson: clinic?.contactPerson || "",
-        logoUrl: clinic?.logoUrl || "", brandColor: clinic?.brandColor || "#0f172a",
-        procedurePresetPrices: normalizeProcedurePresets(clinic?.procedurePresetPrices),
-      });
+      
+      if (section === "profile") {
+        setForm(c => ({
+          ...c,
+          clinicName: clinic.name || "",
+          clinicEmail: clinic.email || "",
+          clinicPhone: clinic.phone || "",
+          clinicCountry: clinic.country || "",
+          clinicCity: clinic.city || "",
+          clinicAddress: clinic.address || "",
+          contactPerson: clinic.contactPerson || ""
+        }));
+      } else if (section === "branding") {
+        setForm(c => ({
+          ...c,
+          brandColor: clinic.brandColor || "#0f172a",
+          logoUrl: clinic.logoUrl || ""
+        }));
+      } else if (section === "presets") {
+        setForm(c => ({
+          ...c,
+          procedurePresetPrices: normalizeProcedurePresets(clinic.procedurePresetPrices)
+        }));
+      }
+      
       setBillingInfo((current) => ({ ...(current || {}), ...clinic }));
-      setToast({ show: true, message: customSuccessMsg || response.data?.message || "Profile updated successfully", type: "success" });
-    } catch (err) { setToast({ show: true, message: err.response?.data?.message || "Failed to update profile", type: "error" }); } 
-    finally { setSaving(false); }
+      setToast({ show: true, message: successMsg || response.data?.message || "Updated successfully", type: "success" });
+    } catch (err) { 
+      setToast({ show: true, message: err.response?.data?.message || "Failed to update", type: "error" }); 
+    } finally { 
+      setSaving(false); 
+    }
+  };
+
+  const handleSaveProfile = (e) => {
+    if (e) e.preventDefault();
+    saveSection("profile", form, "Profile updated successfully");
+  };
+
+  const handleSaveBranding = (e) => {
+    if (e) e.preventDefault();
+    saveSection("branding", form, "Custom branding saved successfully");
   };
 
   const initiateDeactivation = async (e) => {
@@ -293,7 +350,7 @@ export default function ClinicSettings() {
                      )}
                    </div>
                    <input type="file" id="logo-upload-top" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={!isPro || uploadingLogo} />
-                   <form onSubmit={handleSubmit} className="space-y-6">
+                   <form onSubmit={handleSaveProfile} className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
                          <Input label="Clinic Name *" name="clinicName" value={form.clinicName} onChange={handleChange} required icon={Building} className="bg-white" />
                          <Input label="Clinic Email *" name="clinicEmail" type="email" value={form.clinicEmail} onChange={handleChange} required icon={Mail} className="bg-white" />
@@ -353,7 +410,7 @@ export default function ClinicSettings() {
                       
                       {isPro && (
                         <div className="pt-4 mt-2">
-                           <Button onClick={handleSubmit} isLoading={saving} className="shadow-md">
+                           <Button onClick={handleSaveBranding} isLoading={saving} className="shadow-md">
                               <Save size={18} className="mr-2" /> Save Custom Branding
                            </Button>
                         </div>
