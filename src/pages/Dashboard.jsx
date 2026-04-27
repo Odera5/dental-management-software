@@ -393,14 +393,14 @@ export default function Dashboard() {
           </div>
 
           {!showTrash && canViewRecords && (
-            <div className="flex gap-2 w-full sm:w-auto shrink-0 justify-start sm:justify-end">
-              <Button variant="outline" size="sm" onClick={exportCSV} className="px-3 py-1.5 h-8 text-xs bg-white shadow-sm border-slate-300 flex-1 sm:flex-none">
-                <Download size={12} className="mr-1.5" /> Export
-                {clinicPlan === "FREE" && <Lock size={12} className="ml-1 text-amber-500" />}
+            <div className="flex flex-wrap gap-2 w-full lg:w-auto shrink-0 justify-start lg:justify-end mt-4 lg:mt-0">
+              <Button variant="outline" size="sm" onClick={exportCSV} className="px-4 py-1.5 h-9 text-sm bg-white shadow-sm border-slate-300 w-full sm:w-auto">
+                <Download size={14} className="mr-2" /> Export
+                {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500" />}
               </Button>
-              <Button variant="outline" size="sm" onClick={handleImportClick} className="px-3 py-1.5 h-8 text-xs bg-white shadow-sm border-slate-300 flex-1 sm:flex-none">
-                <Upload size={12} className="mr-1.5" /> Import
-                {clinicPlan === "FREE" && <Lock size={12} className="ml-1 text-amber-500" />}
+              <Button variant="outline" size="sm" onClick={handleImportClick} className="px-4 py-1.5 h-9 text-sm bg-white shadow-sm border-slate-300 w-full sm:w-auto">
+                <Upload size={14} className="mr-2" /> Import
+                {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500" />}
               </Button>
             </div>
           )}
