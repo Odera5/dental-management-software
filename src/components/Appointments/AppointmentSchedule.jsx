@@ -2,6 +2,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Calendar as CalendarIcon, Clock, User, FileText, CheckCircle, Trash2, Edit2, Plus, AlertCircle, Bell } from "lucide-react";
 import api from "../../services/api";
+import {
+  getDashboardSummary,
+  patchDashboardSummaryCache,
+} from "../../services/dashboardSummary";
 import Toast from "../Toast";
 import AppointmentForm from "./AppointmentForm";
 import { getEntityId } from "../../utils/entityId";
@@ -24,6 +28,60 @@ export default function AppointmentSchedule({ patientId = null }) {
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [confirmConfig, setConfirmConfig] = useState(null);
+
+  const isTodayAppointment = useCallback((value) => {
+    if (!value) return false;
+    const date = new Date(value);
+    const now = new Date();
+    return (
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate()
+    );
+  }, []);
+
+  const isSameCalendarDay = useCallback((left, right) => {
+    if (!left || !right) return false;
+    const leftDate = new Date(left);
+    const rightDate = new Date(right);
+    return (
+      leftDate.getFullYear() === rightDate.getFullYear() &&
+      leftDate.getMonth() === rightDate.getMonth() &&
+      leftDate.getDate() === rightDate.getDate()
+    );
+  }, []);
+
+  const refreshDashboardSummary = useCallback(() => {
+    getDashboardSummary({ forceRefresh: true }).catch(() => {
+      // sidebar and dashboard already got the optimistic update
+    });
+  }, []);
+
+  const adjustAppointmentSummary = useCallback(({ scheduledDelta = 0, todayDelta = 0 }) => {
+    if (!scheduledDelta && !todayDelta) return;
+
+    patchDashboardSummaryCache((current) => {
+      if (!current) return current;
+
+      const nextScheduled = Math.max(
+        0,
+        (current.appointments?.scheduled || 0) + scheduledDelta,
+      );
+      const nextToday = Math.max(
+        0,
+        (current.appointments?.today || 0) + todayDelta,
+      );
+
+      return {
+        ...current,
+        appointments: {
+          ...current.appointments,
+          scheduled: nextScheduled,
+          today: nextToday,
+        },
+      };
+    });
+  }, []);
 
   const fetchAppointments = useCallback(async () => {
     try {
@@ -59,15 +117,25 @@ export default function AppointmentSchedule({ patientId = null }) {
     setEditingAppointment(matchedAppointment || null);
   }, [appointments, editingAppointmentId]);
 
-  const executeDelete = async (id) => {
+  const executeDelete = useCallback(async (id) => {
     try {
+      const deletedAppointment = appointments.find(
+        (appointment) => getEntityId(appointment) === id,
+      );
       await api.delete(`/appointments/${id}`);
+      setAppointments((current) =>
+        current.filter((appointment) => getEntityId(appointment) !== id),
+      );
+      adjustAppointmentSummary({
+        scheduledDelta: -1,
+        todayDelta: deletedAppointment && isTodayAppointment(deletedAppointment.appointmentDate) ? -1 : 0,
+      });
+      refreshDashboardSummary();
       setToast({ show: true, message: "Appointment cancelled", type: "success" });
-      fetchAppointments();
     } catch (error) {
       setToast({ show: true, message: error.response?.data?.message || "Failed to cancel", type: "error" });
     }
-  };
+  }, [adjustAppointmentSummary, appointments, isTodayAppointment, refreshDashboardSummary]);
 
   const handleDelete = (id) => {
     setConfirmConfig({
@@ -79,17 +147,50 @@ export default function AppointmentSchedule({ patientId = null }) {
     });
   };
 
-  const handleComplete = async (id) => {
+  const handleComplete = useCallback(async (id) => {
     try {
+      const completedAppointment = appointments.find(
+        (appointment) => getEntityId(appointment) === id,
+      );
       await api.put(`/appointments/${id}`, { status: "completed" });
       setAppointments((current) => current.filter((appointment) => getEntityId(appointment) !== id));
+      adjustAppointmentSummary({
+        scheduledDelta: -1,
+        todayDelta: completedAppointment && isTodayAppointment(completedAppointment.appointmentDate) ? -1 : 0,
+      });
+      refreshDashboardSummary();
       setToast({ show: true, message: "Appointment marked as completed", type: "success" });
     } catch (error) {
       setToast({ show: true, message: error.response?.data?.message || "Failed to complete appointment", type: "error" });
     }
-  };
+  }, [adjustAppointmentSummary, appointments, isTodayAppointment, refreshDashboardSummary]);
 
-  const handleFormSuccess = () => {
+  const handleFormSuccess = (savedAppointment, previousAppointment = null) => {
+    const wasToday = previousAppointment && isTodayAppointment(previousAppointment.appointmentDate);
+    const isToday = savedAppointment && isTodayAppointment(savedAppointment.appointmentDate);
+    const scheduledDelta = previousAppointment ? 0 : 1;
+    const todayDelta = previousAppointment
+      ? (isToday ? 1 : 0) - (wasToday ? 1 : 0)
+      : isToday
+        ? 1
+        : 0;
+
+    if (savedAppointment) {
+      setAppointments((current) => {
+        const currentWithoutSaved = current.filter(
+          (appointment) => getEntityId(appointment) !== getEntityId(savedAppointment),
+        );
+
+        if (selectedDate && !isSameCalendarDay(savedAppointment.appointmentDate, selectedDate)) {
+          return currentWithoutSaved;
+        }
+
+        return [savedAppointment, ...currentWithoutSaved];
+      });
+    }
+
+    adjustAppointmentSummary({ scheduledDelta, todayDelta });
+    refreshDashboardSummary();
     clearUiState();
     setEditingAppointment(null);
     fetchAppointments();

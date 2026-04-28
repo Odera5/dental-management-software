@@ -85,14 +85,15 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
 
       const payload = { ...formData, patientId: resolvedPatientId, dentistId: dentistAssignmentEnabled ? formData.dentistId : "" };
       
-      if (appointment) await api.put(`/appointments/${getEntityId(appointment)}`, payload);
-      else await api.post("/appointments", payload);
+      let savedAppointment;
+      if (appointment) savedAppointment = (await api.put(`/appointments/${getEntityId(appointment)}`, payload)).data;
+      else savedAppointment = (await api.post("/appointments", payload)).data;
 
       clearFormDraft();
       clearPatientModeDraft();
       clearNewPatientDraft();
       setToast({ show: true, message: appointment ? "Appointment updated" : "Appointment scheduled", type: "success" });
-      setTimeout(() => { onSuccess(); }, 1000);
+      setTimeout(() => { onSuccess(savedAppointment, appointment || null); }, 1000);
     } catch (error) {
       setToast({ show: true, message: error.response?.data?.message || "Failed to save appointment", type: "error" });
     } finally {

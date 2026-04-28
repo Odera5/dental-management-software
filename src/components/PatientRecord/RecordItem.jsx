@@ -172,12 +172,12 @@ function RecordItem({ record, expandedRecordId, setExpandedRecordId, handleDelet
                  </div>
 
                  {canManageRecords && !record.isDeleted && (
-                   <div className="flex items-center gap-2 w-full md:w-auto">
-                     <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="flex-1 md:flex-none focus:ring-2 focus:ring-primary-500 bg-white"><Edit2 size={16} className="mr-2" /> Edit Record</Button>
+                   <div className="flex w-full flex-wrap items-center gap-1.5 md:w-auto md:flex-nowrap md:justify-end">
+                     <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="w-auto flex-1 px-2.5 md:flex-none focus:ring-2 focus:ring-primary-500 bg-white"><Edit2 size={16} className="mr-1.5" /> Edit Record</Button>
                      <button
                        type="button"
                        onClick={() => handleDelete(recordId)}
-                       className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                       className="ml-[-2px] inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
                        aria-label="Move record to trash"
                        title="Move to Trash"
                      >
@@ -186,9 +186,9 @@ function RecordItem({ record, expandedRecordId, setExpandedRecordId, handleDelet
                    </div>
                  )}
                  {canManageRecords && record.isDeleted && (
-                   <div className="flex items-center gap-2 w-full md:w-auto">
-                     <Button variant="outline" size="sm" onClick={() => handleRestore(recordId)} className="flex-1 md:flex-none focus:ring-2 focus:ring-emerald-500 bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-50"><Activity size={16} className="mr-2" /> Restore</Button>
-                     <Button variant="ghost" size="sm" onClick={() => handleHardDelete(recordId)} className="flex-1 md:flex-none text-red-600 hover:text-red-700 hover:bg-red-50 focus:ring-2 focus:ring-red-500"><Trash2 size={16} className="mr-2" /> Delete Permanently</Button>
+                   <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:flex-nowrap">
+                     <Button variant="outline" size="sm" onClick={() => handleRestore(recordId)} className="w-auto flex-1 md:flex-none focus:ring-2 focus:ring-emerald-500 bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-50"><Activity size={16} className="mr-2" /> Restore</Button>
+                     <Button variant="ghost" size="sm" onClick={() => handleHardDelete(recordId)} className="w-auto flex-1 md:flex-none text-red-600 hover:text-red-700 hover:bg-red-50 focus:ring-2 focus:ring-red-500"><Trash2 size={16} className="mr-2" /> Delete Permanently</Button>
                    </div>
                  )}
               </div>

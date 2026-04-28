@@ -16,6 +16,7 @@ import ConfirmModal from "../components/ui/ConfirmModal";
 import usePersistentState from "../hooks/usePersistentState";
 import {
   getDashboardSummary,
+  subscribeDashboardSummary,
   readDashboardSummaryCache,
 } from "../services/dashboardSummary";
 
@@ -58,6 +59,9 @@ export default function Dashboard() {
   const [appointmentsToday, setAppointmentsToday] = useState(
     cachedSummary?.appointments?.today || 0,
   );
+  const [scheduledAppointments, setScheduledAppointments] = useState(
+    cachedSummary?.appointments?.scheduled || 0,
+  );
   const [waitingSummary, setWaitingSummary] = useState(
     cachedSummary?.waitingRoom || defaultWaitingSummary,
   );
@@ -88,9 +92,20 @@ export default function Dashboard() {
   const applySummary = useCallback((summary = {}) => {
     setPatientsToday(summary?.patients?.today || 0);
     setAppointmentsToday(summary?.appointments?.today || 0);
+    setScheduledAppointments(summary?.appointments?.scheduled || 0);
     setWaitingSummary(summary?.waitingRoom || defaultWaitingSummary);
     setMonthlyRevenue(summary?.billing?.monthlyRevenue || 0);
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = subscribeDashboardSummary((summary) => {
+      applySummary(summary || {});
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [applySummary]);
 
   const exportCSV = () => {
     if (clinicPlan === "FREE") {
@@ -367,8 +382,10 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-slate-500">Appointments</p>
                   <h3 className="text-3xl font-bold text-slate-900 mt-2 flex items-center">
-                    {appointmentsToday}
-                    <span className="ml-3 text-xs font-bold uppercase tracking-widest bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full shadow-sm">New</span>
+                    {scheduledAppointments}
+                    <span className="ml-3 text-xs font-bold uppercase tracking-widest bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full shadow-sm">
+                      Today {appointmentsToday}
+                    </span>
                   </h3>
                 </div>
                 <div className="p-3 bg-blue-100 rounded-xl text-blue-600">

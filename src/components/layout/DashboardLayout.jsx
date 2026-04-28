@@ -20,6 +20,7 @@ import { logoutCurrentUser } from "../../services/api";
 import {
   getDashboardSummary,
   readDashboardSummaryCache,
+  subscribeDashboardSummary,
 } from "../../services/dashboardSummary";
 import Button from "../ui/Button";
 import primuxFavicon from "../../assets/primux-logo.png";
@@ -153,6 +154,10 @@ export default function DashboardLayout() {
   useEffect(() => {
     if (!canViewRecords) return;
 
+    const unsubscribe = subscribeDashboardSummary((summary) => {
+      applySummary(summary || {});
+    });
+
     const fetchCounts = async ({ forceRefresh = false } = {}) => {
       if (!canViewRecords) return;
       try {
@@ -176,6 +181,7 @@ export default function DashboardLayout() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      unsubscribe();
       clearInterval(intervalId);
       window.removeEventListener("focus", handleVisibilityChange);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
