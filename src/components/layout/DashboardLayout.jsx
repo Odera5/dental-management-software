@@ -17,7 +17,10 @@ import {
   BarChart3,
 } from "lucide-react";
 import { logoutCurrentUser } from "../../services/api";
-import api from "../../services/api";
+import {
+  getDashboardSummary,
+  readDashboardSummaryCache,
+} from "../../services/dashboardSummary";
 import Button from "../ui/Button";
 import primuxFavicon from "../../assets/primux-logo.png";
 
@@ -69,12 +72,16 @@ export default function DashboardLayout() {
   const MotionAside = motion.aside;
   const navigate = useNavigate();
   const location = useLocation();
+  const cachedSummary = readDashboardSummaryCache().data;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [appointmentCount, setAppointmentCount] = useState(0);
-  const [waitingCount, setWaitingCount] = useState(0);
+  const [appointmentCount, setAppointmentCount] = useState(
+    cachedSummary?.appointments?.scheduled || 0,
+  );
+  const [waitingCount, setWaitingCount] = useState(
+    cachedSummary?.waitingRoom?.active || 0,
+  );
   const [showTrialBanner, setShowTrialBanner] = useState(false);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const storedUser =
     JSON.parse(
@@ -126,7 +133,6 @@ export default function DashboardLayout() {
       if (remainingTrialDays > 3) {
         hideTimer = setTimeout(() => {
           setShowTrialBanner(false);
-          setBannerDismissed(true);
         }, 10000);
       }
     }, 2000);
@@ -139,13 +145,19 @@ export default function DashboardLayout() {
 
   const canViewRecords = ["admin", "doctor", "nurse"].includes(user.role);
 
+  const applySummary = (summary = {}) => {
+    setAppointmentCount(summary?.appointments?.scheduled || 0);
+    setWaitingCount(summary?.waitingRoom?.active || 0);
+  };
+
   useEffect(() => {
-    const fetchCounts = async () => {
+    if (!canViewRecords) return;
+
+    const fetchCounts = async ({ forceRefresh = false } = {}) => {
       if (!canViewRecords) return;
       try {
-        const response = await api.get("/dashboard/summary");
-        setAppointmentCount(response.data?.appointments?.scheduled || 0);
-        setWaitingCount(response.data?.waitingRoom?.active || 0);
+        const summary = await getDashboardSummary({ forceRefresh });
+        applySummary(summary);
       } catch {
         // ignore for badges
       }
@@ -153,8 +165,22 @@ export default function DashboardLayout() {
 
     fetchCounts();
     const intervalId = setInterval(fetchCounts, 30000);
-    return () => clearInterval(intervalId);
-  }, [location.pathname, canViewRecords]);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchCounts({ forceRefresh: true });
+      }
+    };
+
+    window.addEventListener("focus", handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("focus", handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [canViewRecords]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60 * 1000);
@@ -410,7 +436,6 @@ export default function DashboardLayout() {
                     <button
                       onClick={() => {
                         setShowTrialBanner(false);
-                        setBannerDismissed(true);
                       }}
                       className="bg-white/20 hover:bg-white/30 p-1.5 rounded-full text-xs transition-colors focus:outline-none ml-2"
                       aria-label="Dismiss banner"

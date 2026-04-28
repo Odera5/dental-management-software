@@ -187,7 +187,6 @@ function InvoiceViewer({ invoice, onClose }) {
 
 export default function InvoiceList({ patientId = null }) {
   const [invoices, setInvoices] = useState([]);
-  const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uiState, setUiState, clearUiState] = usePersistentState(
     `primuxcare:draft:invoice-list:${patientId || "general"}`,
@@ -208,9 +207,8 @@ export default function InvoiceList({ patientId = null }) {
   }, [patientId]);
 
   const fetchReport = useCallback(async () => { try { const response = await api.get("/invoices/report"); setReport(response.data); } catch (error) { console.error(error); } }, []);
-  const fetchPatients = useCallback(async () => { try { const response = await api.get("/patients"); setPatients((response.data || []).filter((p) => !p.isDeleted)); } catch (error) { console.error(error); } }, []);
 
-  useEffect(() => { fetchInvoices(); fetchReport(); fetchPatients(); }, [fetchInvoices, fetchPatients, fetchReport]);
+  useEffect(() => { fetchInvoices(); fetchReport(); }, [fetchInvoices, fetchReport]);
 
   const handleFormSuccess = () => { clearUiState(); setViewingInvoice(null); fetchInvoices(); fetchReport(); };
   const handleIssueInvoice = async (id) => {
@@ -246,8 +244,8 @@ export default function InvoiceList({ patientId = null }) {
 
   const selectedPatientSummary = useMemo(() => {
     if (!selectedPatientId) return null;
-    return patientSummaries.find((summary) => getEntityId(summary.patient) === selectedPatientId) || { patient: patients.find((p) => getEntityId(p) === selectedPatientId) || null, outstanding: 0, unpaidInvoices: 0, lastVisit: null, totalBilled: 0 };
-  }, [patientSummaries, patients, selectedPatientId]);
+    return patientSummaries.find((summary) => getEntityId(summary.patient) === selectedPatientId) || null;
+  }, [patientSummaries, selectedPatientId]);
 
   const receptionistHighlights = useMemo(() => {
     const outstandingInvoices = invoices.filter((inv) => Number(inv.balance) > 0 && inv.status !== "cancelled");
@@ -293,7 +291,7 @@ export default function InvoiceList({ patientId = null }) {
                 </div>
                 <div>
                    <div className="relative">
-                      <select value={selectedPatientId} onChange={(e) => setUiState((current) => ({ ...current, selectedPatientId: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-slate-50 text-sm focus:ring-primary-500 shadow-sm appearance-none h-[46px]"><option value="">All Patients</option>{patients.map((p) => (<option key={getEntityId(p)} value={getEntityId(p)}>{p.name}</option>))}</select>
+                      <select value={selectedPatientId} onChange={(e) => setUiState((current) => ({ ...current, selectedPatientId: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-slate-50 text-sm focus:ring-primary-500 shadow-sm appearance-none h-[46px]"><option value="">All Patients</option>{patientSummaries.map((summary) => (<option key={getEntityId(summary.patient)} value={getEntityId(summary.patient)}>{summary.patient?.name || "Unknown patient"}</option>))}</select>
                       <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"><ChevronDown size={16} className="text-slate-400" /></div>
                    </div>
                 </div>

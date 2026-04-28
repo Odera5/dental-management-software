@@ -59,10 +59,10 @@ function RecordItem({ record, expandedRecordId, setExpandedRecordId, handleDelet
   };
 
   const examSections = [
-    ["Extra-Oral", record.examinationExtraOral],
-    ["Soft Tissue", record.softTissue],
-    ["Periodontal Status", record.periodontalStatus],
-    ["Occlusion", record.occlusion],
+    ["Extra-Oral", formatWithCommas(record.examinationExtraOral)],
+    ["Soft Tissue", formatWithCommas(record.softTissue)],
+    ["Periodontal Status", formatWithCommas(record.periodontalStatus)],
+    ["Occlusion", formatWithCommas(record.occlusion)],
   ].filter(([, value]) => value);
 
   const toothFindings = formatToothFindings(record.teeth, record.dentition);
@@ -174,7 +174,15 @@ function RecordItem({ record, expandedRecordId, setExpandedRecordId, handleDelet
                  {canManageRecords && !record.isDeleted && (
                    <div className="flex items-center gap-2 w-full md:w-auto">
                      <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="flex-1 md:flex-none focus:ring-2 focus:ring-primary-500 bg-white"><Edit2 size={16} className="mr-2" /> Edit Record</Button>
-                     <Button variant="ghost" size="sm" onClick={() => handleDelete(recordId)} className="flex-1 md:flex-none text-red-600 hover:text-red-700 hover:bg-red-50 focus:ring-2 focus:ring-red-500"><Trash2 size={16} className="mr-2" /> Delete</Button>
+                     <button
+                       type="button"
+                       onClick={() => handleDelete(recordId)}
+                       className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                       aria-label="Move record to trash"
+                       title="Move to Trash"
+                     >
+                       <Trash2 size={16} />
+                     </button>
                    </div>
                  )}
                  {canManageRecords && record.isDeleted && (

@@ -7,6 +7,7 @@ import Input from "../ui/Input";
 import Button from "../ui/Button";
 import { Card, CardContent } from "../ui/Card";
 import usePersistentState from "../../hooks/usePersistentState";
+import PatientPicker from "../ui/PatientPicker";
 
 export default function AppointmentForm({ patientId = null, appointment = null, onSuccess, onCancel, draftStorageKey = "primuxcare:draft:appointment-form:new" }) {
   const dentistAssignmentEnabled = false;
@@ -35,20 +36,10 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
     `${draftStorageKey}:patient`,
     { name: "", age: "", gender: "other", phone: "", email: "", address: "" },
   );
-  const [patients, setPatients] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [slotLoading, setSlotLoading] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
-
-  const fetchPatients = useCallback(async () => {
-    try {
-      const response = await api.get("/patients");
-      setPatients(response.data);
-    } catch (error) {
-      console.error("Failed to fetch patients:", error);
-    }
-  }, []);
 
   const fetchAvailableSlots = useCallback(async () => {
     try {
@@ -64,8 +55,6 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
     }
   }, [appointment, formData.appointmentDate, formData.duration, setFormData]);
 
-  useEffect(() => { fetchPatients(); }, [fetchPatients]);
-
   useEffect(() => {
     if (formData.appointmentDate) fetchAvailableSlots();
   }, [fetchAvailableSlots, formData.appointmentDate]);
@@ -79,6 +68,12 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
 
     try {
       let resolvedPatientId = formData.patientId;
+      if ((patientMode === "existing" || patientId) && !resolvedPatientId) {
+        setToast({ show: true, message: "Please select a patient", type: "error" });
+        setLoading(false);
+        return;
+      }
+
       if (patientMode === "new") {
         if (!newPatient.name.trim() || !newPatient.age) {
           setToast({ show: true, message: "New patient name and age are required", type: "error" });
@@ -140,16 +135,17 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
               {patientMode === "existing" || patientId ? (
-                <div className="space-y-1.5 col-span-1 md:col-span-2">
-                  <label className="text-sm font-medium text-slate-700">Patient *</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><User size={18} className="text-slate-400" /></div>
-                    <select name="patientId" value={formData.patientId} onChange={handleChange} required disabled={!!patientId} className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none h-[46px] shadow-sm disabled:bg-slate-50 disabled:text-slate-500">
-                      <option value="">Select an existing patient</option>
-                      {patients.map((p) => (<option key={getEntityId(p)} value={getEntityId(p)}>{p.name} {p.cardNumber ? `(${p.cardNumber})` : ""}</option>))}
-                    </select>
-                  </div>
-                </div>
+                <PatientPicker
+                  label="Patient"
+                  value={formData.patientId}
+                  onChange={(nextPatientId) =>
+                    setFormData((prev) => ({ ...prev, patientId: nextPatientId }))
+                  }
+                  disabled={!!patientId}
+                  required
+                  className="col-span-1 md:col-span-2"
+                  initialOption={appointment?.patientId || null}
+                />
               ) : (
                 <>
                   <Input label="New Patient's Full Name *" name="name" icon={User} value={newPatient.name} onChange={handleNewPatientChange} required={patientMode === "new"} />

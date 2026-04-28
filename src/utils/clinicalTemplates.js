@@ -139,19 +139,19 @@ export const CLINICAL_TEMPLATES = {
     defaultCategory: "General Appearance",
     categories: {
       "General Appearance": [
-        { label: "NAD", value: "NAD (No Abnormality Detected)." },
-        { label: "Facial Asymmetry", value: "Facial asymmetry noted." },
-        { label: "Swelling", value: "Extra-oral swelling present." }
+        { label: "NAD", value: "NAD (No Abnormality Detected)" },
+        { label: "Facial Asymmetry", value: "Facial asymmetry noted" },
+        { label: "Swelling", value: "Extra-oral swelling present" }
       ],
       "TMJ & Muscles": [
-        { label: "Normal TMJ", value: "TMJ movements smooth, no clicking or deviation." },
-        { label: "TMJ Clicking", value: "Clicking noted on opening/closing." },
-        { label: "Limited Mouth Opening", value: "Limited mouth opening (trismus)." },
-        { label: "Muscle Tenderness", value: "Tenderness on palpation of muscles of mastication." }
+        { label: "Normal TMJ", value: "TMJ movements smooth, no clicking or deviation" },
+        { label: "TMJ Clicking", value: "Clicking noted on opening/closing" },
+        { label: "Limited Mouth Opening", value: "Limited mouth opening (trismus)" },
+        { label: "Muscle Tenderness", value: "Tenderness on palpation of muscles of mastication" }
       ],
       "Lymph Nodes": [
-        { label: "Not Palpable", value: "Lymph nodes not palpable." },
-        { label: "Enlarged/Tender", value: "Submandibular/cervical lymph nodes enlarged and tender." }
+        { label: "Not Palpable", value: "Lymph nodes not palpable" },
+        { label: "Enlarged/Tender", value: "Submandibular/cervical lymph nodes enlarged and tender" }
       ]
     }
   },
@@ -181,20 +181,20 @@ export const CLINICAL_TEMPLATES = {
     defaultCategory: "Gingival Health",
     categories: {
       "Gingival Health": [
-        { label: "Healthy", value: "Gingiva pink, firm, no bleeding on probing." },
-        { label: "Mild Gingivitis", value: "Mild gingival inflammation, slight BOP." },
-        { label: "Moderate/Severe Gingivitis", value: "Moderate to severe gingivitis, spontaneous bleeding." }
+        { label: "Healthy", value: "Gingiva pink, firm, no bleeding on probing" },
+        { label: "Mild Gingivitis", value: "Mild gingival inflammation, slight BOP" },
+        { label: "Moderate/Severe Gingivitis", value: "Moderate to severe gingivitis, spontaneous bleeding" }
       ],
       "Calculus & Plaque": [
-        { label: "Minimal Plaque", value: "Minimal plaque, good oral hygiene." },
-        { label: "Moderate Plaque/Calculus", value: "Moderate plaque and calculus present." },
-        { label: "Heavy Calculus", value: "Heavy calculus deposits, poor oral hygiene." }
+        { label: "Minimal Plaque", value: "Minimal plaque, good oral hygiene" },
+        { label: "Moderate Plaque/Calculus", value: "Moderate plaque and calculus present" },
+        { label: "Heavy Calculus", value: "Heavy calculus deposits, poor oral hygiene" }
       ],
       "Periodontitis & Mobility": [
-        { label: "Pocketing", value: "Periodontal pocketing present (>4mm)." },
-        { label: "Recession", value: "Gingival recession noted." },
-        { label: "Grade I Mobility", value: "Grade I mobility." },
-        { label: "Grade II/III Mobility", value: "Grade II/III mobility." }
+        { label: "Pocketing", value: "Periodontal pocketing present (>4mm)" },
+        { label: "Recession", value: "Gingival recession noted" },
+        { label: "Grade I Mobility", value: "Grade I mobility" },
+        { label: "Grade II/III Mobility", value: "Grade II/III mobility" }
       ]
     }
   },

@@ -10,6 +10,7 @@ import Input from "../ui/Input";
 import { Card, CardContent } from "../ui/Card";
 import ConfirmModal from "../ui/ConfirmModal";
 import usePersistentState from "../../hooks/usePersistentState";
+import { getPatientPickerOptions } from "../../services/patientDirectory";
 
 const STATUS_LABELS = { waiting: "Waiting", called: "Called", in_consultation: "In Consultation", completed: "Completed" };
 const NEXT_ACTION = { waiting: "called", called: "in_consultation", in_consultation: "completed" };
@@ -35,6 +36,7 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
   const isFrontDesk = storedUser.role === "nurse";
   const [entries, setEntries] = useState([]);
   const [patients, setPatients] = useState([]);
+  const [patientsLoading, setPatientsLoading] = useState(false);
   const [draft, setDraft, clearDraft] = usePersistentState(
     "primuxcare:draft:waiting-room",
     {
@@ -69,12 +71,18 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
 
   const fetchPatients = useCallback(async () => {
     try {
-      const response = await api.get("/patients");
-      setPatients(response.data || []);
+      setPatientsLoading(true);
+      const response = await getPatientPickerOptions({
+        search: patientSearchQuery,
+        limit: 20,
+      });
+      setPatients(response || []);
     } catch (error) {
       console.error(error);
+    } finally {
+      setPatientsLoading(false);
     }
-  }, []);
+  }, [patientSearchQuery]);
 
   const fetchQueue = useCallback(async () => {
     try {
@@ -92,11 +100,26 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
   }, [searchQuery, statusFilter]);
 
   useEffect(() => {
-    fetchPatients();
     fetchQueue();
     const interval = setInterval(fetchQueue, 8000);
     return () => clearInterval(interval);
-  }, [fetchPatients, fetchQueue]);
+  }, [fetchQueue]);
+
+  useEffect(() => {
+    if ((patientPickerOpen || preselectPatientId) && patients.length === 0 && !patientsLoading) {
+      fetchPatients();
+    }
+  }, [fetchPatients, patientPickerOpen, patients.length, patientsLoading, preselectPatientId]);
+
+  useEffect(() => {
+    if (!patientPickerOpen) return undefined;
+
+    const timeoutId = setTimeout(() => {
+      fetchPatients();
+    }, 200);
+
+    return () => clearTimeout(timeoutId);
+  }, [fetchPatients, patientPickerOpen, patientSearchQuery]);
 
   const showToast = (message, type = "success") => setToast({ show: true, message, type });
 
@@ -240,7 +263,9 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
                         <Input autoFocus value={patientSearchQuery} onChange={(e) => updateDraft({ patientSearchQuery: e.target.value })} placeholder="Search name or card..." icon={Search} className="h-10 text-sm" />
                       </div>
                       <div className="max-h-60 overflow-y-auto p-1">
-                        {filteredPatients.length === 0 ? (
+                        {patientsLoading ? (
+                          <p className="p-4 text-center text-sm text-slate-500 italic">Loading patients...</p>
+                        ) : filteredPatients.length === 0 ? (
                           <p className="p-4 text-center text-sm text-slate-500 italic">No patients matched.</p>
                         ) : (
                           filteredPatients.map((p) => (

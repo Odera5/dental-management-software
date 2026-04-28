@@ -14,6 +14,10 @@ import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import ConfirmModal from "../components/ui/ConfirmModal";
 import usePersistentState from "../hooks/usePersistentState";
+import {
+  getDashboardSummary,
+  readDashboardSummaryCache,
+} from "../services/dashboardSummary";
 
 const PATIENTS_PER_PAGE = 25;
 
@@ -37,6 +41,7 @@ const shouldSuppressDashboardError = (error) => {
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
+  const cachedSummary = readDashboardSummaryCache().data;
 
   const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
   const user = {
@@ -47,10 +52,18 @@ export default function Dashboard() {
   const canDeletePatients = ["admin", "doctor", "nurse"].includes(user.role);
 
   const [patients, setPatients] = useState([]);
-  const [patientsToday, setPatientsToday] = useState(0);
-  const [appointmentsToday, setAppointmentsToday] = useState(0);
-  const [waitingSummary, setWaitingSummary] = useState(defaultWaitingSummary);
-  const [monthlyRevenue, setMonthlyRevenue] = useState(0);
+  const [patientsToday, setPatientsToday] = useState(
+    cachedSummary?.patients?.today || 0,
+  );
+  const [appointmentsToday, setAppointmentsToday] = useState(
+    cachedSummary?.appointments?.today || 0,
+  );
+  const [waitingSummary, setWaitingSummary] = useState(
+    cachedSummary?.waitingRoom || defaultWaitingSummary,
+  );
+  const [monthlyRevenue, setMonthlyRevenue] = useState(
+    cachedSummary?.billing?.monthlyRevenue || 0,
+  );
   const [trash, setTrash] = useState([]);
   const [directoryState, setDirectoryState] = usePersistentState(
     "primuxcare:draft:dashboard-directory",
@@ -71,6 +84,13 @@ export default function Dashboard() {
   const deferredSearchQuery = useDeferredValue(searchQuery.trim());
 
   const showToast = (message, type = "success") => setToast({ message, type });
+
+  const applySummary = useCallback((summary = {}) => {
+    setPatientsToday(summary?.patients?.today || 0);
+    setAppointmentsToday(summary?.appointments?.today || 0);
+    setWaitingSummary(summary?.waitingRoom || defaultWaitingSummary);
+    setMonthlyRevenue(summary?.billing?.monthlyRevenue || 0);
+  }, []);
 
   const exportCSV = () => {
     if (clinicPlan === "FREE") {
@@ -133,21 +153,19 @@ export default function Dashboard() {
 
   const fetchSummary = useCallback(async () => {
     try {
-      const res = await api.get("/dashboard/summary");
-      const summary = res.data || {};
-      setPatientsToday(summary.patients?.today || 0);
-      setAppointmentsToday(summary.appointments?.today || 0);
-      setWaitingSummary(summary.waitingRoom || defaultWaitingSummary);
-      setMonthlyRevenue(summary.billing?.monthlyRevenue || 0);
+      const cachedSummary = readDashboardSummaryCache();
+      if (cachedSummary.data) {
+        applySummary(cachedSummary.data);
+      }
+
+      const summary = await getDashboardSummary();
+      applySummary(summary);
     } catch (err) {
       console.error(err);
-      setPatientsToday(0);
-      setAppointmentsToday(0);
-      setWaitingSummary(defaultWaitingSummary);
-      setMonthlyRevenue(0);
+      applySummary();
       if (!shouldSuppressDashboardError(err)) showToast("Failed to load dashboard summary", "error");
     }
-  }, []);
+  }, [applySummary]);
 
   const fetchPatients = useCallback(async () => {
     try {

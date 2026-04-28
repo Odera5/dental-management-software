@@ -8,6 +8,18 @@ import { DENTAL_FORMULARY } from "../../utils/dentalFormulary";
 import { CLINICAL_TEMPLATES } from "../../utils/clinicalTemplates";
 import api from "../../services/api";
 
+const TEMPLATE_FIELD_MAP = {
+  presentingComplaint: "presentingComplaint",
+  diagnosis: "diagnosis",
+  treatmentPlan: "treatmentPlan",
+  allergies: "allergies",
+  comorbidities: "comorbidities",
+  extraOral: "examinationExtraOral",
+  softTissue: "softTissue",
+  periodontal: "periodontalStatus",
+  occlusion: "occlusion",
+};
+
 const ADULT_TEETH = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28, 48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 const CHILD_TEETH = [55, 54, 53, 52, 51, 61, 62, 63, 64, 65, 85, 84, 83, 82, 81, 71, 72, 73, 74, 75];
 
@@ -191,13 +203,14 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
 
   const handleTemplateSelect = (value) => {
     if (!activeTemplateType) return;
-    let currentText = recordData[activeTemplateType] ? recordData[activeTemplateType].trim() : "";
+    const targetField = TEMPLATE_FIELD_MAP[activeTemplateType] || activeTemplateType;
+    let currentText = recordData[targetField] ? recordData[targetField].trim() : "";
     if (currentText.includes(value)) {
       currentText = currentText.replace(value, "").replace(/\n\s*\n/g, '\n').trim();
     } else {
       currentText = currentText ? `${currentText}\n${value}` : value;
     }
-    setRecordData({ ...recordData, [activeTemplateType]: currentText });
+    setRecordData({ ...recordData, [targetField]: currentText });
   };
 
   const openTemplateModal = (type) => {
@@ -209,8 +222,13 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
     setTemplateCategory(CLINICAL_TEMPLATES[type].defaultCategory);
   };
 
-  const handleFileUpload = async (e) => {
-    const files = Array.from(e.target.files);
+  const getActiveTemplateFieldValue = () => {
+    if (!activeTemplateType) return "";
+    const targetField = TEMPLATE_FIELD_MAP[activeTemplateType] || activeTemplateType;
+    return recordData[targetField] || "";
+  };
+
+  const processSelectedFiles = async (files) => {
     if (files.length === 0) return;
 
     try {
@@ -248,6 +266,50 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    await processSelectedFiles(files);
+  };
+
+  const openFilePicker = async () => {
+    if (clinicPlan === "FREE") {
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    if (window.showOpenFilePicker) {
+      try {
+        const handles = await window.showOpenFilePicker({
+          multiple: true,
+          types: [
+            {
+              description: "Images and PDF files",
+              accept: {
+                "image/jpeg": [".jpg", ".jpeg"],
+                "image/png": [".png"],
+                "image/webp": [".webp"],
+                "application/pdf": [".pdf"],
+              },
+            },
+          ],
+          excludeAcceptAllOption: false,
+        });
+
+        const files = await Promise.all(handles.map((handle) => handle.getFile()));
+        await processSelectedFiles(files);
+        return;
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          console.error("Advanced file picker failed, falling back to input:", error);
+        } else {
+          return;
+        }
+      }
+    }
+
+    fileInputRef.current?.click();
   };
 
   const removeAttachment = (index) => {
@@ -519,13 +581,16 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
           <h2 className="font-bold text-lg text-slate-900 flex items-center"><ImagePlus size={20} className="mr-2 text-primary-500" /> Media & Attachments</h2>
           <button 
             type="button" 
-            onClick={() => clinicPlan === "FREE" ? setShowUpgradeModal(true) : fileInputRef.current?.click()}
+            onClick={openFilePicker}
             className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-3 py-1.5 rounded-full border border-primary-200"
           >
-            Attach File {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500" />}
+            Attach Files {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500" />}
           </button>
           <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/jpeg,image/png,image/webp,application/pdf" multiple />
         </div>
+        <p className="mb-4 text-xs text-slate-500">
+          You can select and upload multiple files at once. Use the <span className="font-bold">X</span> on any preview to remove a file before saving.
+        </p>
         
         {(() => {
           let atts = [];
@@ -546,7 +611,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
                       <img src={`${api.defaults.baseURL.replace('/api', '')}${att.url}`} alt={att.name} className="w-full h-full object-cover rounded-lg mb-1" />
                     )}
                     <span className="text-[10px] text-slate-500 truncate w-full text-center block font-medium absolute bottom-0 left-0 bg-white/90 px-1 py-0.5 backdrop-blur-sm rounded-b-xl border-t border-slate-100">{att.name}</span>
-                    <button type="button" onClick={() => removeAttachment(idx)} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600 z-10"><X size={12}/></button>
+                    <button type="button" onClick={() => removeAttachment(idx)} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-100 transition-opacity shadow-sm hover:bg-red-600 z-10 border border-white/80" aria-label={`Remove ${att.name || "attachment"}`}><X size={12}/></button>
                   </div>
               ))}
             </div>
@@ -624,7 +689,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">{templateCategory}</p>
                 <div className="space-y-2">
                   {(CLINICAL_TEMPLATES[activeTemplateType].categories[templateCategory] || []).map((item, idx) => {
-                    const isSelected = recordData[activeTemplateType]?.includes(item.value);
+                    const isSelected = getActiveTemplateFieldValue().includes(item.value);
                     return (
                       <button
                         key={idx}

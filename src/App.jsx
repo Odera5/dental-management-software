@@ -6,7 +6,6 @@ import {
   Navigate,
 } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
-import DashboardLayout from "./components/layout/DashboardLayout";
 import RoutePersistence from "./components/RoutePersistence";
 import { readLastVisitedRoute } from "./utils/persistence";
 
@@ -29,6 +28,7 @@ const PaystackCallback = lazy(() => import("./pages/PaystackCallback"));
 const Waitlist = lazy(() => import("./pages/Waitlist"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const DashboardLayout = lazy(() => import("./components/layout/DashboardLayout"));
 
 function RouteLoader() {
   return (

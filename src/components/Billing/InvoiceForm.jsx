@@ -3,11 +3,11 @@ import { Plus, Trash2, FileText, Calendar, CreditCard, Save, X, User } from "luc
 import api from "../../services/api";
 import Toast from "../Toast";
 import { DEFAULT_PROCEDURE_PRESETS, formatNaira, normalizeProcedurePresets } from "../../constants/billing";
-import { getEntityId } from "../../utils/entityId";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 import { Card, CardContent } from "../ui/Card";
 import usePersistentState from "../../hooks/usePersistentState";
+import PatientPicker from "../ui/PatientPicker";
 
 export default function InvoiceForm({ patientId = null, onSuccess, onCancel, draftStorageKey = "primuxcare:draft:invoice-form:new" }) {
   const [formData, setFormData, clearFormDraft] = usePersistentState(
@@ -18,17 +18,11 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel, dra
       taxPercentage: 0, discount: 0, dueDate: "", notes: "",
     },
   );
-
-  const [patients, setPatients] = useState([]);
   const [procedurePresets, setProcedurePresets] = useState(DEFAULT_PROCEDURE_PRESETS);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
-  useEffect(() => { fetchPatients(); fetchClinicProfile(); }, []);
-
-  const fetchPatients = async () => {
-    try { const response = await api.get("/patients"); setPatients(response.data); } catch (error) { console.error(error); }
-  };
+  useEffect(() => { fetchClinicProfile(); }, []);
 
   const fetchClinicProfile = async () => {
     try {
@@ -55,6 +49,9 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel, dra
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.patientId) {
+      return setToast({ show: true, message: "Please select a patient", type: "error" });
+    }
     if (formData.items.length === 0 || formData.items.some((item) => !item.description || item.unitPrice <= 0)) {
       return setToast({ show: true, message: "Please fill in all item details and ensure prices are greater than 0", type: "error" });
     }
@@ -88,14 +85,13 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel, dra
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Patient *</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><User size={18} className="text-slate-400" /></div>
-                  <select value={formData.patientId} onChange={(e) => handlePatientChange(e.target.value)} required disabled={!!patientId} className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none h-[46px] shadow-sm disabled:bg-slate-50 disabled:text-slate-500">
-                    <option value="">Select Patient</option>
-                    {patients.map((p) => (<option key={getEntityId(p)} value={getEntityId(p)}>{p.name}</option>))}
-                  </select>
-                </div>
+                <PatientPicker
+                  label="Patient"
+                  value={formData.patientId}
+                  onChange={handlePatientChange}
+                  disabled={!!patientId}
+                  required
+                />
               </div>
               <Input label="Due Date" name="dueDate" type="date" icon={Calendar} value={formData.dueDate} onChange={handleFormChange} />
             </div>

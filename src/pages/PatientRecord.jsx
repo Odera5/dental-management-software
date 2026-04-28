@@ -70,7 +70,23 @@ export default function PatientRecord() {
     const formData = new FormData();
     Object.keys(recordData).forEach((key) => {
       if (key === "attachments") {
-        (recordData.attachments || []).forEach((file) => { if (file instanceof File) formData.append("attachments", file); });
+        const attachments = Array.isArray(recordData.attachments)
+          ? recordData.attachments
+          : [];
+        const uploadedAttachments = attachments.filter(
+          (attachment) => !(attachment instanceof File),
+        );
+        const pendingFiles = attachments.filter(
+          (attachment) => attachment instanceof File,
+        );
+
+        if (uploadedAttachments.length > 0) {
+          formData.append(
+            "attachmentsMetadata",
+            JSON.stringify(uploadedAttachments),
+          );
+        }
+        pendingFiles.forEach((file) => formData.append("attachments", file));
       } else if (key === "teeth") {
         formData.append("teeth", JSON.stringify(recordData.teeth || []));
       } else {
@@ -85,7 +101,10 @@ export default function PatientRecord() {
     const fetchPatient = async () => {
       try {
         setLoading(true);
-        const resPatient = await api.get(`/patients/${id}`);
+        const [resPatient, resRecords] = await Promise.all([
+          api.get(`/patients/${id}`),
+          api.get(`/patients/${id}/records?trash=${isTrashView}`),
+        ]);
         setPatient(resPatient.data);
         if (!hasSavedPatientEditDraft) {
           setPatientForm({
@@ -94,7 +113,6 @@ export default function PatientRecord() {
             phone: resPatient.data?.phone || "", email: resPatient.data?.email || "", address: resPatient.data?.address || "",
           });
         }
-        const resRecords = await api.get(`/patients/${id}/records?trash=${isTrashView}`);
         setRecords(resRecords.data);
         setFilteredRecords(resRecords.data);
       } catch { showToast("Failed to fetch patient data", "error"); } finally { setLoading(false); }
@@ -120,15 +138,15 @@ export default function PatientRecord() {
       const updatedRecords = records.filter((r) => getEntityId(r) !== recordId);
       setRecords(updatedRecords);
       setFilteredRecords(updatedRecords);
-      showToast("Record deleted successfully!", "success");
-    } catch (err) { showToast(err.response?.data?.message || "Failed to delete record", "error"); }
+      showToast("Record moved to Trash", "success");
+    } catch (err) { showToast(err.response?.data?.message || "Failed to move record to Trash", "error"); }
   };
 
   const handleDeleteRecord = (recordId) => {
     setConfirmConfig({
-      title: "Delete Clinical Record",
-      message: "Are you sure you want to delete this clinical record? This action cannot be undone.",
-      confirmText: "Delete Record",
+      title: "Move Record to Trash",
+      message: "Are you sure you want to move this clinical record to Trash? You can restore it later from the Trash tab.",
+      confirmText: "Move to Trash",
       danger: true,
       onConfirm: () => executeDeleteRecord(recordId)
     });

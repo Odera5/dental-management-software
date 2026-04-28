@@ -4,6 +4,7 @@ import api from "../services/api";
 import Toast from "../components/Toast";
 import Button from "../components/ui/Button";
 import ConfirmModal from "../components/ui/ConfirmModal";
+import { getDashboardSummary } from "../services/dashboardSummary";
 
 const ACTIVE_PAYSTACK_STATUSES = ["active", "attention", "success"];
 
@@ -35,16 +36,11 @@ export default function UpgradePlan() {
     const loadUsageAndBilling = async () => {
       try {
         setLoading(true);
-        const [patientsResponse, billingResponse] = await Promise.all([
-          api.get("/patients"),
+        const [summaryResponse, billingResponse] = await Promise.all([
+          getDashboardSummary(),
           api.get("/billing"),
         ]);
-
-        const activePatients = (patientsResponse.data || []).filter(
-          (patient) => !patient.isDeleted,
-        );
-
-        setPatientCount(activePatients.length);
+        setPatientCount(summaryResponse?.patients?.active || 0);
         setBillingInfo(billingResponse.data?.clinic || null);
       } catch (error) {
         console.error("Failed to load billing page data", error);
