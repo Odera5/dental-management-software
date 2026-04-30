@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Mail, MessageCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import Button from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
-import primuxFavicon from "../assets/NewPrimuxCareFavicon.png";
+import primuxFavicon from "../assets/NewPrimuxcareFavicon.png";
 
 const supportEmail = "support@primuxcare.com";
 const infoEmail = "info@primuxcare.com";

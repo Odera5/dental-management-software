@@ -15,7 +15,7 @@ import Input from "../components/ui/Input";
 import Select from "../components/ui/Select";
 import Button from "../components/ui/Button";
 import usePersistentState from "../hooks/usePersistentState";
-import primuxFavicon from "../assets/NewPrimuxCareFavicon.png";
+import primuxFavicon from "../assets/NewPrimuxcareFavicon.png";
 import { COUNTRIES } from "../constants/countries";
 
 const initialForm = {
