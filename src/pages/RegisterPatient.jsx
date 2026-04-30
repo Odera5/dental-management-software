@@ -8,6 +8,7 @@ import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
 import usePersistentState from "../hooks/usePersistentState";
+import { isTrialingClinic, getTrialDaysRemaining } from "../utils/clinicAccess";
 
 const emptyPatientForm = {
   name: "",
@@ -30,7 +31,9 @@ export default function RegisterPatient() {
   const showToast = (message, type = "success") => setToast({ message, type });
 
   const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user")) || {};
-  const currentPlan = storedUser?.clinic?.plan || "FREE";
+  const clinic = storedUser?.clinic || {};
+  const trialing = isTrialingClinic(clinic);
+  const remainingTrialDays = getTrialDaysRemaining(clinic);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -83,14 +86,16 @@ export default function RegisterPatient() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        {currentPlan === "FREE" && (
+        {trialing && (
           <div className="mb-6 bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h4 className="text-sm font-bold text-indigo-900">You are on the Free Plan</h4>
-              <p className="text-sm text-indigo-700 mt-0.5">Free plans are limited to 100 patient records. Need to scale?</p>
+              <h4 className="text-sm font-bold text-indigo-900">Your Pro trial is active</h4>
+              <p className="text-sm text-indigo-700 mt-0.5">
+                You have {remainingTrialDays} day{remainingTrialDays === 1 ? "" : "s"} left before paid Pro billing is required.
+              </p>
             </div>
             <Button variant="outline" size="sm" onClick={() => navigate('/upgrade')} className="whitespace-nowrap bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-100">
-               View Pro Plan <ArrowRight size={14} className="ml-1.5" />
+               Manage Pro Plan <ArrowRight size={14} className="ml-1.5" />
             </Button>
           </div>
         )}

@@ -14,6 +14,7 @@ import usePersistentState from "../hooks/usePersistentState";
 import { readStoredJson } from "../utils/persistence";
 import { resolveAssetUrl } from "../utils/assetUrl";
 import { COUNTRIES } from "../constants/countries";
+import { hasActiveProAccess } from "../utils/clinicAccess";
 
 const initialForm = {
   clinicName: "", clinicEmail: "", clinicPhone: "", clinicCountry: "", clinicCity: "", clinicAddress: "", contactPerson: "",
@@ -107,7 +108,7 @@ export default function ClinicSettings() {
     ...(storedUser?.clinic || {}),
     ...(billingInfo || {}),
   };
-  const isPro = currentClinic?.plan === "PRO" || currentClinic?.plan === "ENTERPRISE_AI";
+  const hasProAccess = hasActiveProAccess(currentClinic);
   const intakeUrl = currentClinic?.intakePublicToken
     ? `${window.location.origin}/intake/${storedUser?.clinic?.id}?access=${currentClinic.intakePublicToken}`
     : "";
@@ -377,19 +378,19 @@ export default function ClinicSettings() {
                    <div className="relative inline-flex mb-6">
                      <div 
                        className="bg-white rounded-2xl p-2 shadow-sm border border-slate-100 relative group overflow-hidden w-24 h-24 flex items-center justify-center cursor-pointer shrink-0"
-                       onClick={() => { if(isPro && !uploadingLogo) document.getElementById('logo-upload-top').click(); else if(!isPro) setToast({show: true, message: "Upgrade to PRO to upload a custom logo", type: "error"}); }}
+                       onClick={() => { if(hasProAccess && !uploadingLogo) document.getElementById('logo-upload-top').click(); else if(!hasProAccess) setToast({show: true, message: "Active Pro access is required to upload a custom logo", type: "error"}); }}
                      >
                        {form.logoUrl ? (
                           <img src={resolveAssetUrl(form.logoUrl)} alt="Clinic Logo" className="w-full h-full object-contain" />
                        ) : (
                           <ImageIcon size={32} className="text-slate-400" />
                        )}
-                       <div className={`absolute inset-0 bg-black/50 opacity-0 ${isPro ? 'group-hover:opacity-100' : ''} transition-opacity flex flex-col items-center justify-center`}>
+                       <div className={`absolute inset-0 bg-black/50 opacity-0 ${hasProAccess ? 'group-hover:opacity-100' : ''} transition-opacity flex flex-col items-center justify-center`}>
                          <Upload size={20} className="text-white mb-1" />
                          <span className="text-white text-[10px] font-bold">Upload</span>
                        </div>
                      </div>
-                     {isPro && form.logoUrl && (
+                     {hasProAccess && form.logoUrl && (
                        <button
                          type="button"
                          className="absolute -top-2 -right-2 bg-white text-slate-400 hover:text-red-500 border border-slate-200 rounded-full p-1.5 shadow-sm transition-colors z-20"
@@ -400,7 +401,7 @@ export default function ClinicSettings() {
                        </button>
                      )}
                    </div>
-                   <input type="file" id="logo-upload-top" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={!isPro || uploadingLogo} />
+                   <input type="file" id="logo-upload-top" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={!hasProAccess || uploadingLogo} />
                    <form onSubmit={handleSaveProfile} className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
                          <Input label="Clinic Name *" name="clinicName" value={form.clinicName} onChange={handleChange} required icon={Building} className="bg-white" />
@@ -443,23 +444,23 @@ export default function ClinicSettings() {
                         <h3 className="font-bold text-slate-900 text-lg flex items-center mb-1"><Palette size={20} className="mr-2 text-primary-600" /> Custom Branding</h3>
                         <p className="text-slate-500 text-sm">Add your distinct brand color to Invoices.</p>
                       </div>
-                      {!isPro && (
+                      {!hasProAccess && (
                         <div className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center border border-amber-200">
                           <Lock size={14} className="mr-1.5" /> PRO Feature
                         </div>
                       )}
                    </div>
 
-                   <div className={`space-y-6 ${!isPro ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                   <div className={`space-y-6 ${!hasProAccess ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Brand Accent Color</label>
                         <div className="flex items-center gap-3">
-                           <input type="color" name="brandColor" value={form.brandColor} onChange={handleChange} disabled={!isPro} className="h-10 w-16 rounded border border-slate-200 cursor-pointer p-0.5" />
-                           <Input name="brandColor" value={form.brandColor} onChange={handleChange} disabled={!isPro} placeholder="#HEX" className="bg-white" />
+                           <input type="color" name="brandColor" value={form.brandColor} onChange={handleChange} disabled={!hasProAccess} className="h-10 w-16 rounded border border-slate-200 cursor-pointer p-0.5" />
+                           <Input name="brandColor" value={form.brandColor} onChange={handleChange} disabled={!hasProAccess} placeholder="#HEX" className="bg-white" />
                         </div>
                       </div>
                       
-                      {isPro && (
+                      {hasProAccess && (
                         <div className="pt-4 mt-2">
                            <Button onClick={handleSaveBranding} isLoading={saving} className="shadow-md">
                               <Save size={18} className="mr-2" /> Save Custom Branding
@@ -467,9 +468,9 @@ export default function ClinicSettings() {
                         </div>
                       )}
                    </div>
-                   {!isPro && (
+                   {!hasProAccess && (
                      <div className="absolute inset-0 bg-white/40 flex items-center justify-center z-10 backdrop-blur-[1px]">
-                        <Button onClick={() => navigate('/upgrade')} className="shadow-lg">Upgrade to Unlock</Button>
+                        <Button onClick={() => navigate('/upgrade')} className="shadow-lg">Restore Pro Access</Button>
                      </div>
                    )}
                 </CardContent>
@@ -483,14 +484,14 @@ export default function ClinicSettings() {
                          <h3 className="font-bold text-slate-900 text-lg flex items-center mb-1"><LinkIcon size={20} className="mr-2 text-primary-600" /> Patient Intake Form</h3>
                          <p className="text-slate-500 text-sm">Share this link to let patients securely self-register online.</p>
                        </div>
-                       {!isPro && (
+                       {!hasProAccess && (
                          <div className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center border border-amber-200">
                            <Lock size={14} className="mr-1.5" /> PRO Feature
                          </div>
                        )}
                     </div>
                     
-                    <div className={`mt-4 ${!isPro ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                    <div className={`mt-4 ${!hasProAccess ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
                        <div className="mb-4 flex flex-wrap items-center gap-3">
                           <Button
                             variant={currentClinic?.intakeEnabled ? "outline" : "primary"}
@@ -524,9 +525,9 @@ export default function ClinicSettings() {
                        <p className="text-xs text-slate-400 mt-3">Only patients with this secure tokenized link can open the intake form. Regenerating the link immediately revokes the old one.</p>
                     </div>
 
-                    {!isPro && (
+                    {!hasProAccess && (
                       <div className="absolute inset-0 bg-white/40 flex items-center justify-center z-10 backdrop-blur-[1px]">
-                         <Button onClick={() => navigate('/upgrade')} className="shadow-lg">Upgrade to Unlock</Button>
+                         <Button onClick={() => navigate('/upgrade')} className="shadow-lg">Restore Pro Access</Button>
                       </div>
                     )}
                  </CardContent>

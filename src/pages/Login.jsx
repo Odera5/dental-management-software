@@ -9,6 +9,7 @@ import {
   clearLastVisitedRoute,
   readLastVisitedRoute,
 } from "../utils/persistence";
+import { saveAuthSession } from "../utils/authStorage";
 import usePersistentState from "../hooks/usePersistentState";
 import primuxFavicon from "../assets/NewPrimuxcareFavicon.png";
 
@@ -59,10 +60,12 @@ export default function Login() {
       const user = res.data.user;
       if (!user) throw new Error("No user data returned from API");
 
-      const storage = rememberMe ? localStorage : sessionStorage;
-      storage.setItem("accessToken", token);
-      storage.setItem("refreshToken", refreshToken);
-      storage.setItem("user", JSON.stringify(user));
+      saveAuthSession({
+        accessToken: token,
+        refreshToken,
+        user,
+        rememberMe,
+      });
       clearLoginDraft();
       setPassword("");
       setError("");
@@ -273,7 +276,7 @@ export default function Login() {
               to="/register-clinic"
               className="mt-4 inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
             >
-              Create a free clinic account &rarr;
+              Start your 14-day Pro trial &rarr;
             </Link>
           </div>
         </motion.div>

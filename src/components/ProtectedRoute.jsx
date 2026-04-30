@@ -1,25 +1,44 @@
 // src/components/ProtectedRoute.jsx
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import React from "react";
 import { readLastVisitedRoute } from "../utils/persistence";
+import {
+  clearAuthState,
+  getStoredAuthToken,
+  getStoredUser,
+} from "../utils/authStorage";
+import { shouldRestrictAppToBilling, isSubscriptionExpired } from "../utils/clinicAccess";
 
 export default function ProtectedRoute({ children, allowedRoles = [] }) {
-  const token = (localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken"));
-  const storedUser = (localStorage.getItem("user") || sessionStorage.getItem("user"));
+  const location = useLocation();
+  const token = getStoredAuthToken();
+  const storedUser = getStoredUser();
   let user = null;
 
   try {
     user = storedUser ? JSON.parse(storedUser) : null;
   } catch {
-    (localStorage.removeItem("user"), sessionStorage.removeItem("user"));
+    clearAuthState();
   }
 
   if (!token) return <Navigate to="/login" state={{ from: readLastVisitedRoute() }} replace />;
 
   if (!user) {
-    (localStorage.removeItem("accessToken"), sessionStorage.removeItem("accessToken"));
-    (localStorage.removeItem("refreshToken"), sessionStorage.removeItem("refreshToken"));
+    clearAuthState();
     return <Navigate to="/login" state={{ from: readLastVisitedRoute() }} replace />;
+  }
+
+  const expiredAdminRestricted =
+    shouldRestrictAppToBilling(user) &&
+    location.pathname !== "/upgrade";
+
+  if (expiredAdminRestricted) {
+    return <Navigate to="/upgrade" replace />;
+  }
+
+  if (isSubscriptionExpired(user?.clinic) && user?.role !== "admin") {
+    clearAuthState();
+    return <Navigate to="/login" replace />;
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {

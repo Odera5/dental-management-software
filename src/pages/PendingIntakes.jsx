@@ -22,7 +22,7 @@ export default function PendingIntakes() {
     assignedDate: intake.preferredDate
       ? new Date(intake.preferredDate).toISOString().split("T")[0]
       : "",
-    assignedTime: intake.preferredTime || "",
+    assignedTime: "",
   });
 
   const syncApprovalDrafts = (items) => {
@@ -99,12 +99,6 @@ export default function PendingIntakes() {
       const res = await api.get("/pending-intakes");
       setIntakes(res.data);
       syncApprovalDrafts(res.data);
-      res.data.forEach((intake) => {
-        const draft = createApprovalDraft(intake);
-        if (draft.assignedDate) {
-          loadAvailableSlots(intake.id, draft.assignedDate, draft.assignedTime);
-        }
-      });
     } catch (error) {
       console.error("Failed to fetch pending intakes", error);
     } finally {
@@ -316,11 +310,24 @@ export default function PendingIntakes() {
                          <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
                            Time
                          </label>
-                         <select
-                           value={approvalDraft.assignedTime}
-                           onChange={(event) =>
-                             setApprovalDrafts((current) => ({
-                               ...current,
+                        <select
+                          value={approvalDraft.assignedTime}
+                          onFocus={() => {
+                            if (
+                              approvalDraft.assignedDate &&
+                              !slotLoading &&
+                              availableSlots.length === 0
+                            ) {
+                              loadAvailableSlots(
+                                intake.id,
+                                approvalDraft.assignedDate,
+                                intake.preferredTime || "",
+                              );
+                            }
+                          }}
+                          onChange={(event) =>
+                            setApprovalDrafts((current) => ({
+                              ...current,
                                [intake.id]: {
                                  ...(current[intake.id] || createApprovalDraft(intake)),
                                  assignedTime: event.target.value,

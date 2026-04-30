@@ -9,21 +9,14 @@ import Button from "../ui/Button";
 import { Card, CardContent } from "../ui/Card";
 import usePersistentState from "../../hooks/usePersistentState";
 import PatientPicker from "../ui/PatientPicker";
+import { hasActiveProAccess } from "../../utils/clinicAccess";
 
 export default function AppointmentForm({ patientId = null, appointment = null, onSuccess, onCancel, draftStorageKey = "primuxcare:draft:appointment-form:new" }) {
   const dentistAssignmentEnabled = false;
   const navigate = useNavigate();
   const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
   const clinic = storedUser?.clinic || {};
-  const paystackStatus = String(clinic?.paystackSubscriptionStatus || "").toLowerCase();
-  const hasActivePaidSubscription = ["active", "attention", "success"].includes(paystackStatus);
-  const hasProReminderAccess =
-    clinic?.plan === "PRO" &&
-    (
-      hasActivePaidSubscription ||
-      !clinic?.subscriptionEnds ||
-      new Date(clinic.subscriptionEnds) >= new Date()
-    );
+  const hasProReminderAccess = hasActiveProAccess(clinic);
   const [formData, setFormData, clearFormDraft] = usePersistentState(
     `${draftStorageKey}:form`,
     appointment
@@ -267,7 +260,7 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
                     <p className="mt-1 text-sm text-slate-600">
                       {hasProReminderAccess
                         ? "Send automatic email reminders before the visit. Patients must have an email address on file."
-                        : "This reminder workflow is available on the paid Pro plan and during the 14-day free trial."}
+                        : "This reminder workflow is available while your clinic has active Pro access through the 14-day trial or a paid Pro subscription."}
                     </p>
                   </div>
                 </div>

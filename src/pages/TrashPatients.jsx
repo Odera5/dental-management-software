@@ -13,39 +13,53 @@ export default function TrashPatients() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [confirmConfig, setConfirmConfig] = useState(null);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage] = useState(10);
-  const filteredPatients = patients.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      String(p.age).includes(search)
-  );
-  const totalPages = Math.ceil(filteredPatients.length / perPage);
-
-  const paginatedPatients = () => {
-    const start = (currentPage - 1) * perPage;
-    return filteredPatients.slice(start, start + perPage);
-  };
+  const paginatedPatients = () => patients;
 
   // =========================
   // FETCH TRASHED PATIENTS
   // =========================
   const fetchPatients = useCallback(async () => {
     try {
-      const res = await api.get("/patients/trash/all");
-      setPatients(res.data || []);
-      setCurrentPage(1);
+      setLoading(true);
+      const res = await api.get("/patients/trash/all", {
+        params: {
+          page: currentPage,
+          limit: perPage,
+          search: search.trim() || undefined,
+        },
+      });
+      const pageData = Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data)
+          ? res.data
+          : [];
+      setPatients(pageData);
+      setTotalPages(Number(res.data?.totalPages) || 1);
+      setTotalResults(Number(res.data?.total) || pageData.length);
     } catch (err) {
       console.error(err);
       showToast("Failed to fetch patients", "error");
+      setPatients([]);
+      setTotalPages(1);
+      setTotalResults(0);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [currentPage, perPage, search]);
 
   useEffect(() => {
     fetchPatients();
   }, [fetchPatients]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   // =========================
   // TOAST
@@ -66,7 +80,7 @@ export default function TrashPatients() {
   };
 
   const toggleSelectAll = () => {
-    const currentIds = paginatedPatients().map((patient) => getEntityId(patient));
+    const currentIds = patients.map((patient) => getEntityId(patient));
     const allSelected = currentIds.every((id) => selected.has(id));
     const newSet = new Set(selected);
     currentIds.forEach((id) => (allSelected ? newSet.delete(id) : newSet.add(id)));
@@ -154,8 +168,8 @@ export default function TrashPatients() {
               <input
                 type="checkbox"
                 checked={
-                  paginatedPatients().length > 0 &&
-                  paginatedPatients().every((patient) =>
+                  patients.length > 0 &&
+                  patients.every((patient) =>
                     selected.has(getEntityId(patient)),
                   )
                 }
@@ -168,14 +182,14 @@ export default function TrashPatients() {
           </tr>
         </thead>
         <tbody>
-          {paginatedPatients().length === 0 ? (
+          {patients.length === 0 ? (
             <tr>
               <td colSpan="4" className="text-center p-4">
                 No trashed patients
               </td>
             </tr>
           ) : (
-            paginatedPatients().map((p) => (
+            patients.map((p) => (
               <tr key={getEntityId(p)} className="border-b">
                 <td className="p-2 text-center">
                   <input
@@ -222,6 +236,9 @@ export default function TrashPatients() {
           </button>
         </div>
       )}
+      <div className="mt-3 text-center text-sm text-slate-500">
+        Showing {patients.length} of {totalResults} trashed patients
+      </div>
     </motion.div>
   );
 }

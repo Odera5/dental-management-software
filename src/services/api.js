@@ -1,5 +1,12 @@
 // src/services/api.js
 import axios from "axios";
+import {
+  clearAuthState,
+  getStoredAuthToken,
+  getStoredRefreshToken,
+  getStoredUser,
+  updateStoredAccessToken,
+} from "../utils/authStorage";
 
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api`,
@@ -7,14 +14,8 @@ const api = axios.create({
 
 let refreshPromise = null;
 
-const clearAuthState = () => {
-  (localStorage.removeItem("accessToken"), sessionStorage.removeItem("accessToken"));
-  (localStorage.removeItem("refreshToken"), sessionStorage.removeItem("refreshToken"));
-  (localStorage.removeItem("user"), sessionStorage.removeItem("user"));
-};
-
 api.interceptors.request.use((config) => {
-  const token = (localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken"));
+  const token = getStoredAuthToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -23,7 +24,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    const refreshToken = (localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken"));
+    const refreshToken = getStoredRefreshToken();
     const isAuthEndpoint = originalRequest?.url?.includes("/auth/login");
     const isRefreshEndpoint = originalRequest?.url?.includes("/auth/refresh-token");
     const shouldAttemptRefresh =
@@ -50,11 +51,7 @@ api.interceptors.response.use(
           throw new Error("No refreshed access token returned");
         }
 
-        if (sessionStorage.getItem("accessToken") || sessionStorage.getItem("refreshToken")) {
-          sessionStorage.setItem("accessToken", newAccessToken);
-        } else {
-          localStorage.setItem("accessToken", newAccessToken);
-        }
+        updateStoredAccessToken(newAccessToken);
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
         return api(originalRequest);
@@ -62,6 +59,32 @@ api.interceptors.response.use(
         clearAuthState();
         window.location.href = "/login";
         return Promise.reject(refreshError);
+      }
+    }
+
+    if (
+      error.response?.status === 403 &&
+      ["SUBSCRIPTION_EXPIRED", "UPGRADE_REQUIRED"].includes(
+        error.response?.data?.errorCode,
+      ) &&
+      !isAuthEndpoint &&
+      !isRefreshEndpoint
+    ) {
+      let user = null;
+
+      try {
+        user = JSON.parse(getStoredUser() || "null");
+      } catch {
+        user = null;
+      }
+
+      if (user?.role === "admin") {
+        if (window.location.pathname !== "/upgrade") {
+          window.location.href = "/upgrade";
+        }
+      } else {
+        clearAuthState();
+        window.location.href = "/login";
       }
     }
 
@@ -79,7 +102,7 @@ api.interceptors.response.use(
 );
 
 export const logoutCurrentUser = async () => {
-  const refreshToken = (localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken"));
+  const refreshToken = getStoredRefreshToken();
 
   try {
     if (refreshToken) {

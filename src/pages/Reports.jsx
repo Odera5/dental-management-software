@@ -5,17 +5,18 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import Button from "../components/ui/Button";
+import { hasActiveProAccess } from "../utils/clinicAccess";
 
 export default function Reports() {
   const navigate = useNavigate();
   const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
-  const clinicPlan = storedUser?.clinic?.plan || "FREE";
+  const proAccessActive = hasActiveProAccess(storedUser?.clinic);
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    if (clinicPlan === "FREE") {
+    if (!proAccessActive) {
       setLoading(false);
       return;
     }
@@ -31,14 +32,14 @@ export default function Reports() {
       }
     };
     fetchAnalytics();
-  }, [clinicPlan]);
+  }, [proAccessActive]);
 
   const renderContent = () => {
     if (loading) {
       return <div className="p-8 text-center text-slate-500 animate-pulse">Loading analytics data...</div>;
     }
 
-    if (clinicPlan === "FREE" || !data) {
+    if (!proAccessActive || !data) {
       return (
         <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white min-h-[500px]">
           {/* FAKE BLURRED BACKGROUND */}

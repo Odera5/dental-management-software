@@ -19,6 +19,7 @@ import {
   subscribeDashboardSummary,
   readDashboardSummaryCache,
 } from "../services/dashboardSummary";
+import { hasActiveProAccess } from "../utils/clinicAccess";
 
 const PATIENTS_PER_PAGE = 25;
 
@@ -82,9 +83,12 @@ export default function Dashboard() {
   const [confirmConfig, setConfirmConfig] = useState(null);
   const [patientTotal, setPatientTotal] = useState(0);
   const [patientTotalPages, setPatientTotalPages] = useState(1);
+  const [trashTotal, setTrashTotal] = useState(0);
+  const [trashTotalPages, setTrashTotalPages] = useState(1);
 
   const showTrash = location.search.includes("tab=trash");
-  const clinicPlan = storedUser?.clinic?.plan || "FREE";
+  const clinicPlan = storedUser?.clinic?.plan || "PRO";
+  const proAccessActive = hasActiveProAccess(storedUser?.clinic);
   const deferredSearchQuery = useDeferredValue(searchQuery.trim());
 
   const showToast = (message, type = "success") => setToast({ message, type });
@@ -108,7 +112,7 @@ export default function Dashboard() {
   }, [applySummary]);
 
   const exportCSV = () => {
-    if (clinicPlan === "FREE") {
+    if (!proAccessActive) {
       setShowUpgradeModal(true);
       return;
     }
@@ -152,7 +156,7 @@ export default function Dashboard() {
   };
 
   const handleImportClick = () => {
-    if (clinicPlan === "FREE") {
+    if (!proAccessActive) {
       setShowUpgradeModal(true);
       return;
     }
@@ -217,14 +221,41 @@ export default function Dashboard() {
   const fetchTrash = useCallback(async () => {
     if (user.role !== "admin") return;
     try {
-      const res = await api.get("/patients/trash/all");
-      setTrash((res.data || []).map((p) => ({ ...p, name: p.name || p.fullName || "Unknown" })));
+      setLoading(true);
+      const res = await api.get("/patients/trash/all", {
+        params: {
+          page: currentPage,
+          limit: PATIENTS_PER_PAGE,
+          search: deferredSearchQuery || undefined,
+          sortBy: sortConfig.key || undefined,
+          sortDirection: sortConfig.key ? sortConfig.direction : "desc",
+        },
+      });
+      const pageData = Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data)
+          ? res.data
+          : [];
+
+      setTrash(pageData.map((p) => ({ ...p, name: p.name || p.fullName || "Unknown" })));
+      setTrashTotal(Number(res.data?.total) || pageData.length);
+      setTrashTotalPages(Number(res.data?.totalPages) || 1);
     } catch (err) {
       console.error(err);
       setTrash([]);
+      setTrashTotal(0);
+      setTrashTotalPages(1);
       if (!shouldSuppressDashboardError(err)) showToast("Failed to load trash", "error");
+    } finally {
+      setLoading(false);
     }
-  }, [user.role]);
+  }, [
+    currentPage,
+    deferredSearchQuery,
+    sortConfig.direction,
+    sortConfig.key,
+    user.role,
+  ]);
 
   useEffect(() => {
     if (showTrash) return;
@@ -257,27 +288,12 @@ export default function Dashboard() {
     setDirectoryState((current) => ({ ...current, sortConfig: { key, direction } }));
   };
 
-  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
-  const sortedTrash = sortConfig.key
-    ? [...trash].sort((a, b) => {
-        if (!a[sortConfig.key]) return 1;
-        if (!b[sortConfig.key]) return -1;
-        if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === "asc" ? -1 : 1;
-        if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === "asc" ? 1 : -1;
-        return 0;
-      })
-    : [...trash];
-  const matchesSearch = (patient) => {
-    if (!normalizedSearchQuery) return true;
-    return [patient?.name, patient?.cardNumber].filter(Boolean).map(v => String(v).toLowerCase()).some(v => v.includes(normalizedSearchQuery));
-  };
-
-  const activeList = showTrash ? sortedTrash.filter(matchesSearch) : patients.filter((p) => p && p.name);
-  const totalPages = showTrash ? Math.max(1, Math.ceil(activeList.length / PATIENTS_PER_PAGE)) : Math.max(1, patientTotalPages);
+  const activeList = showTrash ? trash : patients.filter((p) => p && p.name);
+  const totalPages = showTrash ? Math.max(1, trashTotalPages) : Math.max(1, patientTotalPages);
   const currentPageSafe = Math.min(currentPage, totalPages);
   const pageStartIndex = (currentPageSafe - 1) * PATIENTS_PER_PAGE;
-  const paginatedPatients = showTrash ? activeList.slice(pageStartIndex, pageStartIndex + PATIENTS_PER_PAGE) : activeList;
-  const totalResults = showTrash ? activeList.length : patientTotal;
+  const paginatedPatients = activeList;
+  const totalResults = showTrash ? trashTotal : patientTotal;
 
   useEffect(() => {
     setDirectoryState((current) => ({ ...current, currentPage: 1 }));
@@ -451,11 +467,11 @@ export default function Dashboard() {
             <div className="flex flex-row items-center gap-3 shrink-0 mt-4 lg:mt-0">
               <Button variant="outline" size="sm" onClick={exportCSV} className="px-4 py-1.5 h-9 text-sm bg-white shadow-sm border-slate-300 whitespace-nowrap">
                 <Download size={14} className="mr-2 shrink-0" /> Export
-                {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500 shrink-0" />}
+                {!proAccessActive && <Lock size={12} className="ml-1.5 text-amber-500 shrink-0" />}
               </Button>
               <Button variant="outline" size="sm" onClick={handleImportClick} className="px-4 py-1.5 h-9 text-sm bg-white shadow-sm border-slate-300 whitespace-nowrap">
                 <Upload size={14} className="mr-2 shrink-0" /> Import
-                {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500 shrink-0" />}
+                {!proAccessActive && <Lock size={12} className="ml-1.5 text-amber-500 shrink-0" />}
               </Button>
             </div>
           )}
@@ -572,7 +588,7 @@ export default function Dashboard() {
             </div>
             <h3 className="text-xl font-bold text-slate-900 mb-2">Pro Plan Feature</h3>
             <p className="text-slate-500 text-sm mb-6">
-              Bulk Importing legacy patients and Exporting your patient database are restricted to the PRO tier. Upgrade your clinic to automatically migrate unlimited patients.
+              Bulk importing legacy patients and exporting your patient database require active Pro access through your 14-day trial or paid Pro subscription.
             </p>
             <div className="flex w-full gap-3">
               <Button type="button" variant="outline" className="flex-1 border-slate-200" onClick={() => setShowUpgradeModal(false)}>Close</Button>

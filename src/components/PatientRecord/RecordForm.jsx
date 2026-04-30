@@ -7,6 +7,7 @@ import { CheckCircle2, Shield, AlertCircle, BookOpen, Lock, ImagePlus, X, FileTe
 import { DENTAL_FORMULARY } from "../../utils/dentalFormulary";
 import { CLINICAL_TEMPLATES } from "../../utils/clinicalTemplates";
 import api from "../../services/api";
+import { hasActiveProAccess } from "../../utils/clinicAccess";
 
 const TEMPLATE_FIELD_MAP = {
   presentingComplaint: "presentingComplaint",
@@ -189,7 +190,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
   const [notificationModal, setNotificationModal] = useState({ show: false, message: "" });
 
   const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
-  const clinicPlan = storedUser?.clinic?.plan || "FREE";
+  const proAccessActive = hasActiveProAccess(storedUser?.clinic);
 
   const handleFormularySelect = (medValue) => {
     let currentMed = recordData.medication ? recordData.medication.trim() : "";
@@ -214,7 +215,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
   };
 
   const openTemplateModal = (type) => {
-    if (clinicPlan === "FREE") {
+    if (!proAccessActive) {
       setShowUpgradeModal(true);
       return;
     }
@@ -274,7 +275,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
   };
 
   const openFilePicker = async () => {
-    if (clinicPlan === "FREE") {
+    if (!proAccessActive) {
       setShowUpgradeModal(true);
       return;
     }
@@ -375,7 +376,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
                 onClick={() => openTemplateModal("presentingComplaint")}
                 className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
               >
-                <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+                <BookOpen size={12} className="mr-1" /> Quick List {!proAccessActive && <Lock size={10} className="ml-1 text-amber-500" />}
               </button>
             </div>
             <textarea name="presentingComplaint" value={recordData.presentingComplaint || ""} onChange={handleChange} rows={3} required placeholder="C/O..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
@@ -389,7 +390,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
                 onClick={() => openTemplateModal("comorbidities")}
                 className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
               >
-                <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+                <BookOpen size={12} className="mr-1" /> Quick List {!proAccessActive && <Lock size={10} className="ml-1 text-amber-500" />}
               </button>
             </div>
             <textarea name="comorbidities" value={recordData.comorbidities || ""} onChange={handleChange} rows={2} placeholder="Hypertension, Diabetes, Asthma, etc." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
@@ -402,7 +403,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
                 onClick={() => openTemplateModal("allergies")}
                 className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
               >
-                <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+                <BookOpen size={12} className="mr-1" /> Quick List {!proAccessActive && <Lock size={10} className="ml-1 text-amber-500" />}
               </button>
             </div>
             <textarea name="allergies" value={recordData.allergies || ""} onChange={handleChange} rows={2} placeholder="Penicillin, NSAIDs, Latex, etc. (Leave blank if none known)" className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
@@ -432,7 +433,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
                 onClick={() => openTemplateModal("extraOral")}
                 className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
               >
-                <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+                <BookOpen size={12} className="mr-1" /> Quick List {!proAccessActive && <Lock size={10} className="ml-1 text-amber-500" />}
               </button>
             </div>
             <textarea name="examinationExtraOral" value={recordData.examinationExtraOral || ""} onChange={handleChange} rows={4} placeholder="Facial symmetry, TMJ, lymph nodes..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
@@ -450,7 +451,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
                     onClick={() => openTemplateModal("softTissue")}
                     className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
                   >
-                    <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+                    <BookOpen size={12} className="mr-1" /> Quick List {!proAccessActive && <Lock size={10} className="ml-1 text-amber-500" />}
                   </button>
                 </div>
                 <textarea name="softTissue" value={recordData.softTissue || ""} onChange={handleChange} rows={3} placeholder="Mucosa, tongue, palate..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
@@ -464,7 +465,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
                     onClick={() => openTemplateModal("periodontal")}
                     className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
                   >
-                    <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+                    <BookOpen size={12} className="mr-1" /> Quick List {!proAccessActive && <Lock size={10} className="ml-1 text-amber-500" />}
                   </button>
                 </div>
                 <textarea name="periodontalStatus" value={recordData.periodontalStatus || ""} onChange={handleChange} rows={3} placeholder="Gingival condition, B.O.P..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
@@ -478,7 +479,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
                   onClick={() => openTemplateModal("occlusion")}
                   className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
                 >
-                  <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+                  <BookOpen size={12} className="mr-1" /> Quick List {!proAccessActive && <Lock size={10} className="ml-1 text-amber-500" />}
                 </button>
               </div>
               <textarea name="occlusion" value={recordData.occlusion || ""} onChange={handleChange} rows={2} placeholder="Class I/II/III..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
@@ -541,7 +542,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
                 onClick={() => openTemplateModal("diagnosis")}
                 className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
               >
-                <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+                <BookOpen size={12} className="mr-1" /> Quick List {!proAccessActive && <Lock size={10} className="ml-1 text-amber-500" />}
               </button>
             </div>
             <textarea name="diagnosis" value={recordData.diagnosis || ""} onChange={handleChange} rows={3} required placeholder="Definitive or provisional diagnosis..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
@@ -554,7 +555,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
                 onClick={() => openTemplateModal("treatmentPlan")}
                 className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-2 py-1 rounded-full border border-primary-200"
               >
-                <BookOpen size={12} className="mr-1" /> Quick List {clinicPlan === "FREE" && <Lock size={10} className="ml-1 text-amber-500" />}
+                <BookOpen size={12} className="mr-1" /> Quick List {!proAccessActive && <Lock size={10} className="ml-1 text-amber-500" />}
               </button>
             </div>
             <textarea name="treatmentPlan" value={recordData.treatmentPlan || ""} onChange={handleChange} rows={3} required placeholder="Proposed procedures..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
@@ -565,10 +566,10 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
               <label className="text-sm font-semibold text-slate-700 leading-none">Medications Prescribed</label>
               <button 
                 type="button" 
-                onClick={() => clinicPlan === "FREE" ? setShowUpgradeModal(true) : setShowFormulary(true)}
+                onClick={() => !proAccessActive ? setShowUpgradeModal(true) : setShowFormulary(true)}
                 className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-3 py-1.5 rounded-full border border-primary-200"
               >
-                <BookOpen size={14} className="mr-1.5" /> 1-Click Formulary {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500" />}
+                <BookOpen size={14} className="mr-1.5" /> 1-Click Formulary {!proAccessActive && <Lock size={12} className="ml-1.5 text-amber-500" />}
               </button>
             </div>
             <textarea name="medication" value={recordData.medication || ""} onChange={handleChange} rows={3} placeholder="Prescriptions..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
@@ -584,7 +585,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
             onClick={openFilePicker}
             className="flex items-center text-primary-600 hover:text-primary-800 text-xs font-bold transition-colors bg-primary-50 px-3 py-1.5 rounded-full border border-primary-200"
           >
-            Attach Files {clinicPlan === "FREE" && <Lock size={12} className="ml-1.5 text-amber-500" />}
+            Attach Files {!proAccessActive && <Lock size={12} className="ml-1.5 text-amber-500" />}
           </button>
           <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/jpeg,image/png,image/webp,application/pdf" multiple />
         </div>

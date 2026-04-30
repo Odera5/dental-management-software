@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { Check, X, Crown, FileUp, BookOpen } from "lucide-react";
+import { Check, Crown, FileUp, BookOpen } from "lucide-react";
 import api from "../services/api";
 import Toast from "../components/Toast";
 import Button from "../components/ui/Button";
 import ConfirmModal from "../components/ui/ConfirmModal";
-import { getDashboardSummary } from "../services/dashboardSummary";
-
-const ACTIVE_PAYSTACK_STATUSES = ["active", "attention", "success"];
+import {
+  hasActivePaidSubscription,
+  hasActiveProAccess,
+  isTrialingClinic,
+  getTrialDaysRemaining,
+} from "../utils/clinicAccess";
 
 export default function UpgradePlan() {
-  const [patientCount, setPatientCount] = useState(0);
   const [isAnnual, setIsAnnual] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [billingInfo, setBillingInfo] = useState(null);
@@ -20,36 +21,27 @@ export default function UpgradePlan() {
 
   const storedUser =
     JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user")) || {};
-  const currentPlan = billingInfo?.plan || storedUser?.clinic?.plan || "FREE";
-  const subscriptionEnds =
-    billingInfo?.subscriptionEnds || storedUser?.clinic?.subscriptionEnds || null;
-  const paystackSubscriptionStatus =
-    billingInfo?.paystackSubscriptionStatus ||
-    storedUser?.clinic?.paystackSubscriptionStatus ||
-    null;
-  const paystackNextPaymentDate =
-    billingInfo?.paystackNextPaymentDate ||
-    storedUser?.clinic?.paystackNextPaymentDate ||
-    null;
+  const clinic = billingInfo || storedUser?.clinic || {};
+  const currentPlan = clinic?.plan || "PRO";
+  const subscriptionEnds = clinic?.subscriptionEnds || null;
+  const paystackNextPaymentDate = clinic?.paystackNextPaymentDate || null;
+  const isPro = currentPlan === "PRO";
+  const paidSubscriptionActive = hasActivePaidSubscription(clinic);
+  const proAccessActive = hasActiveProAccess(clinic);
+  const trialing = isTrialingClinic(clinic);
+  const remainingTrialDays = getTrialDaysRemaining(clinic);
 
   useEffect(() => {
-    const loadUsageAndBilling = async () => {
+    const loadBilling = async () => {
       try {
-        setLoading(true);
-        const [summaryResponse, billingResponse] = await Promise.all([
-          getDashboardSummary(),
-          api.get("/billing"),
-        ]);
-        setPatientCount(summaryResponse?.patients?.active || 0);
+        const billingResponse = await api.get("/billing");
         setBillingInfo(billingResponse.data?.clinic || null);
       } catch (error) {
         console.error("Failed to load billing page data", error);
-      } finally {
-        setLoading(false);
       }
     };
 
-    loadUsageAndBilling();
+    loadBilling();
   }, []);
 
   const handleUpgradeClick = async () => {
@@ -78,11 +70,6 @@ export default function UpgradePlan() {
     }
   };
 
-  const usagePercent = Math.min((patientCount / 100) * 100, 100);
-  const isPro = currentPlan === "PRO";
-  const hasActivePaidSubscription = ACTIVE_PAYSTACK_STATUSES.includes(
-    String(paystackSubscriptionStatus || "").toLowerCase(),
-  );
   const formattedRenewalDate = subscriptionEnds
     ? new Date(subscriptionEnds).toLocaleDateString("en-NG", {
         year: "numeric",
@@ -123,9 +110,7 @@ export default function UpgradePlan() {
     });
   };
 
-
   const executeCancelAutoRenew = async () => {
-
     try {
       setCancelLoading(true);
       const response = await api.post("/billing/paystack/cancel");
@@ -136,8 +121,7 @@ export default function UpgradePlan() {
       }
       setToast({
         message:
-          response.data?.message ||
-          "Subscription canceled successfully.",
+          response.data?.message || "Subscription canceled successfully.",
         type: "success",
       });
     } catch (error) {
@@ -156,15 +140,16 @@ export default function UpgradePlan() {
   const handleCancelAutoRenew = () => {
     setConfirmConfig({
       title: "Cancel Subscription",
-      message: "Are you sure you want to cancel your Pro plan subscription? The clinic will keep Pro access until the current paid period ends.",
+      message:
+        "Are you sure you want to cancel your Pro plan subscription? The clinic will keep Pro access until the current paid period ends.",
       confirmText: "Yes, Cancel",
       danger: true,
-      onConfirm: executeCancelAutoRenew
+      onConfirm: executeCancelAutoRenew,
     });
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-6 md:p-8 min-h-full">
+    <div className="w-full max-w-4xl mx-auto p-6 md:p-8 min-h-full">
       {toast && (
         <Toast
           message={toast.message}
@@ -174,28 +159,37 @@ export default function UpgradePlan() {
         />
       )}
 
-      <ConfirmModal 
-        isOpen={!!confirmConfig} 
-        onClose={() => setConfirmConfig(null)} 
-        {...confirmConfig} 
+      <ConfirmModal
+        isOpen={!!confirmConfig}
+        onClose={() => setConfirmConfig(null)}
+        {...confirmConfig}
       />
 
       <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
-          Upgrade your Clinic&apos;s Potential
+        <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
+          Keep Your Clinic on Pro
         </h1>
         <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-          Scale your practice with unlimited patients, automated reminders, and
-          advanced analytics designed to grow your revenue.
+          Start with 14 days of full Pro access, then continue with a paid Pro
+          subscription for unlimited patients, automated reminders, and
+          advanced analytics.
         </p>
-        {!hasActivePaidSubscription && (
+        {trialing && (
           <p className="mt-4 text-sm inline-flex items-center gap-2 font-medium text-primary-700 bg-primary-50 px-4 py-1.5 rounded-full border border-primary-100 shadow-sm">
-            <Crown size={16} /> New clinics get 14 days of Pro access free before paid billing starts.
+            <Crown size={16} /> Your 14-day Pro trial has {remainingTrialDays} day
+            {remainingTrialDays === 1 ? "" : "s"} remaining.
           </p>
         )}
-        {hasActivePaidSubscription && (
+        {paidSubscriptionActive && (
           <p className="mt-4 text-sm inline-flex items-center gap-2 font-medium text-emerald-700 bg-emerald-50 px-4 py-1.5 rounded-full border border-emerald-100 shadow-sm">
-            <Crown size={16} /> Pro Plan Active — Next payment: {formattedNextPaymentDate || formattedRenewalDate}
+            <Crown size={16} /> Pro Plan Active - Next payment:{" "}
+            {formattedNextPaymentDate || formattedRenewalDate}
+          </p>
+        )}
+        {!proAccessActive && !paidSubscriptionActive && (
+          <p className="mt-4 text-sm inline-flex items-center gap-2 font-medium text-rose-700 bg-rose-50 px-4 py-1.5 rounded-full border border-rose-100 shadow-sm">
+            <Crown size={16} /> Your Pro trial has ended. Subscribe to continue
+            using PrimuxCare.
           </p>
         )}
       </div>
@@ -205,7 +199,9 @@ export default function UpgradePlan() {
           <button
             onClick={() => setIsAnnual(false)}
             className={`px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 ${
-              !isAnnual ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              !isAnnual
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
             }`}
           >
             Monthly
@@ -213,7 +209,9 @@ export default function UpgradePlan() {
           <button
             onClick={() => setIsAnnual(true)}
             className={`px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 flex items-center gap-2 ${
-              isAnnual ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              isAnnual
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
             }`}
           >
             Annually
@@ -224,107 +222,36 @@ export default function UpgradePlan() {
         </div>
       </div>
 
-      {!isPro && (
-        <div className="mb-12 max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-surface-200">
-          <div className="flex justify-between items-end mb-2">
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
-                Free Plan Usage
-              </h3>
-              <p className="text-2xl font-bold text-slate-800">
-                {patientCount}{" "}
-                <span className="text-lg font-medium text-slate-400">
-                  / 100 Patients
-                </span>
-              </p>
-            </div>
-            {patientCount >= 100 ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-700 font-bold text-sm rounded-full">
-                <X size={16} /> Limit Reached
-              </span>
-            ) : (
-              <span className="text-sm font-medium text-primary-600 border border-primary-200 bg-primary-50 px-3 py-1 rounded-full">
-                {100 - patientCount} slots remaining
-              </span>
-            )}
-          </div>
-          <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden mt-4">
-            <div
-              className={`h-full rounded-full transition-all duration-1000 ${
-                patientCount >= 100 ? "bg-red-500" : "bg-primary-500"
-              }`}
-              style={{ width: `${loading ? 0 : usagePercent}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col hover:shadow-md transition-shadow relative">
-          {!isPro && (
-            <div className="absolute top-0 right-8 transform -translate-y-1/2">
-              <span className="bg-slate-800 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
-                Current Plan
-              </span>
-            </div>
-          )}
-          <div className="mb-6">
-            <h3 className="text-2xl font-bold text-slate-900 mb-2">Starter</h3>
-            <p className="text-slate-500 text-sm">
-              Perfect for solo practitioners just starting out.
-            </p>
-          </div>
-
-          <div className="mb-8">
-            <span className="text-5xl font-extrabold text-slate-900">Free</span>
-            <span className="text-slate-500 font-medium"> / forever</span>
-          </div>
-
-          <Button
-            variant="outline"
-            className="w-full mb-8 py-6 text-lg border-slate-300 font-semibold"
-            disabled
-          >
-            {isPro ? "Downgrade" : "Active"}
-          </Button>
-
-          <div className="space-y-4 flex-1">
-            <FeatureItem included>Up to 100 Patients</FeatureItem>
-            <FeatureItem included>2 Staff Accounts</FeatureItem>
-            <FeatureItem included>Manual Appointments</FeatureItem>
-            <FeatureItem included>Basic Clinical Records</FeatureItem>
-            <FeatureItem missing>Automated Appointment Reminders</FeatureItem>
-            <FeatureItem missing>Unlimited Storage (X-Ray Uploads)</FeatureItem>
-            <FeatureItem missing>Advanced Analytics</FeatureItem>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-b from-slate-900 to-slate-800 rounded-3xl p-8 border border-slate-700 shadow-xl flex flex-col relative transform md:-translate-y-4">
+      <div className="grid gap-8 max-w-2xl mx-auto">
+        <div className="bg-gradient-to-b from-slate-50 via-white to-slate-100 rounded-3xl p-8 md:p-7 border border-slate-200 shadow-xl flex flex-col relative">
           {isPro && (
             <div className="absolute top-0 right-8 transform -translate-y-1/2">
               <span className="bg-primary-500 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
-                Current Plan
+                {paidSubscriptionActive ? "Active Plan" : "Current Trial"}
               </span>
             </div>
           )}
           <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
             <span className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-sm font-bold uppercase tracking-widest py-1.5 px-4 rounded-full shadow-lg flex items-center gap-1.5">
-              <Crown size={16} /> Recommended
+              <Crown size={16} /> Professional
             </span>
           </div>
 
           <div className="mb-6 mt-4">
-            <h3 className="text-2xl font-bold text-white mb-2">Professional</h3>
-            <p className="text-slate-400 text-sm">
-              For growing clinics that need scale and automation.
+            <h3 className="text-2xl font-bold text-slate-900 mb-2">Pro</h3>
+            <p className="text-slate-600 text-sm">
+              Full PrimuxCare access for clinics that need scale, automation,
+              and uninterrupted operations.
             </p>
           </div>
 
           <div className="mb-8 flex items-end gap-1">
-            <span className="text-3xl md:text-4xl font-extrabold text-white transition-all">
+            <span className="text-3xl md:text-4xl font-extrabold text-slate-900 transition-all">
               NGN {isAnnual ? "1,000,000" : "100,000"}
             </span>
-            <span className="text-slate-400 font-medium mb-1 transition-all"> / {isAnnual ? "year" : "month"}</span>
+            <span className="text-slate-500 font-medium mb-1 transition-all">
+              / {isAnnual ? "year" : "month"}
+            </span>
           </div>
 
           <Button
@@ -332,22 +259,25 @@ export default function UpgradePlan() {
             onClick={handleUpgradeClick}
             isLoading={checkoutLoading}
           >
-            {hasActivePaidSubscription ? "Update Payment Method" : "Subscribe to Pro Plan"}
+            {paidSubscriptionActive
+              ? "Update Payment Method"
+              : trialing
+                ? "Start Paid Pro Billing"
+                : "Subscribe to Pro Plan"}
           </Button>
 
           <div className="h-8 flex justify-center items-center mb-4">
-            {!isPro && (
-              <p className="text-slate-400 text-xs font-medium bg-slate-800/50 px-3 py-1 rounded-full border border-slate-700">
-                Secure recurring billing with Paystack in NGN.
-              </p>
-            )}
+            <p className="text-slate-600 text-xs font-medium bg-white px-3 py-1 rounded-full border border-slate-200 text-center">
+              New clinics begin with a 14-day Pro trial, then continue with
+              secure recurring billing in NGN.
+            </p>
           </div>
 
-          {hasActivePaidSubscription && (
+          {paidSubscriptionActive && (
             <div className="mb-6 space-y-3">
               <Button
                 variant="outline"
-                className="w-full border-red-500/40 bg-red-500/10 text-red-100 hover:bg-red-500/20"
+                className="w-full border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
                 onClick={handleCancelAutoRenew}
                 isLoading={cancelLoading}
               >
@@ -357,28 +287,30 @@ export default function UpgradePlan() {
           )}
 
           <div className="space-y-4 flex-1">
-            <FeatureItem included dark highlight>
-              Unlimited Patients
+            <FeatureItem included highlight>
+              Unlimited Patients from day one
             </FeatureItem>
-            <FeatureItem included dark highlight>
+            <FeatureItem included highlight>
               Unlimited Staff Accounts
             </FeatureItem>
-            <FeatureItem included dark highlight icon={<FileUp size={18} />}>
-              Unlimited X-Ray &amp; File Uploads
+            <FeatureItem included highlight icon={<FileUp size={18} />}>
+              Unlimited X-Ray and File Uploads
             </FeatureItem>
-            <FeatureItem included dark highlight icon={<BookOpen size={18} />}>
+            <FeatureItem included highlight icon={<BookOpen size={18} />}>
               1-Click Dental Formulary
             </FeatureItem>
-            <FeatureItem included dark highlight>
+            <FeatureItem included highlight>
               Online Patient Intake Forms
             </FeatureItem>
-            <FeatureItem included dark>Automated Appointment Reminder Emails</FeatureItem>
-            <FeatureItem included dark>Everything in Starter</FeatureItem>
-            <FeatureItem included dark>Custom Invoice Branding</FeatureItem>
-            <FeatureItem included dark>
+            <FeatureItem included>
+              Automated Appointment Reminder Emails
+            </FeatureItem>
+            <FeatureItem included>Advanced Analytics</FeatureItem>
+            <FeatureItem included>Custom Invoice Branding</FeatureItem>
+            <FeatureItem included>
               Advanced Role-Based Access (RBAC)
             </FeatureItem>
-            <FeatureItem included dark>Priority 24/7 Support</FeatureItem>
+            <FeatureItem included>Priority 24/7 Support</FeatureItem>
           </div>
         </div>
       </div>
@@ -386,26 +318,24 @@ export default function UpgradePlan() {
   );
 }
 
-function FeatureItem({ children, included, missing, dark, highlight, icon }) {
+function FeatureItem({ children, included, dark, highlight, icon }) {
   return (
-    <div className={`flex items-center gap-3 ${missing ? "opacity-50" : ""}`}>
+    <div className="flex items-center gap-3">
       <div
         className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
-          included
-            ? highlight
-              ? "bg-amber-500/20 text-amber-400"
-              : dark
-                ? "bg-primary-500/20 text-primary-400"
-                : "bg-emerald-100 text-emerald-600"
-            : "bg-slate-100 text-slate-400"
+          highlight
+            ? "bg-amber-500/20 text-amber-400"
+            : dark
+              ? "bg-primary-500/20 text-primary-400"
+              : "bg-emerald-100 text-emerald-600"
         }`}
       >
-        {included ? icon || <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />}
+        {included ? icon || <Check size={14} strokeWidth={3} /> : null}
       </div>
       <span
         className={`text-sm font-medium ${
-          dark ? "text-slate-200" : "text-slate-700"
-        } ${highlight ? "font-bold text-white" : ""}`}
+          highlight ? "font-bold text-slate-900" : dark ? "text-slate-200" : "text-slate-700"
+        }`}
       >
         {children}
       </span>

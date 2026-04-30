@@ -17,7 +17,7 @@ import {
   BarChart3,
   Inbox
 } from "lucide-react";
-import { logoutCurrentUser } from "../../services/api";
+import api, { logoutCurrentUser } from "../../services/api";
 import {
   getDashboardSummary,
   readDashboardSummaryCache,
@@ -25,8 +25,14 @@ import {
 } from "../../services/dashboardSummary";
 import Button from "../ui/Button";
 import primuxFavicon from "../../assets/primux-logo.png";
-
-const ACTIVE_PAYSTACK_STATUSES = ["active", "attention", "success"];
+import { updateStoredUser } from "../../utils/authStorage";
+import {
+  hasActiveProAccess,
+  hasActivePaidSubscription,
+  isSubscriptionExpired,
+  isTrialingClinic,
+  getTrialDaysRemaining,
+} from "../../utils/clinicAccess";
 
 function NavItem({
   icon: Icon,
@@ -87,6 +93,7 @@ export default function DashboardLayout() {
     cachedSummary?.intakes?.pending || 0,
   );
   const [showTrialBanner, setShowTrialBanner] = useState(false);
+  const [clinicState, setClinicState] = useState(null);
 
   const storedUser =
     JSON.parse(
@@ -95,38 +102,33 @@ export default function DashboardLayout() {
   const user = {
     name: storedUser.name || storedUser.email || "User",
     role: storedUser.role || "nurse",
-    clinicName: storedUser.clinic?.name || "Clinic",
+    clinicName: clinicState?.name || storedUser.clinic?.name || "Clinic",
   };
 
-  const clinicPlan = storedUser.clinic?.plan || "FREE";
-  const subscriptionEnds = storedUser.clinic?.subscriptionEnds;
-  const paystackSubscriptionStatus = String(
-    storedUser.clinic?.paystackSubscriptionStatus || "",
-  ).toLowerCase();
-  const hasActivePaidSubscription = ACTIVE_PAYSTACK_STATUSES.includes(
-    paystackSubscriptionStatus,
-  );
-  let remainingTrialDays = 0;
+  const clinic = clinicState || storedUser.clinic || {};
+  const clinicPlan = clinic.plan || "PRO";
+  const subscriptionExpired = isSubscriptionExpired(clinic);
+  const subscriptionEnds = clinic.subscriptionEnds;
+  const paidSubscriptionActive = hasActivePaidSubscription(clinic);
+  const activeProAccess = hasActiveProAccess(clinic);
+  const trialing = isTrialingClinic(clinic);
+  const remainingTrialDays = getTrialDaysRemaining(clinic);
   let remainingPaidDays = 0;
 
-  if (clinicPlan === "PRO" && subscriptionEnds) {
+  if (clinicPlan === "PRO" && subscriptionEnds && paidSubscriptionActive) {
     const end = new Date(subscriptionEnds);
     const now = new Date();
     const days = Math.max(
       0,
       Math.ceil((end - now) / (1000 * 60 * 60 * 24)),
     );
-    if (!hasActivePaidSubscription) {
-      remainingTrialDays = days;
-    } else {
-      remainingPaidDays = days;
-    }
+    remainingPaidDays = days;
   }
 
   useEffect(() => {
     if (
       clinicPlan !== "PRO" ||
-      hasActivePaidSubscription ||
+      paidSubscriptionActive ||
       remainingTrialDays <= 0
     )
       return;
@@ -146,9 +148,12 @@ export default function DashboardLayout() {
       clearTimeout(showTimer);
       if (hideTimer) clearTimeout(hideTimer);
     };
-  }, [clinicPlan, remainingTrialDays, hasActivePaidSubscription]);
+  }, [clinicPlan, remainingTrialDays, paidSubscriptionActive]);
 
-  const canViewRecords = ["admin", "doctor", "nurse"].includes(user.role);
+  const canViewRecords =
+    ["admin", "doctor", "nurse"].includes(user.role) && activeProAccess;
+  const showRestrictedAdminShell =
+    subscriptionExpired && user.role === "admin";
 
   const applySummary = (summary = {}) => {
     setAppointmentCount(summary?.appointments?.scheduled || 0);
@@ -197,6 +202,42 @@ export default function DashboardLayout() {
     const timer = setInterval(() => setCurrentTime(new Date()), 60 * 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncClinicState = async () => {
+      try {
+        const response = await api.get("/auth/clinic-profile");
+        const latestClinic = response.data?.clinic || null;
+
+        if (!isMounted || !latestClinic) {
+          return;
+        }
+
+        setClinicState(latestClinic);
+        updateStoredUser({ clinic: latestClinic });
+
+        if (user.role !== "admin" && isSubscriptionExpired(latestClinic)) {
+          await logoutCurrentUser();
+          navigate("/login", { replace: true });
+          return;
+        }
+
+        if (user.role === "admin" && isSubscriptionExpired(latestClinic)) {
+          navigate("/upgrade", { replace: true });
+        }
+      } catch {
+        // Let existing auth handling manage failures.
+      }
+    };
+
+    syncClinicState();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate, user.role]);
 
   const handleLogout = async () => {
     await logoutCurrentUser();
@@ -278,14 +319,16 @@ export default function DashboardLayout() {
             <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               Main Menu
             </p>
-            <NavItem
-              icon={Home}
-              label="Dashboard"
-              path="/dashboard"
-              location={location}
-              onNavigate={handleNavClick}
-            />
-            {canViewRecords && (
+            {!showRestrictedAdminShell && (
+              <NavItem
+                icon={Home}
+                label="Dashboard"
+                path="/dashboard"
+                location={location}
+                onNavigate={handleNavClick}
+              />
+            )}
+            {!showRestrictedAdminShell && canViewRecords && (
               <>
                 <NavItem
                   icon={UserPlus}
@@ -336,7 +379,7 @@ export default function DashboardLayout() {
             )}
           </div>
 
-          {user.role === "admin" && (
+          {user.role === "admin" && !showRestrictedAdminShell && (
             <div>
               <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
                 Administration
@@ -367,11 +410,11 @@ export default function DashboardLayout() {
 
           <div>
             <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              SaaS Plan
+              {showRestrictedAdminShell ? "Renewal" : "SaaS Plan"}
             </p>
             <NavItem
               icon={Crown}
-              label="Upgrade Plan"
+              label={showRestrictedAdminShell ? "Renew Subscription" : "Upgrade Plan"}
               path="/upgrade"
               location={location}
               onNavigate={handleNavClick}
@@ -426,9 +469,29 @@ export default function DashboardLayout() {
         </header>
 
         <AnimatePresence>
-          {clinicPlan === "PRO" &&
+          {showRestrictedAdminShell && (
+            <MotionDiv
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              className="bg-gradient-to-r from-rose-600 to-red-600 text-white px-4 py-3 text-center text-sm font-bold shadow-sm shrink-0 relative z-10 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4"
+            >
+              <span className="flex items-center gap-2">
+                <Crown size={18} />
+                Your Pro access has expired. Billing is available, but clinic operations are now locked until renewal.
+              </span>
+              <button
+                onClick={() => navigate("/upgrade")}
+                className="bg-white/20 hover:bg-white/30 px-4 py-1.5 rounded-full text-xs transition-colors border border-white/30 backdrop-blur-sm shadow-sm"
+              >
+                Renew Now
+              </button>
+            </MotionDiv>
+          )}
+          {trialing &&
             remainingTrialDays > 0 &&
-            !hasActivePaidSubscription &&
+            !showRestrictedAdminShell &&
             showTrialBanner && (
               <MotionDiv
                 initial={{ height: 0, opacity: 0 }}
@@ -444,7 +507,7 @@ export default function DashboardLayout() {
                 <span className="flex items-center gap-2">
                   <Crown size={18} />
                   {remainingTrialDays <= 3 ? "URGENT: " : ""}You have{" "}
-                  {remainingTrialDays} days left on your Free Pro Trial.
+                  {remainingTrialDays} days left on your 14-day Pro Trial.
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -470,8 +533,9 @@ export default function DashboardLayout() {
         </AnimatePresence>
 
         {clinicPlan === "PRO" &&
-          hasActivePaidSubscription &&
+          paidSubscriptionActive &&
           subscriptionEnds &&
+          !showRestrictedAdminShell &&
           remainingPaidDays <= 7 && (
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2.5 text-center text-sm font-bold shadow-sm shrink-0 relative z-10 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
               <span className="flex items-center gap-2">
