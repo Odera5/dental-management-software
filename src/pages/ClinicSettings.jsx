@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Settings, Building, Mail, Phone, MapPin, User, DollarSign, AlertTriangle, Save, Power, ArrowLeft, Image as ImageIcon, Palette, Lock, Link as LinkIcon, Copy, CheckCircle, Crown, Upload, Trash2, Plus, Edit2, Globe } from "lucide-react";
+import { Settings, Building, Mail, Phone, MapPin, User, DollarSign, AlertTriangle, Save, Power, ArrowLeft, Image as ImageIcon, Palette, Lock, Link as LinkIcon, Copy, CheckCircle, Crown, Upload, Trash2, Plus, Edit2, Globe, Clock } from "lucide-react";
 import api, { logoutCurrentUser } from "../services/api";
 import { DEFAULT_PROCEDURE_PRESETS, formatNaira, normalizeProcedurePresets } from "../constants/billing";
 import { Card, CardContent } from "../components/ui/Card";
@@ -14,11 +14,13 @@ import usePersistentState from "../hooks/usePersistentState";
 import { readStoredJson } from "../utils/persistence";
 import { resolveAssetUrl } from "../utils/assetUrl";
 import { COUNTRIES } from "../constants/countries";
+import { REMINDER_TIMEZONES } from "../constants/reminderTimezones";
 import { hasActiveProAccess } from "../utils/clinicAccess";
 
 const initialForm = {
   clinicName: "", clinicEmail: "", clinicPhone: "", clinicCountry: "", clinicCity: "", clinicAddress: "", contactPerson: "",
   logoUrl: "", brandColor: "#0f172a",
+  reminderTimezone: "Africa/Lagos", reminderWindowStartHour: "8", reminderWindowEndHour: "18",
   procedurePresetPrices: DEFAULT_PROCEDURE_PRESETS,
 };
 
@@ -208,6 +210,9 @@ export default function ClinicSettings() {
             clinicName: clinic?.name || "", clinicEmail: clinic?.email || "", clinicPhone: clinic?.phone || "",
             clinicCountry: clinic?.country || "", clinicCity: clinic?.city || "", clinicAddress: clinic?.address || "", contactPerson: clinic?.contactPerson || "",
             logoUrl: clinic?.logoUrl || "", brandColor: clinic?.brandColor || "#0f172a",
+            reminderTimezone: clinic?.reminderTimezone || "Africa/Lagos",
+            reminderWindowStartHour: String(clinic?.reminderWindowStartHour ?? 8),
+            reminderWindowEndHour: String(clinic?.reminderWindowEndHour ?? 18),
             procedurePresetPrices: normalizeProcedurePresets(clinic?.procedurePresetPrices),
           });
         }
@@ -257,6 +262,9 @@ export default function ClinicSettings() {
       payload.clinicCity = billingInfo?.city || payload.clinicCity;
       payload.clinicAddress = billingInfo?.address || payload.clinicAddress;
       payload.contactPerson = billingInfo?.contactPerson || payload.contactPerson;
+      payload.reminderTimezone = billingInfo?.reminderTimezone || payload.reminderTimezone;
+      payload.reminderWindowStartHour = String(billingInfo?.reminderWindowStartHour ?? payload.reminderWindowStartHour ?? 8);
+      payload.reminderWindowEndHour = String(billingInfo?.reminderWindowEndHour ?? payload.reminderWindowEndHour ?? 18);
       payload.procedurePresetPrices = billingInfo?.procedurePresetPrices ? normalizeProcedurePresets(billingInfo.procedurePresetPrices) : payload.procedurePresetPrices;
     } else if (section === "presets") {
       payload.clinicName = billingInfo?.name || payload.clinicName;
@@ -268,6 +276,9 @@ export default function ClinicSettings() {
       payload.contactPerson = billingInfo?.contactPerson || payload.contactPerson;
       payload.brandColor = billingInfo?.brandColor || "#0f172a";
       payload.logoUrl = billingInfo?.logoUrl || "";
+      payload.reminderTimezone = billingInfo?.reminderTimezone || payload.reminderTimezone;
+      payload.reminderWindowStartHour = String(billingInfo?.reminderWindowStartHour ?? payload.reminderWindowStartHour ?? 8);
+      payload.reminderWindowEndHour = String(billingInfo?.reminderWindowEndHour ?? payload.reminderWindowEndHour ?? 18);
     }
 
     try {
@@ -285,7 +296,10 @@ export default function ClinicSettings() {
           clinicCity: clinic.city || "",
           clinicAddress: clinic.address || "",
           contactPerson: clinic.contactPerson || "",
-          logoUrl: clinic.logoUrl || ""
+          logoUrl: clinic.logoUrl || "",
+          reminderTimezone: clinic.reminderTimezone || "Africa/Lagos",
+          reminderWindowStartHour: String(clinic.reminderWindowStartHour ?? 8),
+          reminderWindowEndHour: String(clinic.reminderWindowEndHour ?? 18),
         }));
       } else if (section === "branding") {
         setForm(c => ({
@@ -427,6 +441,52 @@ export default function ClinicSettings() {
                            <label className="text-sm font-semibold text-slate-700">Clinic Address</label>
                            <textarea name="clinicAddress" value={form.clinicAddress} onChange={handleChange} className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none" rows="3" />
                          </div>
+                      </div>
+
+                      <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-6">
+                         <div className="mb-4">
+                           <h3 className="font-bold text-slate-900 text-lg flex items-center mb-1"><Clock size={20} className="mr-2 text-emerald-600" /> Reminder Timing</h3>
+                           <p className="text-slate-600 text-sm">Automated appointment reminders follow this timezone and only send during these daily hours.</p>
+                         </div>
+                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                           <Select
+                             label="Timezone"
+                             name="reminderTimezone"
+                             value={form.reminderTimezone}
+                             onChange={handleChange}
+                             icon={Globe}
+                             className="bg-white"
+                           >
+                             {REMINDER_TIMEZONES.map((timezone) => (
+                               <option key={timezone.value} value={timezone.value}>
+                                 {timezone.label}
+                               </option>
+                             ))}
+                           </Select>
+                           <Input
+                             label="Start Hour"
+                             name="reminderWindowStartHour"
+                             type="number"
+                             min="0"
+                             max="23"
+                             value={form.reminderWindowStartHour}
+                             onChange={handleChange}
+                             icon={Clock}
+                             className="bg-white"
+                           />
+                           <Input
+                             label="End Hour"
+                             name="reminderWindowEndHour"
+                             type="number"
+                             min="1"
+                             max="23"
+                             value={form.reminderWindowEndHour}
+                             onChange={handleChange}
+                             icon={Clock}
+                             className="bg-white"
+                           />
+                         </div>
+                         <p className="mt-4 text-xs text-slate-500">Example: `8` to `18` means reminders can send between 8:00 AM and 6:00 PM in the clinic timezone. Reminders are scheduled for 24 hours and 2 hours before each appointment, during the clinic&apos;s allowed sending hours.</p>
                       </div>
 
                       <div className="pt-4 border-t border-slate-100">

@@ -259,7 +259,7 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
                     </p>
                     <p className="mt-1 text-sm text-slate-600">
                       {hasProReminderAccess
-                        ? "Send automatic email reminders before the visit. Patients must have an email address on file."
+                        ? "Send automatic appointment reminders before the visit using the clinic's saved reminder schedule. Patients need a reachable email or phone on file."
                         : "This reminder workflow is available while your clinic has active Pro access through the 14-day trial or a paid Pro subscription."}
                     </p>
                   </div>
@@ -279,7 +279,7 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
                       }
                       className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                     />
-                    Enable email reminders
+                    Enable reminders
                   </label>
                 ) : (
                   <Button
