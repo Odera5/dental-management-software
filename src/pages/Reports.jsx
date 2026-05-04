@@ -14,25 +14,31 @@ export default function Reports() {
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+      const res = await api.get(`/analytics/dashboard?${params.toString()}`);
+      setData(res.data);
+    } catch (err) {
+      console.error("Failed to load analytics", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!proAccessActive) {
       setLoading(false);
       return;
     }
-
-    const fetchAnalytics = async () => {
-      try {
-        const res = await api.get("/analytics/dashboard");
-        setData(res.data);
-      } catch (err) {
-        console.error("Failed to load analytics", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchAnalytics();
-  }, [proAccessActive]);
+  }, [proAccessActive, startDate, endDate]);
 
   const renderContent = () => {
     if (loading) {
@@ -94,6 +100,20 @@ export default function Reports() {
 
     return (
       <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
+           <div className="flex-1 space-y-1.5">
+              <label className="text-sm font-semibold text-slate-700">Start Date</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-500 outline-none" />
+           </div>
+           <div className="flex-1 space-y-1.5">
+              <label className="text-sm font-semibold text-slate-700">End Date</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-500 outline-none" />
+           </div>
+           <div className="flex items-end">
+              <Button onClick={() => { setStartDate(""); setEndDate(""); }} variant="outline" className="h-9 px-4">Clear Filters</Button>
+           </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
            <Card className="col-span-1 md:col-span-2 border-slate-200 shadow-sm bg-white overflow-hidden">
              <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">

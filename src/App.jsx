@@ -7,7 +7,9 @@ import {
 } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoutePersistence from "./components/RoutePersistence";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { readLastVisitedRoute } from "./utils/persistence";
+import { getStoredUser } from "./utils/authStorage";
 
 const Login = lazy(() => import("./pages/Login"));
 const RegisterClinic = lazy(() => import("./pages/RegisterClinic"));
@@ -47,11 +49,10 @@ const ProtectedLayout = () => (
 );
 
 function HomeRedirect() {
-  const token =
-    localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+  const user = getStoredUser();
   const lastRoute = readLastVisitedRoute();
   
-  const fallbackRoute = token ? lastRoute || "/dashboard" : "/login";
+  const fallbackRoute = user ? lastRoute || "/dashboard" : "/login";
 
   return <Navigate to={fallbackRoute} replace />;
 }
@@ -59,73 +60,75 @@ function HomeRedirect() {
 function App() {
   return (
     <Router>
-      <RoutePersistence />
-      <Suspense fallback={<RouteLoader />}>
-        <Routes>
-          {/* Redirect root to login */}
-          <Route path="/" element={<HomeRedirect />} />
+      <ErrorBoundary>
+        <RoutePersistence />
+        <Suspense fallback={<RouteLoader />}>
+          <Routes>
+            {/* Redirect root to login */}
+            <Route path="/" element={<HomeRedirect />} />
 
-          {/* Public routes */}
-          <Route path="/waitlist" element={<Waitlist />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register-clinic" element={<RegisterClinic />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/appointment-response" element={<AppointmentResponse />} />
-          <Route path="/billing/paystack/callback" element={<PaystackCallback />} />
-          <Route path="/support" element={<Support />} />
-          <Route path="/intake/:clinicId" element={<PatientIntakeForm />} />
+            {/* Public routes */}
+            <Route path="/waitlist" element={<Waitlist />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register-clinic" element={<RegisterClinic />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/appointment-response" element={<AppointmentResponse />} />
+            <Route path="/billing/paystack/callback" element={<PaystackCallback />} />
+            <Route path="/support" element={<Support />} />
+            <Route path="/intake/:clinicId" element={<PatientIntakeForm />} />
 
-          {/* Protected routes - wrapped with Sidebar Layout */}
-          <Route element={<ProtectedLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/register-patient" element={<RegisterPatient />} />
-            <Route path="/appointments" element={<Appointments />} />
-            <Route path="/waiting-room" element={<WaitingRoom />} />
-            <Route path="/pending-intakes" element={<PendingIntakes />} />
-            <Route path="/billing" element={<Billing />} />
-            <Route
-              path="/upgrade"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <UpgradePlan />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/reports" element={<Reports />} />
-            
-            {/* Require admin/specific roles */}
-            <Route
-              path="/signup"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <Signup />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/clinic-settings"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <ClinicSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/patients/:id/records"
-              element={
-                <ProtectedRoute allowedRoles={["admin", "doctor", "nurse"]}>
-                  <PatientRecord />
-                </ProtectedRoute>
-              }
-            />
-          </Route>
+            {/* Protected routes - wrapped with Sidebar Layout */}
+            <Route element={<ProtectedLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/register-patient" element={<RegisterPatient />} />
+              <Route path="/appointments" element={<Appointments />} />
+              <Route path="/waiting-room" element={<WaitingRoom />} />
+              <Route path="/pending-intakes" element={<PendingIntakes />} />
+              <Route path="/billing" element={<Billing />} />
+              <Route
+                path="/upgrade"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <UpgradePlan />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/reports" element={<Reports />} />
+              
+              {/* Require admin/specific roles */}
+              <Route
+                path="/signup"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <Signup />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/clinic-settings"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <ClinicSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patients/:id/records"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "doctor", "nurse"]}>
+                    <PatientRecord />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
 
-          {/* Fallback for unknown routes */}
-          <Route path="*" element={<HomeRedirect />} />
-        </Routes>
-      </Suspense>
+            {/* Fallback for unknown routes */}
+            <Route path="*" element={<HomeRedirect />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
     </Router>
   );
 }

@@ -457,6 +457,7 @@ export default function Dashboard() {
                 placeholder="Search by name or card..."
                 value={searchQuery}
                 onChange={(e) => setDirectoryState((current) => ({ ...current, searchQuery: e.target.value }))}
+                onClear={() => setDirectoryState((current) => ({ ...current, searchQuery: "" }))}
                 icon={Search}
                 className="bg-white"
               />

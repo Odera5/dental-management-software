@@ -2,21 +2,17 @@
 import axios from "axios";
 import {
   clearAuthState,
-  getStoredAuthToken,
-  getStoredRefreshToken,
   getStoredUser,
-  updateStoredAccessToken,
 } from "../utils/authStorage";
 
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api`,
+  withCredentials: true,
 });
 
 let refreshPromise = null;
 
 api.interceptors.request.use((config) => {
-  const token = getStoredAuthToken();
-  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
@@ -24,11 +20,11 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    const refreshToken = getStoredRefreshToken();
+    const hasUser = !!getStoredUser();
     const isAuthEndpoint = originalRequest?.url?.includes("/auth/login");
     const isRefreshEndpoint = originalRequest?.url?.includes("/auth/refresh-token");
     const shouldAttemptRefresh =
-      refreshToken &&
+      hasUser &&
       !originalRequest?._retry &&
       !isAuthEndpoint &&
       !isRefreshEndpoint &&
@@ -40,20 +36,13 @@ api.interceptors.response.use(
       try {
         refreshPromise =
           refreshPromise ||
-          api.post("/auth/refresh-token", { refreshToken }).finally(() => {
+          api.post("/auth/refresh-token", {}).finally(() => {
             refreshPromise = null;
           });
 
         const response = await refreshPromise;
-        const newAccessToken = response.data?.accessToken;
 
-        if (!newAccessToken) {
-          throw new Error("No refreshed access token returned");
-        }
-
-        updateStoredAccessToken(newAccessToken);
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-
+        // The new token is set via httpOnly cookie, just retry the request
         return api(originalRequest);
       } catch (refreshError) {
         clearAuthState();
@@ -102,12 +91,8 @@ api.interceptors.response.use(
 );
 
 export const logoutCurrentUser = async () => {
-  const refreshToken = getStoredRefreshToken();
-
   try {
-    if (refreshToken) {
-      await api.post("/auth/logout", { refreshToken });
-    }
+    await api.post("/auth/logout", {});
   } catch (error) {
     console.error("Logout request failed:", error);
   } finally {

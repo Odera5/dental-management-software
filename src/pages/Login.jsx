@@ -53,16 +53,10 @@ export default function Login() {
     try {
       const res = await api.post("/auth/login", { email, password });
 
-      const token = res.data.accessToken || res.data.token;
-      if (!token) throw new Error("No access token returned from API");
-      const refreshToken = res.data.refreshToken;
-      if (!refreshToken) throw new Error("No refresh token returned from API");
       const user = res.data.user;
       if (!user) throw new Error("No user data returned from API");
 
       saveAuthSession({
-        accessToken: token,
-        refreshToken,
         user,
         rememberMe,
       });

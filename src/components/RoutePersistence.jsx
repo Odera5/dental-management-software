@@ -2,22 +2,23 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { writeLastVisitedRoute } from "../utils/persistence";
 
-const IGNORED_PREFIXES = [
-  "/login",
-  "/register-clinic",
-  "/verify-email",
-  "/support",
-  "/billing/paystack/callback",
-  "/appointment-response",
-  "/intake/",
-  "/waitlist",
-  "/forgot-password",
-  "/reset-password",
+const ALLOWED_PREFIXES = [
+  "/dashboard",
+  "/patients",
+  "/appointments",
+  "/waiting-room",
+  "/pending-intakes",
+  "/billing",
+  "/reports",
+  "/clinic-settings",
+  "/signup",
+  "/register-patient",
+  "/upgrade"
 ];
 
 function shouldPersistRoute(pathname) {
   if (pathname === "/") return false;
-  return !IGNORED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  return ALLOWED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 export default function RoutePersistence() {

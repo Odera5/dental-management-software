@@ -15,6 +15,7 @@
     "axios": "^1.13.5",
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.3.0",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.8.0",
     "papaparse": "^5.5.3",
@@ -23,6 +24,7 @@
     "react-router-dom": "^7.13.0",
     "react-virtualized": "^9.22.6",
     "react-window": "^2.2.6",
+    "recharts": "^3.8.1",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {

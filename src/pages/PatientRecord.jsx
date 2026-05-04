@@ -9,6 +9,7 @@ import ConfirmModal from "../components/ui/ConfirmModal";
 import RecordForm from "../components/PatientRecord/RecordForm";
 import RecordItem from "../components/PatientRecord/RecordItem";
 import SearchFilterSort from "../components/PatientRecord/SearchFilterSort";
+import VitalsChart from "../components/PatientRecord/VitalsChart";
 import { createEmptyRecord } from "../components/PatientRecord/recordUtils";
 import { getEntityId } from "../utils/entityId";
 import Button from "../components/ui/Button";
@@ -103,6 +104,8 @@ export default function PatientRecord() {
         pendingFiles.forEach((file) => formData.append("attachments", file));
       } else if (key === "teeth") {
         formData.append("teeth", JSON.stringify(recordData.teeth || []));
+      } else if (key === "vitals") {
+        formData.append("vitals", typeof recordData.vitals === 'string' ? recordData.vitals : JSON.stringify(recordData.vitals || {}));
       } else {
         formData.append(key, recordData[key] || "");
       }
@@ -340,6 +343,8 @@ export default function PatientRecord() {
         onChange={setRecordFilters}
         storageKey={recordFiltersStorageKey}
       />
+
+      {records.length > 0 && <VitalsChart records={records} />}
 
       <div className="space-y-4">
         {records.length === 0 ? (

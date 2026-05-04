@@ -3,7 +3,7 @@ import { createEmptyRecord } from "./recordUtils";
 import { useNavigate } from "react-router-dom";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
-import { CheckCircle2, Shield, AlertCircle, BookOpen, Lock, ImagePlus, X, FileText } from "lucide-react";
+import { CheckCircle2, Shield, AlertCircle, BookOpen, Lock, ImagePlus, X, FileText, Activity } from "lucide-react";
 import { DENTAL_FORMULARY } from "../../utils/dentalFormulary";
 import { CLINICAL_TEMPLATES } from "../../utils/clinicalTemplates";
 import api from "../../services/api";
@@ -352,6 +352,22 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
 
   const handleChange = (e) => setRecordData({ ...recordData, [e.target.name]: e.target.value });
 
+  const handleVitalsChange = (e) => {
+    const { name, value } = e.target;
+    setRecordData((prev) => {
+      const currentVitals = typeof prev.vitals === 'string' ? JSON.parse(prev.vitals || "{}") : (prev.vitals || {});
+      return {
+        ...prev,
+        vitals: {
+          ...currentVitals,
+          [name]: value,
+        },
+      };
+    });
+  };
+
+  const parsedVitals = typeof recordData.vitals === 'string' ? JSON.parse(recordData.vitals || "{}") : (recordData.vitals || {});
+
   const handleCheckboxChange = (e) => setRecordData({ ...recordData, [e.target.name]: e.target.checked, ...(e.target.name === "consentObtained" && !e.target.checked ? { consentDate: "", consentTakenBy: "", consentNotes: "" } : {}) });
 
   const handleReset = () => {
@@ -414,6 +430,16 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
             </div>
             <textarea name="currentMedication" value={recordData.currentMedication || ""} onChange={handleChange} rows={2} placeholder="E.g. Lisinopril 10mg daily..." className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
           </div>
+        </div>
+      </div>
+
+      <div className="p-6 border border-slate-200 rounded-2xl shadow-sm bg-white">
+        <h2 className="font-bold mb-4 text-lg text-slate-900 border-b border-slate-100 pb-2 flex items-center"><Activity size={20} className="mr-2 text-rose-500" /> Patient Vitals</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <FormField label="Blood Pressure (mmHg)" name="bloodPressure" value={parsedVitals.bloodPressure || ""} onChange={handleVitalsChange} placeholder="120/80" />
+          <FormField label="Heart Rate (bpm)" name="heartRate" type="number" value={parsedVitals.heartRate || ""} onChange={handleVitalsChange} placeholder="72" />
+          <FormField label="Temperature (°C)" name="temperature" type="number" step="0.1" value={parsedVitals.temperature || ""} onChange={handleVitalsChange} placeholder="36.5" />
+          <FormField label="Weight (kg)" name="weight" type="number" step="0.1" value={parsedVitals.weight || ""} onChange={handleVitalsChange} placeholder="70.5" />
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-const AUTH_KEYS = ["accessToken", "refreshToken", "user"];
+const AUTH_KEYS = ["user"];
 
 function getAvailableStorage(type) {
   if (typeof window === "undefined") return null;
@@ -34,21 +34,7 @@ export function getPreferredAuthStorage({ rememberMe = false } = {}) {
   return getAvailableStorage(preferredType) || getAvailableStorage("session") || getAvailableStorage("local");
 }
 
-export function getStoredAuthToken() {
-  return (
-    getAvailableStorage("local")?.getItem("accessToken") ||
-    getAvailableStorage("session")?.getItem("accessToken") ||
-    ""
-  );
-}
-
-export function getStoredRefreshToken() {
-  return (
-    getAvailableStorage("local")?.getItem("refreshToken") ||
-    getAvailableStorage("session")?.getItem("refreshToken") ||
-    ""
-  );
-}
+// Token getters removed as tokens are now httpOnly cookies
 
 export function getStoredUser() {
   return (
@@ -58,31 +44,15 @@ export function getStoredUser() {
   );
 }
 
-export function saveAuthSession({ accessToken, refreshToken, user, rememberMe = false }) {
+export function saveAuthSession({ user, rememberMe = false }) {
   const storage = getPreferredAuthStorage({ rememberMe });
   if (!storage) return;
 
   clearAuthState();
-  storage.setItem("accessToken", accessToken);
-  storage.setItem("refreshToken", refreshToken);
   storage.setItem("user", JSON.stringify(user));
 }
 
-export function updateStoredAccessToken(accessToken) {
-  const sessionStorage = getAvailableStorage("session");
-  const localStorage = getAvailableStorage("local");
-  const targetStorage =
-    localStorage?.getItem("refreshToken")
-      ? localStorage
-      : sessionStorage?.getItem("refreshToken")
-        ? sessionStorage
-        : isInstalledApp()
-          ? localStorage || sessionStorage
-          : sessionStorage || localStorage;
-
-  if (!targetStorage) return;
-  targetStorage.setItem("accessToken", accessToken);
-}
+// updateStoredAccessToken removed as tokens are httpOnly cookies
 
 export function updateStoredUser(userPatch) {
   [getAvailableStorage("local"), getAvailableStorage("session")].forEach(

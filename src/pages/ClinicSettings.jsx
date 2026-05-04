@@ -47,6 +47,7 @@ export default function ClinicSettings() {
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [confirmConfig, setConfirmConfig] = useState(null);
   const [editingPresets, setEditingPresets] = useState({});
+  const [presetOriginals, setPresetOriginals] = useState({});
   const [customInputs, setCustomInputs] = useState({});
 
   const [deactivateStep, setDeactivateStep] = useState(0);
@@ -73,7 +74,21 @@ export default function ClinicSettings() {
       const desc = preset.description.trim() || "Procedure";
       await saveSection("presets", form, `${desc} saved successfully`);
     } else {
+      setPresetOriginals(prev => ({...prev, [index]: { ...form.procedurePresetPrices[index] }}));
       setEditingPresets(prev => ({...prev, [index]: true}));
+    }
+  };
+
+  const cancelEditPreset = (index) => {
+    setEditingPresets(prev => ({...prev, [index]: false}));
+    setCustomInputs(prev => ({...prev, [`${index}_desc`]: false, [`${index}_cat`]: false}));
+    
+    if (presetOriginals[index]) {
+      setForm(c => {
+        const nextPrices = [...c.procedurePresetPrices];
+        nextPrices[index] = presetOriginals[index];
+        return { ...c, procedurePresetPrices: nextPrices };
+      });
     }
   };
 
@@ -94,15 +109,42 @@ export default function ClinicSettings() {
         return acc;
       }, {});
     });
+    setPresetOriginals(prev => {
+      const next = {...prev};
+      delete next[index];
+      return Object.keys(next).reduce((acc, key) => {
+        const k = parseInt(key);
+        if (k < index) acc[k] = next[k];
+        if (k > index) acc[k - 1] = next[k];
+        return acc;
+      }, {});
+    });
     await saveSection("presets", updatedForm, `${desc} deleted successfully`);
   };
 
+  const handleDeleteClick = (index) => {
+    const desc = form.procedurePresetPrices[index]?.description || "Procedure";
+    setConfirmConfig({
+      title: "Delete Procedure Preset",
+      message: `Are you sure you want to delete ${desc}? This action cannot be undone.`,
+      confirmText: "Delete",
+      confirmVariant: "danger",
+      onConfirm: async () => {
+        setConfirmConfig(null);
+        await handleDeletePreset(index);
+      }
+    });
+  };
+
   const handleAddPreset = () => {
+    const newIndex = form.procedurePresetPrices.length;
+    const newPreset = { description: "New Procedure", category: "General", unitPrice: 0 };
     setForm(c => ({
       ...c,
-      procedurePresetPrices: [...c.procedurePresetPrices, { description: "New Procedure", category: "General", unitPrice: 0 }]
+      procedurePresetPrices: [...c.procedurePresetPrices, newPreset]
     }));
-    setEditingPresets(prev => ({...prev, [form.procedurePresetPrices.length]: true}));
+    setPresetOriginals(prev => ({...prev, [newIndex]: { ...newPreset }}));
+    setEditingPresets(prev => ({...prev, [newIndex]: true}));
   };
   
   const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user")) || "null");
@@ -720,10 +762,15 @@ export default function ClinicSettings() {
                           </div>
                           <div className="border-t border-emerald-50 pt-3 flex items-center justify-between">
                             <div className="flex gap-2">
+                               {isEditing && (
+                                 <Button type="button" size="sm" variant="ghost" onClick={() => cancelEditPreset(index)} className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-3">
+                                   Cancel
+                                 </Button>
+                               )}
                                <Button type="button" size="sm" variant={isEditing ? "default" : "outline"} onClick={() => toggleEditPreset(index)} className={isEditing ? "bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-sm" : "text-slate-600 bg-white"}>
                                  {isEditing ? <><Save size={14} className="mr-1.5" /> Save</> : <><Edit2 size={14} className="mr-1.5" /> Edit</>}
                                </Button>
-                               <Button type="button" size="sm" variant="ghost" onClick={() => handleDeletePreset(index)} className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2">
+                               <Button type="button" size="sm" variant="ghost" onClick={() => handleDeleteClick(index)} className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2">
                                  <Trash2 size={16} />
                                </Button>
                             </div>

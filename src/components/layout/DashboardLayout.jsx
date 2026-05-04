@@ -286,7 +286,7 @@ export default function DashboardLayout() {
       </AnimatePresence>
 
       <MotionAside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-surface-200 flex flex-col transition-transform duration-300 lg:translate-x-0 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:relative lg:flex"}`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-surface-200 flex flex-col transition-transform duration-300 lg:translate-x-0 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:relative lg:flex"} print:hidden`}
       >
         <div className="flex items-center justify-between p-6 h-20 border-b border-surface-100 shrink-0">
           <div className="flex items-center gap-3">
@@ -444,8 +444,8 @@ export default function DashboardLayout() {
         </div>
       </MotionAside>
 
-      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-surface-50/50">
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-surface-200 flex items-center justify-between px-6 z-10 shrink-0 shadow-sm">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-surface-50/50 print:bg-white print:h-auto print:overflow-visible">
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-surface-200 flex items-center justify-between px-6 z-10 shrink-0 shadow-sm print:hidden">
           <div className="flex items-center gap-4">
             <button
               className="p-2 rounded-lg bg-white border border-surface-200 text-slate-600 lg:hidden hover:bg-surface-50"
@@ -475,7 +475,7 @@ export default function DashboardLayout() {
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.4, ease: "easeInOut" }}
-              className="bg-gradient-to-r from-rose-600 to-red-600 text-white px-4 py-3 text-center text-sm font-bold shadow-sm shrink-0 relative z-10 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4"
+              className="bg-gradient-to-r from-rose-600 to-red-600 text-white px-4 py-3 text-center text-sm font-bold shadow-sm shrink-0 relative z-10 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 print:hidden"
             >
               <span className="flex items-center gap-2">
                 <Crown size={18} />
@@ -500,7 +500,7 @@ export default function DashboardLayout() {
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.6, ease: "easeInOut" }}
-                className={`text-white px-4 py-2.5 text-center text-sm font-bold shadow-sm shrink-0 relative z-10 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 overflow-hidden ${
+                className={`text-white px-4 py-2.5 text-center text-sm font-bold shadow-sm shrink-0 relative z-10 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 overflow-hidden print:hidden ${
                   remainingTrialDays <= 3
                     ? "bg-gradient-to-r from-red-600 to-rose-600"
                     : "bg-gradient-to-r from-amber-500 to-orange-500"
@@ -541,7 +541,7 @@ export default function DashboardLayout() {
           subscriptionEnds &&
           !showRestrictedAdminShell &&
           remainingPaidDays <= 7 && (
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2.5 text-center text-sm font-bold shadow-sm shrink-0 relative z-10 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2.5 text-center text-sm font-bold shadow-sm shrink-0 relative z-10 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 print:hidden">
               <span className="flex items-center gap-2">
                 <Crown size={18} /> Pro Plan renews in {remainingPaidDays} {remainingPaidDays === 1 ? "day" : "days"} (
                 {new Date(subscriptionEnds).toLocaleDateString("en-NG", {
@@ -561,7 +561,7 @@ export default function DashboardLayout() {
             </div>
           )}
 
-        <div className="flex-1 overflow-y-auto w-full relative">
+        <div className="flex-1 overflow-y-auto w-full relative print:overflow-visible">
           <Outlet />
         </div>
       </main>

@@ -46,6 +46,7 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
       selectedPatient: "",
       patientPickerOpen: false,
       notes: "",
+      priority: "normal",
     },
   );
   const [loading, setLoading] = useState(true);
@@ -58,6 +59,7 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
     selectedPatient,
     patientPickerOpen,
     notes,
+    priority,
   } = draft;
 
   const updateDraft = (patch) =>
@@ -146,7 +148,7 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
   const handleAddToWaitingRoom = async () => {
     if (!selectedPatient) return showToast("Select a patient to add", "error");
     try {
-      await api.post("/waiting-room", { patientId: selectedPatient, notes });
+      await api.post("/waiting-room", { patientId: selectedPatient, notes, priority });
       clearDraft();
       showToast("Patient added to waiting room", "success");
       fetchQueue();
@@ -306,6 +308,16 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
               </div>
 
               <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">Triage Priority</label>
+                <select value={priority} onChange={(e) => updateDraft({ priority: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm text-sm text-slate-800">
+                  <option value="normal">🟢 Normal (Routine Checkup)</option>
+                  <option value="urgent">🟠 Urgent (Needs attention soon)</option>
+                  <option value="emergency">🔴 Emergency (Immediate attention)</option>
+                  <option value="low">⚪ Low (Follow-up / Document collection)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Triage Notes</label>
                 <textarea
                   value={notes} onChange={(e) => updateDraft({ notes: e.target.value })}
@@ -345,7 +357,13 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-1">
-                              <h4 className="font-bold text-slate-900 text-lg">{entry.patientName || entry.patientId?.name}</h4>
+                              <h4 className="font-bold text-slate-900 text-lg flex items-center">
+                                {entry.priority === "emergency" && <span className="inline-block w-2.5 h-2.5 rounded-full bg-rose-500 mr-2 shadow-sm" title="Emergency"></span>}
+                                {entry.priority === "urgent" && <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500 mr-2 shadow-sm" title="Urgent"></span>}
+                                {entry.priority === "low" && <span className="inline-block w-2.5 h-2.5 rounded-full bg-slate-300 mr-2 shadow-sm" title="Low Priority"></span>}
+                                {(!entry.priority || entry.priority === "normal") && <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2 shadow-sm" title="Normal"></span>}
+                                {entry.patientName || entry.patientId?.name}
+                              </h4>
                               <span className={`px-2 py-0.5 rounded textxs font-semibold uppercase tracking-wider border ${STATUS_STYLES[entry.status]}`}>{STATUS_LABELS[entry.status]}</span>
                             </div>
                             {(entry.patientId?.phone || entry.patientId?.cardNumber) && (

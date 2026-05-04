@@ -10,6 +10,10 @@ export default function PendingIntakes() {
   const [intakes, setIntakes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [processing, setProcessing] = useState(null); // ID of intake being processed
   const [toast, setToast] = useState(null);
   const [pendingRejectIntake, setPendingRejectIntake] = useState(null);
@@ -88,19 +92,29 @@ export default function PendingIntakes() {
   };
 
   useEffect(() => {
-    fetchIntakes();
-  }, []);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const fetchIntakes = async () => {
+  useEffect(() => {
+    fetchIntakes();
+  }, [page, debouncedSearch]);
+
+  const fetchIntakes = async (background = false) => {
     try {
-      setLoading(true);
-      const res = await api.get("/pending-intakes");
-      setIntakes(res.data);
-      syncApprovalDrafts(res.data);
+      if (!background) setLoading(true);
+      const res = await api.get(`/pending-intakes?page=${page}&limit=10&search=${encodeURIComponent(debouncedSearch)}`);
+      setIntakes(res.data.intakes || []);
+      setTotalPages(res.data.totalPages || 1);
+      setTotalCount(res.data.totalCount || 0);
+      syncApprovalDrafts(res.data.intakes || []);
     } catch (error) {
       console.error("Failed to fetch pending intakes", error);
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   };
 
@@ -124,6 +138,12 @@ export default function PendingIntakes() {
         return next;
       });
       showToast(`${intake.name} has been approved and registered!`, "success");
+
+      if (intakes.length === 1 && page > 1) {
+        setPage(page - 1);
+      } else {
+        fetchIntakes(true);
+      }
     } catch (error) {
       showToast(error.response?.data?.message || "Failed to approve intake", "error");
     } finally {
@@ -137,6 +157,12 @@ export default function PendingIntakes() {
       await api.delete(`/pending-intakes/${intake.id}`);
       setIntakes(intakes.filter(i => i.id !== intake.id));
       showToast("Intake request declined", "success");
+
+      if (intakes.length === 1 && page > 1) {
+        setPage(page - 1);
+      } else {
+        fetchIntakes(true);
+      }
     } catch (error) {
       showToast(error.response?.data?.message || "Failed to reject intake", "error");
     } finally {
@@ -144,11 +170,6 @@ export default function PendingIntakes() {
       setPendingRejectIntake(null);
     }
   };
-
-  const filteredIntakes = intakes.filter(intake => 
-    intake.name.toLowerCase().includes(search.toLowerCase()) || 
-    intake.phone.includes(search)
-  );
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="p-6 max-w-7xl mx-auto">
@@ -208,7 +229,7 @@ export default function PendingIntakes() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <AnimatePresence>
-            {filteredIntakes.map((intake) => {
+            {intakes.map((intake) => {
               const approvalDraft = approvalDrafts[intake.id] || createApprovalDraft(intake);
               const availableSlots = availableSlotsByIntake[intake.id] || [];
               const slotLoading = Boolean(slotLoadingByIntake[intake.id]);
@@ -380,6 +401,30 @@ export default function PendingIntakes() {
               );
             })}
           </AnimatePresence>
+        </div>
+      )}
+      
+      {!loading && totalPages > 1 && (
+        <div className="mt-8 flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+          <Button
+            variant="outline"
+            disabled={page === 1}
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            className="bg-white"
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-slate-500 font-medium">
+            Page {page} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            disabled={page === totalPages}
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            className="bg-white"
+          >
+            Next
+          </Button>
         </div>
       )}
     </motion.div>

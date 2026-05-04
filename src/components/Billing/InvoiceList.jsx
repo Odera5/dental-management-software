@@ -83,8 +83,8 @@ function InvoiceViewer({ invoice, onClose }) {
   };
 
   return (
-    <div className="mx-auto max-w-5xl rounded-2xl bg-white shadow-xl overflow-hidden mb-8 border border-slate-200">
-      <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+    <div className="mx-auto max-w-5xl rounded-2xl bg-white shadow-xl overflow-hidden mb-8 border border-slate-200 print:shadow-none print:border-0 print:m-0 print:p-0">
+      <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between print:hidden">
          <button onClick={onClose} className="flex items-center text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"><ArrowLeft size={16} className="mr-2" /> Back to Billing</button>
          <button onClick={() => window.print()} className="flex items-center text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors"><Printer size={16} className="mr-2" /> Print</button>
       </div>
@@ -177,7 +177,7 @@ function InvoiceViewer({ invoice, onClose }) {
           </div>
 
           {["issued", "overdue"].includes(invoice.status) && (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-6 h-fit">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-6 h-fit print:hidden">
               <h3 className="text-lg font-bold text-emerald-900 mb-4">Record New Payment</h3>
               <div className="space-y-4">
                 <Input label="Amount (NGN)" type="number" step="0.01" min="0" max={invoice.balance} value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} icon={NairaIcon} className="bg-white" />

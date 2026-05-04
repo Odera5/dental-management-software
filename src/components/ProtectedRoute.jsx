@@ -4,14 +4,12 @@ import React from "react";
 import { readLastVisitedRoute } from "../utils/persistence";
 import {
   clearAuthState,
-  getStoredAuthToken,
   getStoredUser,
 } from "../utils/authStorage";
 import { shouldRestrictAppToBilling, isSubscriptionExpired } from "../utils/clinicAccess";
 
 export default function ProtectedRoute({ children, allowedRoles = [] }) {
   const location = useLocation();
-  const token = getStoredAuthToken();
   const storedUser = getStoredUser();
   let user = null;
 
@@ -20,8 +18,6 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   } catch {
     clearAuthState();
   }
-
-  if (!token) return <Navigate to="/login" state={{ from: readLastVisitedRoute() }} replace />;
 
   if (!user) {
     clearAuthState();
