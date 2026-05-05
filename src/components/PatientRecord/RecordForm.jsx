@@ -71,12 +71,17 @@ const initializeTeethState = (initialDentition, savedTeeth = []) => {
   };
 };
 
-function FormField({ label, name, value, onChange, type = "text", rows = 1, required = false, placeholder = "" }) {
+function FormField({ label, name, value, onChange, type = "text", rows = 1, required = false, placeholder = "", unit }) {
   return (
     <div className="space-y-1.5 focus-within:text-primary-600 transition-colors">
       <label className="text-sm font-semibold text-slate-700 leading-none">{label} {required && <span className="text-red-500">*</span>}</label>
       {type === "textarea" ? (
         <textarea name={name} value={value} onChange={onChange} rows={rows} required={required} placeholder={placeholder} className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
+      ) : unit ? (
+        <div className="relative flex items-center">
+          <input name={name} type={type} value={value} onChange={onChange} required={required} placeholder={placeholder} className="w-full rounded-xl border border-slate-200 p-3 pr-16 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-shadow h-[46px]" />
+          <span className="absolute right-4 text-slate-400 text-sm font-medium">{unit}</span>
+        </div>
       ) : (
         <input name={name} type={type} value={value} onChange={onChange} required={required} placeholder={placeholder} className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-shadow h-[46px]" />
       )}
@@ -435,11 +440,12 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
 
       <div className="p-6 border border-slate-200 rounded-2xl shadow-sm bg-white">
         <h2 className="font-bold mb-4 text-lg text-slate-900 border-b border-slate-100 pb-2 flex items-center"><Activity size={20} className="mr-2 text-rose-500" /> Patient Vitals</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <FormField label="Blood Pressure (mmHg)" name="bloodPressure" value={parsedVitals.bloodPressure || ""} onChange={handleVitalsChange} placeholder="120/80" />
-          <FormField label="Heart Rate (bpm)" name="heartRate" type="number" value={parsedVitals.heartRate || ""} onChange={handleVitalsChange} placeholder="72" />
-          <FormField label="Temperature (°C)" name="temperature" type="number" step="0.1" value={parsedVitals.temperature || ""} onChange={handleVitalsChange} placeholder="36.5" />
-          <FormField label="Weight (kg)" name="weight" type="number" step="0.1" value={parsedVitals.weight || ""} onChange={handleVitalsChange} placeholder="70.5" />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+          <FormField label="Blood Pressure" unit="mmHg" name="bloodPressure" value={parsedVitals.bloodPressure || ""} onChange={handleVitalsChange} placeholder="120/80" />
+          <FormField label="Heart Rate" unit="bpm" name="heartRate" type="number" value={parsedVitals.heartRate || ""} onChange={handleVitalsChange} placeholder="72" />
+          <FormField label="Temperature" unit="°C" name="temperature" type="number" step="0.1" value={parsedVitals.temperature || ""} onChange={handleVitalsChange} placeholder="36.5" />
+          <FormField label="Weight" unit="kg" name="weight" type="number" step="0.1" value={parsedVitals.weight || ""} onChange={handleVitalsChange} placeholder="70.5" />
+          <FormField label="Blood Glucose" unit="mg/dL" name="bloodGlucose" type="number" step="0.1" value={parsedVitals.bloodGlucose || ""} onChange={handleVitalsChange} placeholder="90" />
         </div>
       </div>
 

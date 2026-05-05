@@ -9,7 +9,7 @@ export default function VitalsChart({ records }) {
     return records
       .filter(record => {
         const vitals = typeof record.vitals === 'string' ? JSON.parse(record.vitals || "{}") : (record.vitals || {});
-        return vitals.bloodPressure || vitals.weight || vitals.heartRate || vitals.temperature;
+        return vitals.bloodPressure || vitals.weight || vitals.heartRate || vitals.temperature || vitals.bloodGlucose;
       })
       .map(record => {
         const vitals = typeof record.vitals === 'string' ? JSON.parse(record.vitals || "{}") : (record.vitals || {});
@@ -30,6 +30,7 @@ export default function VitalsChart({ records }) {
           weight: vitals.weight ? parseFloat(vitals.weight) : null,
           heartRate: vitals.heartRate ? parseInt(vitals.heartRate, 10) : null,
           temperature: vitals.temperature ? parseFloat(vitals.temperature) : null,
+          bloodGlucose: vitals.bloodGlucose ? parseFloat(vitals.bloodGlucose) : null,
           systolic,
           diastolic,
           bloodPressure: vitals.bloodPressure || null
@@ -55,6 +56,8 @@ export default function VitalsChart({ records }) {
                val = val + ' bpm';
             } else if (entry.dataKey === 'temperature') {
                val = val + ' °C';
+            } else if (entry.dataKey === 'bloodGlucose') {
+               val = val + ' mg/dL';
             }
             if (entry.dataKey === 'diastolic') return null; // Don't show duplicate for BP
             return (
@@ -93,6 +96,7 @@ export default function VitalsChart({ records }) {
             <Line yAxisId="left" type="monotone" name="Diastolic BP" dataKey="diastolic" stroke="#fb7185" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4 }} activeDot={{ r: 6 }} connectNulls />
             <Line yAxisId="right" type="monotone" name="Weight (kg)" dataKey="weight" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} connectNulls />
             <Line yAxisId="left" type="monotone" name="Heart Rate (bpm)" dataKey="heartRate" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} connectNulls />
+            <Line yAxisId="left" type="monotone" name="Blood Glucose (mg/dL)" dataKey="bloodGlucose" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} connectNulls />
           </LineChart>
         </ResponsiveContainer>
       </div>
