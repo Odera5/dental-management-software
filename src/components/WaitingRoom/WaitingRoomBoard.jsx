@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { Users, Activity, CheckCircle, ChevronDown, ChevronUp, Bell, Search, LogOut, FileText, ArrowRight, ArrowLeft, UserPlus } from "lucide-react";
@@ -52,6 +52,7 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [confirmConfig, setConfirmConfig] = useState(null);
+  const dropdownRef = useRef(null);
   const {
     searchQuery,
     patientSearchQuery,
@@ -70,6 +71,18 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
       setDraft((current) => ({ ...current, selectedPatient: preselectPatientId }));
     }
   }, [preselectPatientId, setDraft]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDraft((current) => current.patientPickerOpen ? { ...current, patientPickerOpen: false } : current);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [setDraft]);
 
   const fetchPatients = useCallback(async () => {
     try {
@@ -250,7 +263,7 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
         {Object.entries(STATUS_LABELS).map(([key, label]) => (
           <Card key={key} className="border-0 shadow-sm relative overflow-hidden bg-white">
             <div className={`absolute top-0 left-0 w-1.5 h-full ${METRIC_COLORS[key].split(" ")[0]}`} />
-            <CardContent className="p-5 pl-6 flex flex-col items-start">
+            <CardContent className="p-5 pl-6 pt-6 flex flex-col items-start">
               <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2">{label}</p>
               <div className="flex items-end gap-3 tracking-tight">
                 <span className="text-4xl font-bold text-slate-900 leading-none">{sectionItems(key).length}</span>
@@ -262,11 +275,11 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="h-fit">
-          <CardContent className="p-6">
+        <Card className="h-fit mt-2">
+          <CardContent className="p-6 pt-8">
             <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center"><UserPlus size={20} className="mr-2 text-primary-500" /> Walk-in / Check-in</h3>
             <div className="space-y-4">
-              <div className="relative">
+              <div className="relative" ref={dropdownRef}>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Select Patient</label>
                 <div
                   onClick={() => updateDraft({ patientPickerOpen: !patientPickerOpen })}

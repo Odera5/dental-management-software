@@ -72,15 +72,13 @@ export default function CsvImportModal({ onClose, onSuccess }) {
             };
           });
 
-          const validPatients = formattedPatients.filter(p => p.name && p.age);
-
-          if (validPatients.length === 0) {
+          if (formattedPatients.length === 0) {
             setLoading(false);
             setError("Could not find any valid rows. Please ensure your CSV has 'Name' and 'Age' columns.");
             return;
           }
 
-          const res = await api.post('/patients/import', { patients: validPatients });
+          const res = await api.post('/patients/import', { patients: formattedPatients });
           onSuccess(res.data.count);
         } catch (err) {
           setError(err.response?.data?.message || "An error occurred during import.");

@@ -429,7 +429,7 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex justify-between items-center mt-2">
                 <div>
-                  <p className="text-sm font-medium text-slate-500">Revenue</p>
+                  <p className="text-sm font-medium text-slate-500">Monthly Revenue</p>
                   <h3 className="text-3xl font-bold text-slate-900 mt-2 tracking-tight">
                     <span className="text-lg text-slate-400 font-medium align-top mr-1">₦</span>
                     {monthlyRevenue.toLocaleString()}
@@ -454,7 +454,7 @@ export default function Dashboard() {
             {/* Search Bar - Shifted towards the center/next to title */}
             <div className="w-full sm:w-72 lg:ml-4">
               <Input 
-                placeholder="Search by name or card..."
+                placeholder="Search by name, card, phone..."
                 value={searchQuery}
                 onChange={(e) => setDirectoryState((current) => ({ ...current, searchQuery: e.target.value }))}
                 onClear={() => setDirectoryState((current) => ({ ...current, searchQuery: "" }))}

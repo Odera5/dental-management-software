@@ -57,7 +57,7 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel, dra
     }
     setLoading(true);
     try {
-      await api.post("/invoices", formData);
+      await api.post("/invoices", { ...formData, discount: subtotal * ((formData.discount || 0) / 100) });
       clearFormDraft();
       setToast({ show: true, message: "Invoice created successfully", type: "success" });
       setTimeout(() => { onSuccess(); }, 1500);
@@ -68,7 +68,8 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel, dra
 
   const subtotal = formData.items.reduce((sum, item) => sum + item.totalPrice, 0);
   const tax = subtotal * (formData.taxPercentage / 100);
-  const total = subtotal + tax - formData.discount;
+  const discountAmount = subtotal * ((formData.discount || 0) / 100);
+  const total = subtotal + tax - discountAmount;
 
   return (
     <div className="max-w-4xl mx-auto pb-8">
@@ -156,15 +157,15 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel, dra
                     <input type="number" name="taxPercentage" value={formData.taxPercentage} onChange={handleFormChange} step="0.5" min="0" max="100" className="w-24 text-right border border-slate-300 rounded-lg p-1.5 text-sm" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-600">Discount (NGN)</span>
-                    <input type="number" name="discount" value={formData.discount} onChange={handleFormChange} step="0.01" min="0" className="w-32 text-right border border-slate-300 rounded-lg p-1.5 text-sm" />
+                    <span className="text-sm font-medium text-slate-600">Discount (%)</span>
+                    <input type="number" name="discount" value={formData.discount} onChange={handleFormChange} step="0.5" min="0" max="100" className="w-24 text-right border border-slate-300 rounded-lg p-1.5 text-sm" />
                   </div>
                 </div>
 
                 <div className="space-y-3 pt-4 border-t border-slate-200">
                   <div className="flex justify-between text-sm"><span className="text-slate-600">Subtotal</span><span className="font-semibold text-slate-900">{formatNaira(subtotal)}</span></div>
                   {formData.taxPercentage > 0 && <div className="flex justify-between text-sm"><span className="text-slate-600">Tax ({formData.taxPercentage}%)</span><span className="font-semibold text-slate-900">{formatNaira(tax)}</span></div>}
-                  {formData.discount > 0 && <div className="flex justify-between text-sm"><span className="text-emerald-600">Discount</span><span className="font-semibold text-emerald-600">-{formatNaira(formData.discount)}</span></div>}
+                  {formData.discount > 0 && <div className="flex justify-between text-sm"><span className="text-emerald-600">Discount ({formData.discount}%)</span><span className="font-semibold text-emerald-600">-{formatNaira(discountAmount)}</span></div>}
                   <div className="flex justify-between items-center pt-3 mt-3 border-t border-slate-200">
                     <span className="text-base font-bold text-slate-900">Total</span>
                     <span className="text-2xl font-bold text-primary-600">{formatNaira(total)}</span>

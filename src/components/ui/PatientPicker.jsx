@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { ChevronDown, ChevronUp, Search, User } from "lucide-react";
 import { getEntityId } from "../../utils/entityId";
 import {
@@ -23,6 +23,17 @@ export default function PatientPicker({
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState(initialOption);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (initialOption && getEntityId(initialOption) === value) {
@@ -108,7 +119,7 @@ export default function PatientPicker({
           {required ? " *" : ""}
         </label>
       )}
-      <div className="relative">
+      <div className="relative" ref={dropdownRef}>
         <button
           type="button"
           onClick={() => !disabled && setIsOpen((current) => !current)}

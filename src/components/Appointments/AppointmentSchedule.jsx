@@ -321,7 +321,7 @@ export default function AppointmentSchedule({ patientId = null }) {
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">Appointments</h2>
           <p className="text-sm text-slate-500 max-w-xl">
-             Upcoming schedule. Appointments disappear from this view once the patient is marked as completed or checked in to the waiting room.
+             Upcoming schedule. Appointments disappear from this view once marked as completed, or when checked in to the waiting room on their scheduled date.
           </p>
         </div>
         <Button onClick={() => { setEditingAppointment(null); setUiState((current) => ({ ...current, showForm: true, editingAppointmentId: null })); }} className="w-full sm:w-auto shadow-md">
@@ -374,9 +374,11 @@ export default function AppointmentSchedule({ patientId = null }) {
                             {getReminderMeta(apt).label}
                           </span>
                         )}
-                        <span className={`mt-2 ml-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${getConfirmationMeta(apt).className}`}>
-                          {getConfirmationMeta(apt).label}
-                        </span>
+                        {(apt.reminderEnabled || apt.patientConfirmationStatus !== "pending") && (
+                          <span className={`mt-2 ml-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${getConfirmationMeta(apt).className}`}>
+                            {getConfirmationMeta(apt).label}
+                          </span>
+                        )}
                       </div>
                       <span className={`text-[10px] font-bold px-2 py-1 rounded-full border uppercase tracking-wider ${getStatusStyle(apt.status)}`}>
                         {apt.status}

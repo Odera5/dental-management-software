@@ -46,9 +46,9 @@ function StatCard({ label, value, tone, icon: Icon }) {
       <div className="absolute -right-4 -top-4 opacity-20 transform group-hover:scale-110 transition-transform duration-500">
         <Icon size={100} className="text-white" />
       </div>
-      <CardContent className="p-5 relative z-10 text-white flex flex-col justify-between h-full min-h-[140px]">
+      <CardContent className="p-5 pt-6 relative z-10 text-white flex flex-col justify-start h-full min-h-[120px]">
         <p className="text-xs font-semibold uppercase tracking-widest opacity-80">{label}</p>
-        <p className="mt-4 text-3xl font-bold tracking-tight">{value}</p>
+        <p className="mt-2 text-3xl font-bold tracking-tight">{value}</p>
       </CardContent>
     </Card>
   );
@@ -331,13 +331,13 @@ export default function InvoiceList({ patientId = null }) {
         <div className="w-full lg:w-3/4 space-y-6">
           <Card className="border border-surface-200 shadow-sm">
             <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 mb-6">
                 <div className="md:col-span-1">
                   <Input value={searchQuery} onChange={(e) => setUiState((current) => ({ ...current, searchQuery: e.target.value }))} placeholder="Search records..." icon={Search} className="bg-slate-50" />
                 </div>
                 <div>
                    <div className="relative">
-                      <select value={filterStatus} onChange={(e) => setUiState((current) => ({ ...current, filterStatus: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-slate-50 text-sm focus:ring-primary-500 shadow-sm appearance-none h-[46px]"><option value="all">All Statuses</option><option value="draft">Drafts</option><option value="issued">Issued</option><option value="paid">Paid</option><option value="overdue">Overdue</option><option value="cancelled">Cancelled</option></select>
+                      <select value={filterStatus} onChange={(e) => setUiState((current) => ({ ...current, filterStatus: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-slate-50 text-sm focus:ring-primary-500 shadow-sm appearance-none h-[46px]"><option value="all">All Statuses</option><option value="unpaid">Unpaid</option><option value="draft">Drafts</option><option value="issued">Issued</option><option value="paid">Paid</option><option value="overdue">Overdue</option><option value="cancelled">Cancelled</option></select>
                       <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"><ChevronDown size={16} className="text-slate-400" /></div>
                    </div>
                 </div>
