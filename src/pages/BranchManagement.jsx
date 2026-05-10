@@ -21,6 +21,7 @@ import Select from "../components/ui/Select";
 import ConfirmModal from "../components/ui/ConfirmModal";
 import { COUNTRIES } from "../constants/countries";
 import { hasEnterpriseAccess } from "../utils/clinicAccess";
+import { getStoredUserObject } from "../utils/authStorage";
 
 const initialForm = {
   name: "",
@@ -181,8 +182,7 @@ function BranchModal({
 
 export default function BranchManagement() {
   const navigate = useNavigate();
-  const storedUser =
-    JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "null") || {};
+  const storedUser = getStoredUserObject() || {};
   const clinic = storedUser?.clinic || {};
   const enterpriseAccess = hasEnterpriseAccess(clinic);
 

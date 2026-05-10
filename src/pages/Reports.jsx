@@ -6,10 +6,11 @@ import api from "../services/api";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import { hasActiveProAccess } from "../utils/clinicAccess";
+import { getStoredUserObject } from "../utils/authStorage";
 
 export default function Reports() {
   const navigate = useNavigate();
-  const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
+  const storedUser = getStoredUserObject() || {};
   const proAccessActive = hasActiveProAccess(storedUser?.clinic);
 
   const [loading, setLoading] = useState(true);

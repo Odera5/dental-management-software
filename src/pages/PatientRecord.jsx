@@ -17,13 +17,14 @@ import Input from "../components/ui/Input";
 import { Card, CardContent } from "../components/ui/Card";
 import usePersistentState from "../hooks/usePersistentState";
 import { readStoredJson } from "../utils/persistence";
+import { getStoredUserObject } from "../utils/authStorage";
 
 const RECORDS_PER_PAGE = 10;
 
 export default function PatientRecord() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
+  const storedUser = getStoredUserObject() || {};
   const canEditPatient =
     storedUser.role === "admin" ||
     storedUser.role === "branch_manager" ||

@@ -8,6 +8,7 @@ import { DENTAL_FORMULARY } from "../../utils/dentalFormulary";
 import { CLINICAL_TEMPLATES } from "../../utils/clinicalTemplates";
 import api from "../../services/api";
 import { hasActiveProAccess } from "../../utils/clinicAccess";
+import { getStoredUserObject } from "../../utils/authStorage";
 
 const TEMPLATE_FIELD_MAP = {
   presentingComplaint: "presentingComplaint",
@@ -194,7 +195,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [notificationModal, setNotificationModal] = useState({ show: false, message: "" });
 
-  const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
+  const storedUser = getStoredUserObject() || {};
   const proAccessActive = hasActiveProAccess(storedUser?.clinic);
 
   const handleFormularySelect = (medValue) => {

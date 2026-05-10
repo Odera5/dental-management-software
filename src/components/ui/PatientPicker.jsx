@@ -5,6 +5,7 @@ import {
   getPatientPickerOptionById,
   getPatientPickerOptions,
 } from "../../services/patientDirectory";
+import { getStoredUserObject } from "../../utils/authStorage";
 import Input from "./Input";
 
 export default function PatientPicker({
@@ -25,7 +26,7 @@ export default function PatientPicker({
   const [selectedOption, setSelectedOption] = useState(initialOption);
   const dropdownRef = useRef(null);
 
-  const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
+  const storedUser = getStoredUserObject() || {};
   const clinicPlan = storedUser?.clinic?.plan || "PRO";
   const isEnterprise = clinicPlan === "ENTERPRISE";
   const [globalSearch, setGlobalSearch] = useState(false);

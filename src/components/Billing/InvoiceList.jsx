@@ -10,6 +10,7 @@ import Input from "../ui/Input";
 import { Card, CardContent } from "../ui/Card";
 import usePersistentState from "../../hooks/usePersistentState";
 import { resolveAssetUrl } from "../../utils/assetUrl";
+import { getStoredUserObject } from "../../utils/authStorage";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 2 }).format(Number(value) || 0);
@@ -67,7 +68,7 @@ function SummaryRow({ label, value, strong = false }) {
 }
 
 function InvoiceViewer({ invoice, onClose }) {
-  const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user")) || "null");
+  const storedUser = getStoredUserObject();
   const clinic = storedUser?.clinic || {};
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");

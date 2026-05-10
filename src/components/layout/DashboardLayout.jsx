@@ -27,7 +27,7 @@ import {
 } from "../../services/dashboardSummary";
 import Button from "../ui/Button";
 import primuxFavicon from "../../assets/primux-logo.png";
-import { updateStoredUser } from "../../utils/authStorage";
+import { getStoredUserObject, updateStoredUser } from "../../utils/authStorage";
 import {
   getActiveBranchId,
   getAvailableBranches,
@@ -129,20 +129,14 @@ export default function DashboardLayout() {
   const [showTrialBanner, setShowTrialBanner] = useState(false);
   const [clinicState, setClinicState] = useState(null);
   const [branchState, setBranchState] = useState(() => {
-    const stored =
-      JSON.parse(
-        localStorage.getItem("user") || sessionStorage.getItem("user"),
-      ) || {};
+    const stored = getStoredUserObject() || {};
     return stored.branch || null;
   });
   const [availableBranches, setAvailableBranches] = useState(() =>
     getAvailableBranches(),
   );
 
-  const storedUser =
-    JSON.parse(
-      localStorage.getItem("user") || sessionStorage.getItem("user"),
-    ) || {};
+  const storedUser = getStoredUserObject() || {};
   const user = {
     name: storedUser.name || storedUser.email || "User",
     role: storedUser.role || "nurse",

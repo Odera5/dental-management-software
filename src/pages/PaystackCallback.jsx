@@ -1,30 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
+import {
+  getStoredUserObject,
+  hasStoredSession,
+  updateStoredUser,
+} from "../utils/authStorage";
 
 const updateStoredUserClinic = (clinicPatch) => {
-  const storage =
-    sessionStorage.getItem("user") || sessionStorage.getItem("accessToken")
-      ? sessionStorage
-      : localStorage;
-  const storedUser = storage.getItem("user");
-
+  const storedUser = getStoredUserObject();
   if (!storedUser) {
     return;
   }
 
   try {
-    const parsedUser = JSON.parse(storedUser);
-    storage.setItem(
-      "user",
-      JSON.stringify({
-        ...parsedUser,
-        clinic: {
-          ...(parsedUser.clinic || {}),
-          ...clinicPatch,
-        },
-      }),
-    );
+    updateStoredUser({
+      clinic: {
+        ...(storedUser.clinic || {}),
+        ...clinicPatch,
+      },
+    });
   } catch (error) {
     console.error("Failed to sync billing state to storage:", error);
   }
@@ -34,9 +29,7 @@ export default function PaystackCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const reference = String(searchParams.get("reference") || "").trim();
-  const hasStoredSession = Boolean(
-    localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken"),
-  );
+  const hasSession = hasStoredSession();
   const [status, setStatus] = useState(reference ? "loading" : "error");
   const [message, setMessage] = useState(
     reference
@@ -68,13 +61,13 @@ export default function PaystackCallback() {
         setStatus("success");
         setMessage(
           response.data?.message ||
-            (hasStoredSession
+            (hasSession
               ? `Your PrimuxCare ${activatedPlanName} subscription is now active.`
               : `Your PrimuxCare ${activatedPlanName} payment was confirmed. Sign in to continue.`),
         );
 
         window.setTimeout(() => {
-          navigate(hasStoredSession ? "/upgrade" : "/login", { replace: true });
+          navigate(hasSession ? "/upgrade" : "/login", { replace: true });
         }, 1800);
       } catch (error) {
         if (!isMounted) {
@@ -94,7 +87,7 @@ export default function PaystackCallback() {
     return () => {
       isMounted = false;
     };
-  }, [hasStoredSession, navigate, reference]);
+  }, [hasSession, navigate, reference]);
 
   return (
     <div className="min-h-screen bg-slate-100 px-4 py-10">
@@ -118,10 +111,10 @@ export default function PaystackCallback() {
         </p>
         <div className="mt-6">
             <Link
-            to={hasStoredSession ? "/upgrade" : "/login"}
+            to={hasSession ? "/upgrade" : "/login"}
             className="inline-flex rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-800"
           >
-            {hasStoredSession ? "Back to billing" : "Go to login"}
+            {hasSession ? "Back to billing" : "Go to login"}
           </Link>
         </div>
       </div>

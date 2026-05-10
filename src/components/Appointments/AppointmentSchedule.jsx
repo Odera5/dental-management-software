@@ -14,10 +14,11 @@ import Input from "../ui/Input";
 import { Card, CardContent } from "../ui/Card";
 import ConfirmModal from "../ui/ConfirmModal";
 import usePersistentState from "../../hooks/usePersistentState";
+import { getStoredUserObject } from "../../utils/authStorage";
 
 export default function AppointmentSchedule({ patientId = null }) {
   const APPOINTMENTS_PER_PAGE = 24;
-  const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
+  const storedUser = getStoredUserObject() || {};
   const canCompleteAppointment =
     storedUser.role === "admin" ||
     storedUser.role === "branch_manager" ||

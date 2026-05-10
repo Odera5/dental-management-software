@@ -10,11 +10,12 @@ import { Card, CardContent } from "../ui/Card";
 import usePersistentState from "../../hooks/usePersistentState";
 import PatientPicker from "../ui/PatientPicker";
 import { hasActiveProAccess } from "../../utils/clinicAccess";
+import { getStoredUserObject } from "../../utils/authStorage";
 
 export default function AppointmentForm({ patientId = null, appointment = null, onSuccess, onCancel, draftStorageKey = "primuxcare:draft:appointment-form:new" }) {
   const dentistAssignmentEnabled = false;
   const navigate = useNavigate();
-  const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
+  const storedUser = getStoredUserObject() || {};
   const clinic = storedUser?.clinic || {};
   const hasProReminderAccess = hasActiveProAccess(clinic);
   const [formData, setFormData, clearFormDraft] = usePersistentState(

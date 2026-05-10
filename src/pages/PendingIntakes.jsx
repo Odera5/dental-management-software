@@ -6,10 +6,10 @@ import ConfirmModal from "../components/ui/ConfirmModal";
 import Toast from "../components/Toast";
 import api from "../services/api";
 import { hasActiveProAccess } from "../utils/clinicAccess";
+import { getStoredUserObject } from "../utils/authStorage";
 
 export default function PendingIntakes() {
-  const storedUser =
-    JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user")) || "null") || {};
+  const storedUser = getStoredUserObject() || {};
   const currentRole = storedUser?.role || "nurse";
   const [intakes, setIntakes] = useState([]);
   const [loading, setLoading] = useState(true);

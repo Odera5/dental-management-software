@@ -9,6 +9,7 @@ import Button from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
 import usePersistentState from "../hooks/usePersistentState";
 import { isTrialingClinic, getTrialDaysRemaining } from "../utils/clinicAccess";
+import { getStoredUserObject } from "../utils/authStorage";
 
 const emptyPatientForm = {
   firstName: "",
@@ -32,7 +33,7 @@ export default function RegisterPatient() {
   const navigate = useNavigate();
   const showToast = (message, type = "success") => setToast({ message, type });
 
-  const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user")) || {};
+  const storedUser = getStoredUserObject() || {};
   const clinic = storedUser?.clinic || {};
   const trialing = isTrialingClinic(clinic);
   const remainingTrialDays = getTrialDaysRemaining(clinic);

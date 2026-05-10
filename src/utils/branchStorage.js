@@ -1,17 +1,9 @@
-import { getStoredUser, updateStoredUser } from "./authStorage";
+import { getStoredUserObject, updateStoredUser } from "./authStorage";
 
 const BRANCH_STORAGE_KEY = "primuxcare:active-branch-id";
 
 const getStorageCandidates = () =>
   [window.localStorage, window.sessionStorage].filter(Boolean);
-
-export function getStoredUserObject() {
-  try {
-    return JSON.parse(getStoredUser() || "null");
-  } catch {
-    return null;
-  }
-}
 
 export function getAvailableBranches() {
   const user = getStoredUserObject();

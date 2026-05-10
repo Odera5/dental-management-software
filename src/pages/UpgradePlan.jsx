@@ -12,6 +12,7 @@ import {
   isTrialingClinic,
   getTrialDaysRemaining,
 } from "../utils/clinicAccess";
+import { getStoredUserObject } from "../utils/authStorage";
 
 export default function UpgradePlan() {
   const [isAnnual, setIsAnnual] = useState(false);
@@ -22,8 +23,7 @@ export default function UpgradePlan() {
   const [toast, setToast] = useState(null);
   const [confirmConfig, setConfirmConfig] = useState(null);
 
-  const storedUser =
-    JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user")) || {};
+  const storedUser = getStoredUserObject() || {};
   const clinic = billingInfo || storedUser?.clinic || {};
   const currentPlan = clinic?.plan || "PRO";
   const currentPlanLabel = currentPlan === "ENTERPRISE" ? "Enterprise" : "Professional";

@@ -15,6 +15,7 @@ import { readStoredJson } from "../utils/persistence";
 import { resolveAssetUrl } from "../utils/assetUrl";
 import { COUNTRIES } from "../constants/countries";
 import { hasActiveProAccess } from "../utils/clinicAccess";
+import { getStoredUserObject, updateStoredUser } from "../utils/authStorage";
 
 const initialForm = {
   clinicName: "", clinicEmail: "", clinicPhone: "", clinicCountry: "", clinicCity: "", clinicAddress: "", contactPerson: "",
@@ -232,7 +233,7 @@ export default function ClinicSettings() {
     setEditingPresets(prev => ({...prev, [newIndex]: true}));
   };
   
-  const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user")) || "null");
+  const storedUser = getStoredUserObject();
   const currentClinic = {
     ...(storedUser?.clinic || {}),
     ...(billingInfo || {}),
@@ -243,27 +244,8 @@ export default function ClinicSettings() {
     : "";
 
   const syncStoredClinic = (clinicPatch) => {
-    [localStorage, sessionStorage].forEach((storage) => {
-      const rawUser = storage.getItem("user");
-      if (!rawUser) {
-        return;
-      }
-
-      try {
-        const parsedUser = JSON.parse(rawUser);
-        storage.setItem(
-          "user",
-          JSON.stringify({
-            ...parsedUser,
-            clinic: {
-              ...(parsedUser.clinic || {}),
-              ...clinicPatch,
-            },
-          }),
-        );
-      } catch {
-        // ignore broken persisted state
-      }
+    updateStoredUser({
+      clinic: clinicPatch,
     });
   };
 
@@ -316,7 +298,7 @@ export default function ClinicSettings() {
   };
 
   useEffect(() => {
-    const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user")) || "null");
+    const storedUser = getStoredUserObject();
     if (!storedUser || storedUser.role !== "admin") return navigate("/login", { replace: true });
 
     const fetchClinicProfile = async () => {

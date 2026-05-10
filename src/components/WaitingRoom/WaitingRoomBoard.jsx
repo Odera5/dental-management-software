@@ -11,6 +11,7 @@ import { Card, CardContent } from "../ui/Card";
 import ConfirmModal from "../ui/ConfirmModal";
 import usePersistentState from "../../hooks/usePersistentState";
 import { getPatientPickerOptions } from "../../services/patientDirectory";
+import { getStoredUserObject } from "../../utils/authStorage";
 
 const STATUS_LABELS = { waiting: "Waiting", called: "Called", in_consultation: "In Consultation", completed: "Completed" };
 const NEXT_ACTION = { waiting: "called", called: "in_consultation", in_consultation: "completed" };
@@ -32,7 +33,7 @@ const METRIC_COLORS = {
 
 export default function WaitingRoomBoard({ newPatient = null, preselectPatientId = "" }) {
   const navigate = useNavigate();
-  const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
+  const storedUser = getStoredUserObject() || {};
   const isFrontDesk = storedUser.role === "nurse";
   const [entries, setEntries] = useState([]);
   const [patients, setPatients] = useState([]);

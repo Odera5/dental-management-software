@@ -63,6 +63,18 @@ export function getStoredUser() {
   );
 }
 
+export function getStoredUserObject() {
+  try {
+    return JSON.parse(getStoredUser() || "null");
+  } catch {
+    return null;
+  }
+}
+
+export function hasStoredSession() {
+  return Boolean(getStoredUser() && (getStoredAccessToken() || getStoredRefreshToken()));
+}
+
 export function saveAuthSession({
   user,
   accessToken = "",

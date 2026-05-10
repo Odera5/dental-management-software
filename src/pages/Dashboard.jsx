@@ -20,6 +20,7 @@ import {
   readDashboardSummaryCache,
 } from "../services/dashboardSummary";
 import { hasActiveProAccess } from "../utils/clinicAccess";
+import { getStoredUserObject } from "../utils/authStorage";
 
 const PATIENTS_PER_PAGE = 25;
 
@@ -45,7 +46,7 @@ export default function Dashboard() {
   const location = useLocation();
   const cachedSummary = readDashboardSummaryCache().data;
 
-  const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
+  const storedUser = getStoredUserObject() || {};
   const user = {
     role: storedUser.role || "nurse",
   };

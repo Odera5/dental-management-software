@@ -9,6 +9,7 @@ import Input from "../components/ui/Input";
 import Toast from "../components/Toast";
 import ConfirmModal from "../components/ui/ConfirmModal";
 import usePersistentState from "../hooks/usePersistentState";
+import { getStoredUserObject } from "../utils/authStorage";
 
 const initialSignupDraft = {
   name: "",
@@ -46,7 +47,7 @@ export default function Signup() {
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmConfig, setConfirmConfig] = useState(null);
   const navigate = useNavigate();
-  const currentUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user")) || "null");
+  const currentUser = getStoredUserObject();
   const signupAssignedBranchIds = Array.isArray(signupDraft.assignedBranchIds)
     ? signupDraft.assignedBranchIds
     : [];
