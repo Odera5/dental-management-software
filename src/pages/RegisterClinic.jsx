@@ -88,7 +88,12 @@ export default function RegisterClinic() {
         "Clinic registered successfully. Please check the admin email inbox to confirm the address and activate the account.";
       clearFormDraft();
       setPassword("");
-      navigate("/login", { state: { successMessage } });
+      navigate("/login", {
+        state: {
+          successMessage,
+          email: payload.adminEmail,
+        },
+      });
     } catch (err) {
       const responseData = err.response?.data;
 

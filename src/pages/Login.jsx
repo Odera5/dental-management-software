@@ -34,11 +34,19 @@ export default function Login() {
   const { email, rememberMe } = loginDraft;
 
   React.useEffect(() => {
-    if (location.state?.successMessage) {
+    if (location.state?.successMessage || location.state?.email) {
+      if (location.state?.email) {
+        setLoginDraft((current) => ({
+          ...current,
+          email: location.state.email,
+        }));
+      }
+
+      setError("");
       setSuccess(location.state.successMessage);
       window.history.replaceState({}, document.title);
     }
-  }, [location.state, setSuccess]);
+  }, [location.state, setError, setLoginDraft, setSuccess]);
 
   const canResendVerification =
     error ===
