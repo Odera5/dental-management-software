@@ -66,6 +66,8 @@ export default function Login() {
 
       saveAuthSession({
         user,
+        accessToken: res.data?.accessToken || "",
+        refreshToken: res.data?.refreshToken || "",
         rememberMe,
       });
       clearLoginDraft();

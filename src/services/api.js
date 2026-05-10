@@ -2,7 +2,10 @@
 import axios from "axios";
 import {
   clearAuthState,
+  getStoredAccessToken,
+  getStoredRefreshToken,
   getStoredUser,
+  updateStoredAccessToken,
 } from "../utils/authStorage";
 import { getActiveBranchId } from "../utils/branchStorage";
 import { clearLastVisitedRoute } from "../utils/persistence";
@@ -17,12 +20,22 @@ let refreshPromise = null;
 
 api.interceptors.request.use((config) => {
   const branchId = getActiveBranchId();
+  const accessToken = getStoredAccessToken();
+
   if (branchId) {
     config.headers = {
       ...(config.headers || {}),
       "x-branch-id": branchId,
     };
   }
+
+  if (accessToken) {
+    config.headers = {
+      ...(config.headers || {}),
+      Authorization: `Bearer ${accessToken}`,
+    };
+  }
+
   return config;
 });
 
@@ -44,15 +57,24 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
+        const refreshToken = getStoredRefreshToken();
         refreshPromise =
           refreshPromise ||
-          api.post("/auth/refresh-token", {}).finally(() => {
-            refreshPromise = null;
-          });
+          api
+            .post("/auth/refresh-token", refreshToken ? { refreshToken } : {})
+            .then((response) => {
+              const newAccessToken = response.data?.accessToken;
+              if (newAccessToken) {
+                updateStoredAccessToken(newAccessToken);
+              }
+              return response;
+            })
+            .finally(() => {
+              refreshPromise = null;
+            });
 
         await refreshPromise;
 
-        // The new token is set via httpOnly cookie, just retry the request
         return api(originalRequest);
       } catch (refreshError) {
         clearAuthState();
@@ -102,7 +124,8 @@ api.interceptors.response.use(
 
 export const logoutCurrentUser = async () => {
   try {
-    await api.post("/auth/logout", {});
+    const refreshToken = getStoredRefreshToken();
+    await api.post("/auth/logout", refreshToken ? { refreshToken } : {});
   } catch (error) {
     console.error("Logout request failed:", error);
   } finally {

@@ -1,4 +1,9 @@
-const AUTH_KEYS = ["user", "primuxcare:active-branch-id"];
+const AUTH_KEYS = [
+  "user",
+  "accessToken",
+  "refreshToken",
+  "primuxcare:active-branch-id",
+];
 
 function getAvailableStorage(type) {
   if (typeof window === "undefined") return null;
@@ -34,7 +39,21 @@ export function getPreferredAuthStorage({ rememberMe = false } = {}) {
   return getAvailableStorage(preferredType) || getAvailableStorage("session") || getAvailableStorage("local");
 }
 
-// Token getters removed as tokens are now httpOnly cookies
+export function getStoredAccessToken() {
+  return (
+    getAvailableStorage("local")?.getItem("accessToken") ||
+    getAvailableStorage("session")?.getItem("accessToken") ||
+    ""
+  );
+}
+
+export function getStoredRefreshToken() {
+  return (
+    getAvailableStorage("local")?.getItem("refreshToken") ||
+    getAvailableStorage("session")?.getItem("refreshToken") ||
+    ""
+  );
+}
 
 export function getStoredUser() {
   return (
@@ -44,15 +63,36 @@ export function getStoredUser() {
   );
 }
 
-export function saveAuthSession({ user, rememberMe = false }) {
+export function saveAuthSession({
+  user,
+  accessToken = "",
+  refreshToken = "",
+  rememberMe = false,
+}) {
   const storage = getPreferredAuthStorage({ rememberMe });
   if (!storage) return;
 
   clearAuthState();
   storage.setItem("user", JSON.stringify(user));
+  if (accessToken) {
+    storage.setItem("accessToken", accessToken);
+  }
+  if (refreshToken) {
+    storage.setItem("refreshToken", refreshToken);
+  }
 }
 
-// updateStoredAccessToken removed as tokens are httpOnly cookies
+export function updateStoredAccessToken(accessToken) {
+  if (!accessToken) return;
+
+  [getAvailableStorage("local"), getAvailableStorage("session")].forEach(
+    (storage) => {
+      if (!storage) return;
+      if (!storage.getItem("user")) return;
+      storage.setItem("accessToken", accessToken);
+    },
+  );
+}
 
 export function updateStoredUser(userPatch) {
   [getAvailableStorage("local"), getAvailableStorage("session")].forEach(
