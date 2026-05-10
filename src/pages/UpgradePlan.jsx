@@ -235,16 +235,19 @@ export default function UpgradePlan() {
       <div className="grid gap-8 xl:grid-cols-2">
         <div className="bg-gradient-to-b from-slate-50 via-white to-slate-100 rounded-3xl p-8 md:p-7 border border-slate-200 shadow-xl flex flex-col relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
           {isPro && (
-            <div className="absolute top-0 right-8 z-10 transform -translate-y-1/2">
+            <div className="absolute top-5 right-5 z-10">
               <span className="bg-primary-500 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
                 {paidSubscriptionActive ? "Active Plan" : "Current Trial"}
               </span>
             </div>
           )}
-          <div className="mb-6 relative">
-            <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-1.5 text-sm font-bold uppercase tracking-widest text-white shadow-lg">
+          <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
+            <span className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-sm font-bold uppercase tracking-widest py-1.5 px-4 rounded-full shadow-lg flex items-center gap-1.5">
               <Crown size={16} /> Professional
-            </div>
+            </span>
+          </div>
+
+          <div className="mb-6 mt-4">
             <h3 className="text-2xl font-bold text-slate-900 mb-2">Professional Plan</h3>
             <p className="text-slate-600 text-sm">
               Full access for clinics that need scale, automation,
