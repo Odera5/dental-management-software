@@ -1,4 +1,4 @@
-const AUTH_KEYS = ["user"];
+const AUTH_KEYS = ["user", "primuxcare:active-branch-id"];
 
 function getAvailableStorage(type) {
   if (typeof window === "undefined") return null;

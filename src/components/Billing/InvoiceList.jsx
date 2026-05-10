@@ -14,6 +14,9 @@ import { resolveAssetUrl } from "../../utils/assetUrl";
 const formatCurrency = (value) =>
   new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 2 }).format(Number(value) || 0);
 
+const formatNumber = (value) =>
+  new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(Number(value) || 0);
+
 function NairaIcon({ size = 18 }) {
   return (
     <span
@@ -130,6 +133,12 @@ function InvoiceViewer({ invoice, onClose }) {
                 </tbody>
               </table>
             </div>
+            {invoice.notes && (
+              <div className="mt-8 rounded-xl bg-slate-50 border border-slate-200 p-6">
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2">Billing Notes</h3>
+                <p className="text-sm text-slate-600 whitespace-pre-wrap">{invoice.notes}</p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-6">
@@ -252,6 +261,15 @@ export default function InvoiceList({ patientId = null }) {
       const params = new URLSearchParams();
       if (patientId) params.append("patientId", patientId);
       if (selectedPatientId) params.append("patientId", selectedPatientId);
+
+      if (!patientId && !selectedPatientId) {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+        params.append("startDate", startOfMonth);
+        params.append("endDate", endOfMonth);
+      }
+
       const response = await api.get(`/invoices/report?${params}`);
       setReport(response.data);
     } catch (error) { console.error(error); }
@@ -320,10 +338,10 @@ export default function InvoiceList({ patientId = null }) {
 
       {report && !patientId && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Total Invoices" value={report.totalInvoices} tone="blue" icon={FileText} />
-          <StatCard label="Revenue Billed" value={formatCurrency(report.totalRevenue)} tone="slate" icon={DollarSign} />
-          <StatCard label="Collections" value={formatCurrency(report.totalPaid)} tone="emerald" icon={CheckCircle} />
-          <StatCard label="Outstanding" value={formatCurrency(report.totalOutstanding)} tone="amber" icon={AlertCircle} />
+          <StatCard label="Invoices (This Month)" value={formatNumber(report.totalInvoices)} tone="blue" icon={FileText} />
+          <StatCard label="Revenue (This Month)" value={formatCurrency(report.totalRevenue)} tone="slate" icon={DollarSign} />
+          <StatCard label="Collections (This Month)" value={formatCurrency(report.totalPaid)} tone="emerald" icon={CheckCircle} />
+          <StatCard label="Outstanding (This Month)" value={formatCurrency(report.totalOutstanding)} tone="amber" icon={AlertCircle} />
         </div>
       )}
 

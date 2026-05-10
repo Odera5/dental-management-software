@@ -68,12 +68,14 @@ export default function RegisterClinic() {
     if (
       !payload.clinicName ||
       !payload.clinicEmail ||
+      !payload.clinicCountry ||
+      !payload.clinicCity ||
       !payload.adminName ||
       !payload.adminEmail ||
       !password.trim()
     ) {
       setError(
-        "Clinic name, clinic email, admin name, admin email, and password are required.",
+        "Clinic name, clinic email, country, city, admin name, admin email, and password are required.",
       );
       setLoading(false);
       return;
@@ -231,12 +233,13 @@ export default function RegisterClinic() {
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <Select
-                  label="Country"
+                  label="Country *"
                   name="clinicCountry"
                   icon={Globe}
                   value={form.clinicCountry || ""}
                   onChange={handleChange}
                   className="bg-white"
+                  required
                 >
                   <option value="" disabled>
                     Select a country
@@ -248,13 +251,14 @@ export default function RegisterClinic() {
                   ))}
                 </Select>
                 <Input
-                  label="City"
+                  label="City *"
                   name="clinicCity"
                   type="text"
                   icon={MapPin}
                   value={form.clinicCity}
                   onChange={handleChange}
                   placeholder="e.g. New York"
+                  required
                 />
               </div>
               <div className="space-y-1">

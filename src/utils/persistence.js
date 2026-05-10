@@ -1,3 +1,5 @@
+import { getStoredUser } from "./authStorage";
+
 const STORAGE_KEYS = {
   lastVisitedRoute: "primuxcare:last-visited-route",
 };
@@ -52,6 +54,35 @@ export function readStoredJson(key, fallbackValue, preferred = "session") {
   }
 }
 
+function resolveUserRouteScope(userOverride = null) {
+  let user = userOverride;
+
+  if (!user) {
+    try {
+      user = JSON.parse(getStoredUser() || "null");
+    } catch {
+      user = null;
+    }
+  }
+
+  const clinicId = user?.clinicId || user?.clinic?.id || "";
+  const branchId = user?.branchId || user?.branch?.id || "";
+  const userId = user?.id || user?.email || "";
+
+  if (!clinicId && !branchId && !userId) {
+    return null;
+  }
+
+  return [clinicId || "clinic", branchId || "branch", userId || "user"].join(":");
+}
+
+function getLastVisitedRouteKey(userOverride = null) {
+  const scope = resolveUserRouteScope(userOverride);
+  return scope
+    ? `${STORAGE_KEYS.lastVisitedRoute}:${scope}`
+    : STORAGE_KEYS.lastVisitedRoute;
+}
+
 export function writeStoredJson(key, value, preferred = "session") {
   const storage = getStorage(preferred);
   if (!storage) return;
@@ -74,29 +105,36 @@ export function removeStoredValue(key, preferred = "session") {
   }
 }
 
-export function readLastVisitedRoute() {
+export function readLastVisitedRoute(userOverride = null) {
+  const storageKey = getLastVisitedRouteKey(userOverride);
   const sessionValue = readStoredJson(
-    STORAGE_KEYS.lastVisitedRoute,
+    storageKey,
     null,
     "session",
   );
   if (isValidLastVisitedRoute(sessionValue)) return sessionValue;
 
-  const localValue = readStoredJson(STORAGE_KEYS.lastVisitedRoute, null, "local");
+  const localValue = readStoredJson(storageKey, null, "local");
   return isValidLastVisitedRoute(localValue) ? localValue : null;
 }
 
-export function writeLastVisitedRoute(value) {
+export function writeLastVisitedRoute(value, userOverride = null) {
   if (!isValidLastVisitedRoute(value)) return;
+  const storageKey = getLastVisitedRouteKey(userOverride);
 
   ["session", "local"].forEach((preferred) => {
-    writeStoredJson(STORAGE_KEYS.lastVisitedRoute, value, preferred);
+    writeStoredJson(storageKey, value, preferred);
   });
 }
 
-export function clearLastVisitedRoute() {
+export function clearLastVisitedRoute(userOverride = null) {
+  const storageKey = getLastVisitedRouteKey(userOverride);
+
   ["session", "local"].forEach((preferred) => {
-    removeStoredValue(STORAGE_KEYS.lastVisitedRoute, preferred);
+    removeStoredValue(storageKey, preferred);
+    if (storageKey !== STORAGE_KEYS.lastVisitedRoute) {
+      removeStoredValue(STORAGE_KEYS.lastVisitedRoute, preferred);
+    }
   });
 }
 

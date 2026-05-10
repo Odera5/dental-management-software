@@ -11,7 +11,9 @@ import primuxFavicon from "../assets/primux-logo.png";
 export default function PatientIntakeForm() {
   const { clinicId } = useParams();
   const location = useLocation();
-  const accessToken = new URLSearchParams(location.search).get("access") || "";
+  const searchParams = new URLSearchParams(location.search);
+  const accessToken = searchParams.get("access") || "";
+  const requestedBranchId = searchParams.get("branchId") || "";
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -38,7 +40,8 @@ export default function PatientIntakeForm() {
   useEffect(() => {
     const fetchClinic = async () => {
       try {
-        const res = await api.get(`/intake/${clinicId}?access=${encodeURIComponent(accessToken)}`);
+        const branchQuery = requestedBranchId ? `&branchId=${encodeURIComponent(requestedBranchId)}` : "";
+        const res = await api.get(`/intake/${clinicId}?access=${encodeURIComponent(accessToken)}${branchQuery}`);
         setClinic(res.data);
       } catch (err) {
         setError(err.response?.data?.message || "Clinic intake form unavailable.");
@@ -47,7 +50,7 @@ export default function PatientIntakeForm() {
       }
     };
     fetchClinic();
-  }, [accessToken, clinicId]);
+  }, [accessToken, clinicId, requestedBranchId]);
 
   useEffect(() => {
     const favicon =
@@ -86,7 +89,7 @@ export default function PatientIntakeForm() {
       try {
         setSlotLoading(true);
         const res = await api.get(
-          `/intake/${clinicId}/available-slots?date=${form.preferredDate}&duration=30&access=${encodeURIComponent(accessToken)}`,
+          `/intake/${clinicId}/available-slots?date=${form.preferredDate}&duration=30&access=${encodeURIComponent(accessToken)}${requestedBranchId ? `&branchId=${encodeURIComponent(requestedBranchId)}` : ""}`,
         );
         const nextSlots = res.data?.availableSlots || [];
         setAvailableSlots(nextSlots);
@@ -109,7 +112,7 @@ export default function PatientIntakeForm() {
     };
 
     fetchAvailableSlots();
-  }, [accessToken, clinicId, form.preferredDate]);
+  }, [accessToken, clinicId, form.preferredDate, requestedBranchId]);
 
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -162,6 +165,7 @@ export default function PatientIntakeForm() {
       await api.post(`/intake/${clinicId}`, {
         ...form,
         access: accessToken,
+        branchId: requestedBranchId,
       });
       setSuccess(true);
     } catch (err) {
@@ -199,7 +203,7 @@ export default function PatientIntakeForm() {
                <CheckCircle size={40} />
             </motion.div>
             <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Request Sent!</h2>
-            <p className="text-slate-600 mb-6">Your registration and appointment request have been securely sent to <strong>{clinic?.name}</strong>.</p>
+            <p className="text-slate-600 mb-6">Your registration and appointment request have been securely sent to <strong>{clinic?.name}</strong>{clinic?.branch ? ` (${clinic.branch.city || clinic.branch.name}${clinic.branch.area ? ` - ${clinic.branch.area}` : ""})` : ""}.</p>
             <p className="text-sm font-medium text-slate-400">The clinic staff will review and confirm your appointment shortly. You may now close this window.</p>
          </div>
        </div>
@@ -232,6 +236,11 @@ export default function PatientIntakeForm() {
          )}
          <motion.h1 initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="text-2xl sm:text-3xl font-black text-slate-900 text-center tracking-tight leading-tight">{clinic?.name}</motion.h1>
          <motion.p initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="mt-2 text-sm text-slate-500 uppercase tracking-widest font-semibold flex items-center"><Building size={14} className="mr-1.5" /> Patient Intake</motion.p>
+         {clinic?.branch && (
+            <motion.p initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }} className="mt-2 text-sm font-semibold text-primary-700 text-center">
+              {clinic.branch.city || clinic.branch.name}{clinic.branch.area ? ` - ${clinic.branch.area}` : ""}
+            </motion.p>
+         )}
       </div>
 
       {/* FORM CONTAINER */}

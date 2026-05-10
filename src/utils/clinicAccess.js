@@ -33,13 +33,21 @@ export const hasActiveProAccess = (clinic) => {
   }
 
   return (
-    clinic?.plan === "PRO" &&
+    ["PRO", "ENTERPRISE"].includes(clinic?.plan) &&
     (hasActivePaidSubscription(clinic) || hasFutureSubscriptionWindow(clinic))
   );
 };
 
+export const hasEnterpriseAccess = (clinic) => {
+  if (typeof clinic?.hasEnterpriseAccess === "boolean") {
+    return clinic.hasEnterpriseAccess;
+  }
+
+  return clinic?.plan === "ENTERPRISE" && hasActiveProAccess(clinic);
+};
+
 export const isSubscriptionExpired = (clinic) =>
-  clinic?.plan === "PRO" && !hasActiveProAccess(clinic);
+  ["PRO", "ENTERPRISE"].includes(clinic?.plan) && !hasActiveProAccess(clinic);
 
 export const isTrialingClinic = (clinic) => {
   if (typeof clinic?.isTrialing === "boolean") {
@@ -47,7 +55,7 @@ export const isTrialingClinic = (clinic) => {
   }
 
   return (
-    clinic?.plan === "PRO" &&
+    ["PRO", "ENTERPRISE"].includes(clinic?.plan) &&
     !hasActivePaidSubscription(clinic) &&
     hasFutureSubscriptionWindow(clinic)
   );

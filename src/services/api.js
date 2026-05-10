@@ -4,6 +4,8 @@ import {
   clearAuthState,
   getStoredUser,
 } from "../utils/authStorage";
+import { getActiveBranchId } from "../utils/branchStorage";
+import { clearLastVisitedRoute } from "../utils/persistence";
 
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api`,
@@ -13,6 +15,13 @@ const api = axios.create({
 let refreshPromise = null;
 
 api.interceptors.request.use((config) => {
+  const branchId = getActiveBranchId();
+  if (branchId) {
+    config.headers = {
+      ...(config.headers || {}),
+      "x-branch-id": branchId,
+    };
+  }
   return config;
 });
 
@@ -96,6 +105,7 @@ export const logoutCurrentUser = async () => {
   } catch (error) {
     console.error("Logout request failed:", error);
   } finally {
+    clearLastVisitedRoute();
     clearAuthState();
   }
 };

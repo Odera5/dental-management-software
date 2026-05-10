@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Crown, FileUp, BookOpen } from "lucide-react";
+import { Check, Crown, FileUp, BookOpen, Building2, ArrowRight } from "lucide-react";
 import api from "../services/api";
 import Toast from "../components/Toast";
 import Button from "../components/ui/Button";
 import ConfirmModal from "../components/ui/ConfirmModal";
 import {
   hasActivePaidSubscription,
+  hasEnterpriseAccess,
   hasActiveProAccess,
   isTrialingClinic,
   getTrialDaysRemaining,
@@ -15,6 +16,7 @@ import {
 export default function UpgradePlan() {
   const [isAnnual, setIsAnnual] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [enterpriseCheckoutLoading, setEnterpriseCheckoutLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [billingInfo, setBillingInfo] = useState(null);
   const [toast, setToast] = useState(null);
@@ -24,11 +26,14 @@ export default function UpgradePlan() {
     JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user")) || {};
   const clinic = billingInfo || storedUser?.clinic || {};
   const currentPlan = clinic?.plan || "PRO";
+  const currentPlanLabel = currentPlan === "ENTERPRISE" ? "Enterprise" : "Professional";
   const subscriptionEnds = clinic?.subscriptionEnds || null;
   const paystackNextPaymentDate = clinic?.paystackNextPaymentDate || null;
   const isPro = currentPlan === "PRO";
+  const isEnterprise = currentPlan === "ENTERPRISE";
   const paidSubscriptionActive = hasActivePaidSubscription(clinic);
   const proAccessActive = hasActiveProAccess(clinic);
+  const enterpriseAccess = hasEnterpriseAccess(clinic);
   const trialing = isTrialingClinic(clinic);
   const remainingTrialDays = getTrialDaysRemaining(clinic);
 
@@ -45,11 +50,15 @@ export default function UpgradePlan() {
     loadBilling();
   }, []);
 
-  const handleUpgradeClick = async () => {
+  const handleUpgradeClick = async (plan = "PRO", interval = isAnnual ? "annually" : "monthly") => {
+    const setLoading =
+      plan === "ENTERPRISE" ? setEnterpriseCheckoutLoading : setCheckoutLoading;
+
     try {
-      setCheckoutLoading(true);
+      setLoading(true);
       const response = await api.post("/billing/paystack/initialize", {
-        interval: isAnnual ? "annually" : "monthly",
+        interval,
+        plan,
       });
       const authorizationUrl = response.data?.authorizationUrl;
 
@@ -67,7 +76,7 @@ export default function UpgradePlan() {
         type: "error",
       });
     } finally {
-      setCheckoutLoading(false);
+      setLoading(false);
     }
   };
 
@@ -142,7 +151,7 @@ export default function UpgradePlan() {
     setConfirmConfig({
       title: "Cancel Subscription",
       message:
-        "Are you sure you want to cancel your Pro plan subscription? The clinic will keep Pro access until the current paid period ends.",
+        `Are you sure you want to cancel your ${currentPlanLabel} plan subscription? The clinic will keep ${currentPlanLabel} access until the current paid period ends.`,
       confirmText: "Yes, Cancel",
       danger: true,
       onConfirm: executeCancelAutoRenew,
@@ -172,7 +181,7 @@ export default function UpgradePlan() {
         </h1>
         <p className="text-lg text-slate-500 max-w-2xl mx-auto">
           {paidSubscriptionActive 
-            ? "You are currently subscribed to the Professional plan. You have full access to unlimited patients, automated reminders, and advanced analytics."
+            ? `You are currently subscribed to the ${currentPlanLabel} plan. You have full access to unlimited patients, automated reminders, and advanced analytics.`
             : "Start with a 14-day free trial, then continue with a paid subscription for unlimited patients, automated reminders, and advanced analytics."}
         </p>
         {trialing && (
@@ -223,8 +232,8 @@ export default function UpgradePlan() {
         </div>
       </div>
 
-      <div className="grid gap-8 max-w-md mx-auto">
-        <div className="bg-gradient-to-b from-slate-50 via-white to-slate-100 rounded-3xl p-8 md:p-7 border border-slate-200 shadow-xl flex flex-col relative">
+      <div className="grid gap-8 xl:grid-cols-2">
+        <div className="bg-gradient-to-b from-slate-50 via-white to-slate-100 rounded-3xl p-8 md:p-7 border border-slate-200 shadow-xl flex flex-col relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
           {isPro && (
             <div className="absolute top-0 right-8 transform -translate-y-1/2">
               <span className="bg-primary-500 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
@@ -314,6 +323,83 @@ export default function UpgradePlan() {
             </FeatureItem>
             <FeatureItem included>Priority 24/7 Support</FeatureItem>
           </div>
+        </div>
+
+        <div className="relative h-full">
+          {isEnterprise && (
+            <div className="absolute top-0 right-8 transform -translate-y-1/2 z-10">
+              <span className="bg-amber-500 text-slate-950 text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
+                Current Plan
+              </span>
+            </div>
+          )}
+          <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 rounded-3xl p-8 md:p-7 border border-slate-800 shadow-xl flex flex-col h-full relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+            <div className="absolute -top-16 -right-10 h-40 w-40 rounded-full bg-sky-400/20 blur-3xl" />
+            <div className="absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-amber-400/20 blur-3xl" />
+
+          <div className="mb-6 relative">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-bold uppercase tracking-widest text-amber-300">
+              <Building2 size={16} />
+              Enterprise
+            </div>
+            <h3 className="mt-5 text-2xl font-bold text-white">Enterprise Plan</h3>
+            <p className="mt-2 text-sm leading-7 text-slate-300">
+              Built for clinic groups that need multi-branch control, branch-level
+              separation, and centralized oversight.
+            </p>
+          </div>
+
+          <div className="mb-8">
+            <span className="text-3xl md:text-4xl font-extrabold text-white">
+              NGN 150,000
+            </span>
+            <span className="ml-1 text-sm font-medium text-slate-400">
+              / month
+            </span>
+            <p className="mt-2 text-sm text-slate-400">
+              Monthly enterprise billing for multi-location clinics and hospital groups.
+            </p>
+          </div>
+
+          {enterpriseAccess ? (
+            <div className="mb-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-100">
+              Enterprise access is active on this clinic account. Branch management is unlocked.
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              className="mb-6 w-full border-white/20 bg-white/10 text-white hover:bg-white/15"
+              onClick={() => handleUpgradeClick("ENTERPRISE", "monthly")}
+              isLoading={enterpriseCheckoutLoading}
+            >
+              {paidSubscriptionActive && !isEnterprise
+                ? "Upgrade to Enterprise"
+                : "Subscribe to Enterprise"}
+              <ArrowRight size={16} className="ml-2" />
+            </Button>
+          )}
+
+          <div className="space-y-4 flex-1">
+            <FeatureItem included dark icon={<Building2 size={18} />}>
+              Multi-Branch Management
+            </FeatureItem>
+            <FeatureItem included dark>
+              Separate branches for locations like Bodija and Sango
+            </FeatureItem>
+            <FeatureItem included dark>
+              Branch identity duplicate protection
+            </FeatureItem>
+            <FeatureItem included dark>
+              Dedicated branch management page
+            </FeatureItem>
+            <FeatureItem included dark>
+              Branch activation and lifecycle control
+            </FeatureItem>
+            <FeatureItem included dark>
+              Centralized admin expansion path for branch-scoped staff and analytics
+            </FeatureItem>
+          </div>
+        </div>
         </div>
       </div>
     </motion.div>

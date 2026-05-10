@@ -18,7 +18,11 @@ import usePersistentState from "../../hooks/usePersistentState";
 export default function AppointmentSchedule({ patientId = null }) {
   const APPOINTMENTS_PER_PAGE = 24;
   const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
-  const canCompleteAppointment = storedUser.role === "admin" || storedUser.role === "doctor" || storedUser.role === "nurse";
+  const canCompleteAppointment =
+    storedUser.role === "admin" ||
+    storedUser.role === "branch_manager" ||
+    storedUser.role === "doctor" ||
+    storedUser.role === "nurse";
   const [appointments, setAppointments] = useState([]);
   const [pagination, setPagination] = useState({
     page: 1,

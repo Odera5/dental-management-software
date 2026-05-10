@@ -11,7 +11,9 @@ import usePersistentState from "../hooks/usePersistentState";
 import { isTrialingClinic, getTrialDaysRemaining } from "../utils/clinicAccess";
 
 const emptyPatientForm = {
-  name: "",
+  firstName: "",
+  lastName: "",
+  otherName: "",
   age: "",
   email: "",
   gender: "other",
@@ -40,7 +42,8 @@ export default function RegisterPatient() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.name.trim()) return showToast("Name cannot be empty.", "error");
+    const fullName = `${form.firstName?.trim() || ""} ${form.lastName?.trim() || ""} ${form.otherName?.trim() || ""}`.trim();
+    if (!form.firstName?.trim() || !form.lastName?.trim()) return showToast("First and Last name are required.", "error");
     if (!form.age || Number(form.age) <= 0) return showToast("Age must be greater than 0.", "error");
     if (form.email && !/\S+@\S+\.\S+/.test(form.email)) return showToast("Invalid email address.", "error");
 
@@ -48,7 +51,7 @@ export default function RegisterPatient() {
       setLoading(true);
 
       const payload = {
-        name: form.name.trim(),
+        name: fullName,
         age: form.age.toString(),
         gender: form.gender || "other",
         phone: form.phone?.trim() || "",
@@ -124,20 +127,41 @@ export default function RegisterPatient() {
 
           <CardContent className="p-8">
             <form onSubmit={handleSubmit} className="space-y-8">
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-6 md:grid-cols-2 mt-4">
                 <Input
-                  label="Full Name"
-                  name="name"
+                  label="First Name *"
+                  name="firstName"
                   icon={User}
-                  value={form.name}
+                  value={form.firstName || ""}
                   onChange={handleChange}
-                  placeholder="e.g. Jane Doe"
+                  placeholder="e.g. Jane"
                   disabled={loading}
                   required
                 />
                 
                 <Input
-                  label="Age"
+                  label="Last Name *"
+                  name="lastName"
+                  icon={User}
+                  value={form.lastName || ""}
+                  onChange={handleChange}
+                  placeholder="e.g. Doe"
+                  disabled={loading}
+                  required
+                />
+
+                <Input
+                  label="Other Name"
+                  name="otherName"
+                  icon={User}
+                  value={form.otherName || ""}
+                  onChange={handleChange}
+                  placeholder="Optional"
+                  disabled={loading}
+                />
+                
+                <Input
+                  label="Age *"
                   name="age"
                   type="number"
                   icon={Calendar}

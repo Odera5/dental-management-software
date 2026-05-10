@@ -1,4 +1,5 @@
 import api from "./api";
+import { getActiveBranchId } from "../utils/branchStorage";
 
 const SUMMARY_CACHE_TTL_MS = 30_000;
 const summaryListeners = new Set();
@@ -6,9 +7,12 @@ const summaryListeners = new Set();
 let cachedSummary = null;
 let cachedAt = 0;
 let inFlightSummaryPromise = null;
+let cachedBranchId = "";
 
 const isCacheFresh = () =>
-  cachedSummary && Date.now() - cachedAt < SUMMARY_CACHE_TTL_MS;
+  cachedSummary &&
+  cachedBranchId === getActiveBranchId() &&
+  Date.now() - cachedAt < SUMMARY_CACHE_TTL_MS;
 
 const cloneSummary = (summary) =>
   summary ? JSON.parse(JSON.stringify(summary)) : null;
@@ -41,6 +45,7 @@ export const subscribeDashboardSummary = (listener) => {
 export const writeDashboardSummaryCache = (summary) => {
   cachedSummary = summary || null;
   cachedAt = Date.now();
+  cachedBranchId = getActiveBranchId();
   notifySummaryListeners();
   return cachedSummary;
 };
@@ -52,6 +57,11 @@ export const patchDashboardSummaryCache = (updater) => {
 };
 
 export const getDashboardSummary = async ({ forceRefresh = false } = {}) => {
+  if (cachedBranchId && cachedBranchId !== getActiveBranchId()) {
+    cachedSummary = null;
+    cachedAt = 0;
+  }
+
   if (!forceRefresh && isCacheFresh()) {
     return cachedSummary;
   }

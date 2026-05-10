@@ -14,13 +14,12 @@ import usePersistentState from "../hooks/usePersistentState";
 import { readStoredJson } from "../utils/persistence";
 import { resolveAssetUrl } from "../utils/assetUrl";
 import { COUNTRIES } from "../constants/countries";
-import { REMINDER_TIMEZONES } from "../constants/reminderTimezones";
 import { hasActiveProAccess } from "../utils/clinicAccess";
 
 const initialForm = {
   clinicName: "", clinicEmail: "", clinicPhone: "", clinicCountry: "", clinicCity: "", clinicAddress: "", contactPerson: "",
   logoUrl: "", brandColor: "#0f172a",
-  reminderTimezone: "Africa/Lagos", reminderWindowStartHour: "8", reminderWindowEndHour: "18",
+  reminderOffsets: [1440, 120],
   procedurePresetPrices: DEFAULT_PROCEDURE_PRESETS,
 };
 
@@ -49,6 +48,92 @@ export default function ClinicSettings() {
   const [editingPresets, setEditingPresets] = useState({});
   const [presetOriginals, setPresetOriginals] = useState({});
   const [customInputs, setCustomInputs] = useState({});
+  const [editingReminders, setEditingReminders] = useState({});
+  const [reminderOriginals, setReminderOriginals] = useState({});
+
+  const toggleEditReminder = async (index) => {
+    if (editingReminders[index]) {
+      const { value, unit } = editingReminders[index];
+      const val = Number(value);
+      if (value === "" || val <= 0) {
+        return setToast({ show: true, message: "Reminder time must be a valid number greater than 0.", type: "error" });
+      }
+      const newOffset = unit === 'days' ? val * 1440 : unit === 'hours' ? val * 60 : val;
+      
+      const newForm = { ...form };
+      const nextOffsets = [...(newForm.reminderOffsets || [])];
+      nextOffsets[index] = newOffset;
+      newForm.reminderOffsets = nextOffsets;
+      
+      setForm(newForm);
+      setEditingReminders(prev => { const next = {...prev}; delete next[index]; return next; });
+      await saveSection("profile", newForm, "Reminder saved successfully");
+    } else {
+      const offset = form.reminderOffsets[index];
+      const isMinutes = offset === "" || offset < 60 || offset % 60 !== 0;
+      const isDays = offset !== "" && offset >= 1440 && offset % 1440 === 0;
+      const unit = isDays ? 'days' : isMinutes ? 'minutes' : 'hours';
+      const displayValue = offset === "" ? "" : isDays ? offset / 1440 : isMinutes ? offset : offset / 60;
+      
+      setReminderOriginals(prev => ({...prev, [index]: offset}));
+      setEditingReminders(prev => ({...prev, [index]: { value: displayValue, unit }}));
+    }
+  };
+
+  const cancelEditReminder = (index) => {
+    setEditingReminders(prev => { const next = {...prev}; delete next[index]; return next; });
+    if (reminderOriginals[index] !== undefined) {
+      setForm(c => {
+        const nextOffsets = [...(c.reminderOffsets || [])];
+        nextOffsets[index] = reminderOriginals[index];
+        return { ...c, reminderOffsets: nextOffsets };
+      });
+    }
+  };
+
+  const handleDeleteReminderClick = (index) => {
+    const offset = form.reminderOffsets[index];
+    const isMinutes = offset === "" || offset < 60 || offset % 60 !== 0;
+    const isDays = offset !== "" && offset >= 1440 && offset % 1440 === 0;
+    const unit = isDays ? 'days' : isMinutes ? 'minutes' : 'hours';
+    const displayValue = offset === "" ? "" : isDays ? offset / 1440 : isMinutes ? offset : offset / 60;
+    const label = offset === "" ? "this reminder" : `${displayValue} ${unit} before`;
+
+    setConfirmConfig({
+      title: "Delete Reminder",
+      message: `Are you sure you want to delete the reminder for ${label}?`,
+      confirmText: "Delete",
+      confirmVariant: "danger",
+      onConfirm: async () => {
+        setConfirmConfig(null);
+        const updated = form.reminderOffsets.filter((_, i) => i !== index);
+        const newForm = { ...form, reminderOffsets: updated };
+        setForm(newForm);
+        setEditingReminders(prev => {
+          const next = {...prev};
+          delete next[index];
+          return Object.keys(next).reduce((acc, key) => {
+            const k = parseInt(key);
+            if (k < index) acc[k] = next[k];
+            if (k > index) acc[k - 1] = next[k];
+            return acc;
+          }, {});
+        });
+        await saveSection("profile", newForm, "Reminder deleted successfully");
+      }
+    });
+  };
+
+  const handleAddReminder = () => {
+    const newIndex = (form.reminderOffsets || []).length;
+    const newOffset = 60;
+    setForm(c => ({
+      ...c,
+      reminderOffsets: [...(c.reminderOffsets || []), newOffset]
+    }));
+    setReminderOriginals(prev => ({...prev, [newIndex]: newOffset}));
+    setEditingReminders(prev => ({...prev, [newIndex]: { value: 1, unit: 'hours' }}));
+  };
 
   const [deactivateStep, setDeactivateStep] = useState(0);
   const [deactivatePassword, setDeactivatePassword] = useState("");
@@ -252,9 +337,7 @@ export default function ClinicSettings() {
             clinicName: clinic?.name || "", clinicEmail: clinic?.email || "", clinicPhone: clinic?.phone || "",
             clinicCountry: clinic?.country || "", clinicCity: clinic?.city || "", clinicAddress: clinic?.address || "", contactPerson: clinic?.contactPerson || "",
             logoUrl: clinic?.logoUrl || "", brandColor: clinic?.brandColor || "#0f172a",
-            reminderTimezone: clinic?.reminderTimezone || "Africa/Lagos",
-            reminderWindowStartHour: String(clinic?.reminderWindowStartHour ?? 8),
-            reminderWindowEndHour: String(clinic?.reminderWindowEndHour ?? 18),
+            reminderOffsets: clinic?.reminderOffsets || [1440, 120],
             procedurePresetPrices: normalizeProcedurePresets(clinic?.procedurePresetPrices),
           });
         }
@@ -289,9 +372,15 @@ export default function ClinicSettings() {
   };
 
   const saveSection = async (section, dataToSave, successMsg) => {
-    setSaving(true);
-    
     let payload = { ...dataToSave };
+    
+    if (payload.reminderOffsets && Array.isArray(payload.reminderOffsets)) {
+      if (payload.reminderOffsets.some(offset => offset === "" || Number(offset) <= 0)) {
+        return setToast({ show: true, message: "Reminder time must be a valid number greater than 0.", type: "error" });
+      }
+    }
+
+    setSaving(true);
     
     if (section === "profile") {
       payload.brandColor = billingInfo?.brandColor || "#0f172a";
@@ -304,9 +393,7 @@ export default function ClinicSettings() {
       payload.clinicCity = billingInfo?.city || payload.clinicCity;
       payload.clinicAddress = billingInfo?.address || payload.clinicAddress;
       payload.contactPerson = billingInfo?.contactPerson || payload.contactPerson;
-      payload.reminderTimezone = billingInfo?.reminderTimezone || payload.reminderTimezone;
-      payload.reminderWindowStartHour = String(billingInfo?.reminderWindowStartHour ?? payload.reminderWindowStartHour ?? 8);
-      payload.reminderWindowEndHour = String(billingInfo?.reminderWindowEndHour ?? payload.reminderWindowEndHour ?? 18);
+      payload.reminderOffsets = billingInfo?.reminderOffsets || payload.reminderOffsets;
       payload.procedurePresetPrices = billingInfo?.procedurePresetPrices ? normalizeProcedurePresets(billingInfo.procedurePresetPrices) : payload.procedurePresetPrices;
     } else if (section === "presets") {
       payload.clinicName = billingInfo?.name || payload.clinicName;
@@ -318,9 +405,7 @@ export default function ClinicSettings() {
       payload.contactPerson = billingInfo?.contactPerson || payload.contactPerson;
       payload.brandColor = billingInfo?.brandColor || "#0f172a";
       payload.logoUrl = billingInfo?.logoUrl || "";
-      payload.reminderTimezone = billingInfo?.reminderTimezone || payload.reminderTimezone;
-      payload.reminderWindowStartHour = String(billingInfo?.reminderWindowStartHour ?? payload.reminderWindowStartHour ?? 8);
-      payload.reminderWindowEndHour = String(billingInfo?.reminderWindowEndHour ?? payload.reminderWindowEndHour ?? 18);
+      payload.reminderOffsets = billingInfo?.reminderOffsets || payload.reminderOffsets;
     }
 
     try {
@@ -339,9 +424,7 @@ export default function ClinicSettings() {
           clinicAddress: clinic.address || "",
           contactPerson: clinic.contactPerson || "",
           logoUrl: clinic.logoUrl || "",
-          reminderTimezone: clinic.reminderTimezone || "Africa/Lagos",
-          reminderWindowStartHour: String(clinic.reminderWindowStartHour ?? 8),
-          reminderWindowEndHour: String(clinic.reminderWindowEndHour ?? 18),
+          reminderOffsets: clinic.reminderOffsets || [1440, 120],
         }));
       } else if (section === "branding") {
         setForm(c => ({
@@ -486,49 +569,86 @@ export default function ClinicSettings() {
                       </div>
 
                       <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-6">
-                         <div className="mb-4">
-                           <h3 className="font-bold text-slate-900 text-lg flex items-center mb-1"><Clock size={20} className="mr-2 text-emerald-600" /> Reminder Timing</h3>
-                           <p className="text-slate-600 text-sm">Automated appointment reminders follow this timezone and only send during these daily hours.</p>
+                         <div className="mb-4 flex items-center justify-between">
+                           <div>
+                             <h3 className="font-bold text-slate-900 text-lg flex items-center mb-1"><Clock size={20} className="mr-2 text-emerald-600" /> Reminder Schedule</h3>
+                             <p className="text-slate-600 text-sm">Configure exactly when automated reminders should be sent before appointments.</p>
+                           </div>
+                           <Button type="button" size="sm" variant="outline" onClick={handleAddReminder} className="bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50">
+                             <Plus size={14} className="mr-1" /> Add
+                           </Button>
                          </div>
-                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                           <Select
-                             label="Timezone"
-                             name="reminderTimezone"
-                             value={form.reminderTimezone}
-                             onChange={handleChange}
-                             icon={Globe}
-                             className="bg-white"
-                           >
-                             {REMINDER_TIMEZONES.map((timezone) => (
-                               <option key={timezone.value} value={timezone.value}>
-                                 {timezone.label}
-                               </option>
-                             ))}
-                           </Select>
-                           <Input
-                             label="Start Hour"
-                             name="reminderWindowStartHour"
-                             type="number"
-                             min="0"
-                             max="23"
-                             value={form.reminderWindowStartHour}
-                             onChange={handleChange}
-                             icon={Clock}
-                             className="bg-white"
-                           />
-                           <Input
-                             label="End Hour"
-                             name="reminderWindowEndHour"
-                             type="number"
-                             min="1"
-                             max="23"
-                             value={form.reminderWindowEndHour}
-                             onChange={handleChange}
-                             icon={Clock}
-                             className="bg-white"
-                           />
+                         <div className="space-y-3">
+                           {(form.reminderOffsets || []).map((offset, index) => {
+                              const editState = editingReminders[index];
+                              const isEditing = !!editState;
+                              
+                              const isMinutes = offset === "" || offset < 60 || offset % 60 !== 0;
+                              const isDays = offset !== "" && offset >= 1440 && offset % 1440 === 0;
+                              const displayUnit = isDays ? 'days' : isMinutes ? 'minutes' : 'hours';
+                              const displayValueRaw = offset === "" ? "" : isDays ? offset / 1440 : isMinutes ? offset : offset / 60;
+                              
+                              const activeUnit = isEditing ? editState.unit : displayUnit;
+                              const activeValue = isEditing ? editState.value : displayValueRaw;
+
+                              return (
+                                <div key={index} className="flex flex-wrap sm:flex-nowrap items-center gap-3 bg-white p-3 rounded-xl border border-emerald-100 shadow-sm">
+                                  <span className="text-sm font-semibold text-slate-600 min-w-fit">Set time</span>
+                                  {isEditing ? (
+                                    <div className="flex gap-2">
+                                      <Input 
+                                        type="number" min="0" step="1"
+                                        value={activeValue} 
+                                        onChange={(e) => {
+                                           const rawVal = e.target.value;
+                                           const val = rawVal === "" ? "" : Math.max(0, parseInt(rawVal, 10) || 0);
+                                           setEditingReminders(prev => ({...prev, [index]: { ...prev[index], value: val }}));
+                                        }}
+                                        className="w-24 text-center !mb-0" 
+                                      />
+                                      <Select 
+                                        value={activeUnit}
+                                        onChange={(e) => {
+                                           const newUnit = e.target.value;
+                                           setEditingReminders(prev => ({...prev, [index]: { ...prev[index], unit: newUnit }}));
+                                        }}
+                                        className="w-32 !mb-0"
+                                      >
+                                        <option value="minutes">Minutes</option>
+                                        <option value="hours">Hours</option>
+                                        <option value="days">Days</option>
+                                      </Select>
+                                    </div>
+                                  ) : (
+                                    <div className="flex">
+                                      <span className="text-sm font-bold text-emerald-700 bg-emerald-100/60 px-3 py-1.5 rounded-lg">
+                                        {activeValue} {activeUnit.charAt(0).toUpperCase() + activeUnit.slice(1)}
+                                      </span>
+                                    </div>
+                                  )}
+                                  
+                                  <span className="text-sm font-semibold text-slate-600 min-w-fit">before</span>
+                                  
+                                  <div className="flex items-center gap-2 ml-auto">
+                                    {isEditing && (
+                                      <Button type="button" size="sm" variant="ghost" onClick={() => cancelEditReminder(index)} className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-3">
+                                        Cancel
+                                      </Button>
+                                    )}
+                                    <Button type="button" size="sm" variant={isEditing ? "default" : "outline"} onClick={() => toggleEditReminder(index)} className={isEditing ? "bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-sm" : "text-slate-600 bg-white"}>
+                                      {isEditing ? <><Save size={14} className="mr-1.5" /> Save</> : <><Edit2 size={14} className="mr-1.5" /> Edit</>}
+                                    </Button>
+                                    <Button type="button" size="sm" variant="ghost" onClick={() => handleDeleteReminderClick(index)} className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2">
+                                      <Trash2 size={16} />
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                           })}
+                           {(!form.reminderOffsets || form.reminderOffsets.length === 0) && (
+                              <p className="text-sm text-slate-500 italic p-2 text-center bg-white rounded-xl border border-emerald-100 border-dashed">No automated reminders scheduled.</p>
+                           )}
                          </div>
-                         <p className="mt-4 text-xs text-slate-500">Example: `8` to `18` means reminders can send between 8:00 AM and 6:00 PM in the clinic timezone. Reminders are scheduled for 24 hours and 2 hours before each appointment, during the clinic&apos;s allowed sending hours.</p>
                       </div>
 
                       <div className="pt-4 border-t border-slate-100">
@@ -583,8 +703,8 @@ export default function ClinicSettings() {
                  <CardContent className="p-8">
                     <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-4">
                        <div>
-                         <h3 className="font-bold text-slate-900 text-lg flex items-center mb-1"><LinkIcon size={20} className="mr-2 text-primary-600" /> Patient Intake Form</h3>
-                         <p className="text-slate-500 text-sm">Share this link to let patients securely self-register online.</p>
+                        <h3 className="font-bold text-slate-900 text-lg flex items-center mb-1"><LinkIcon size={20} className="mr-2 text-primary-600" /> Current Branch Intake Form</h3>
+                        <p className="text-slate-500 text-sm">This link applies to the branch currently selected in your header branch switcher.</p>
                        </div>
                        {!hasProAccess && (
                          <div className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center border border-amber-200">
@@ -624,7 +744,7 @@ export default function ClinicSettings() {
                              {copied ? "Copied" : "Copy"}
                           </Button>
                        </div>
-                       <p className="text-xs text-slate-400 mt-3">Only patients with this secure tokenized link can open the intake form. Regenerating the link immediately revokes the old one.</p>
+                       <p className="text-xs text-slate-400 mt-3">Only patients with this secure tokenized link can open the intake form for the selected branch. Regenerating the link immediately revokes the old one.</p>
                     </div>
 
                     {!hasProAccess && (

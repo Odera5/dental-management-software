@@ -15,7 +15,9 @@ import {
   Settings,
   Crown,
   BarChart3,
-  Inbox
+  Inbox,
+  Building2,
+  ChevronDown,
 } from "lucide-react";
 import api, { logoutCurrentUser } from "../../services/api";
 import {
@@ -27,11 +29,17 @@ import Button from "../ui/Button";
 import primuxFavicon from "../../assets/primux-logo.png";
 import { updateStoredUser } from "../../utils/authStorage";
 import {
+  getActiveBranchId,
+  getAvailableBranches,
+  setActiveBranch,
+} from "../../utils/branchStorage";
+import {
   hasActiveProAccess,
   hasActivePaidSubscription,
   isSubscriptionExpired,
   isTrialingClinic,
   getTrialDaysRemaining,
+  hasEnterpriseAccess,
 } from "../../utils/clinicAccess";
 
 function NavItem({
@@ -75,6 +83,32 @@ function NavItem({
   );
 }
 
+const BRANCH_SWITCH_SAFE_ROUTES = [
+  "/dashboard",
+  "/register-patient",
+  "/appointments",
+  "/waiting-room",
+  "/pending-intakes",
+  "/billing",
+  "/reports",
+  "/signup",
+  "/clinic-settings",
+  "/branches",
+  "/upgrade",
+];
+
+function getBranchSwitchDestination(pathname, search = "") {
+  const isSafeRoute = BRANCH_SWITCH_SAFE_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+
+  if (!isSafeRoute) {
+    return "/dashboard";
+  }
+
+  return `${pathname}${search || ""}`;
+}
+
 export default function DashboardLayout() {
   const MotionDiv = motion.div;
   const MotionAside = motion.aside;
@@ -94,6 +128,16 @@ export default function DashboardLayout() {
   );
   const [showTrialBanner, setShowTrialBanner] = useState(false);
   const [clinicState, setClinicState] = useState(null);
+  const [branchState, setBranchState] = useState(() => {
+    const stored =
+      JSON.parse(
+        localStorage.getItem("user") || sessionStorage.getItem("user"),
+      ) || {};
+    return stored.branch || null;
+  });
+  const [availableBranches, setAvailableBranches] = useState(() =>
+    getAvailableBranches(),
+  );
 
   const storedUser =
     JSON.parse(
@@ -106,16 +150,21 @@ export default function DashboardLayout() {
   };
 
   const clinic = clinicState || storedUser.clinic || {};
+  const activeBranch = branchState || storedUser.branch || null;
+  const isAdmin = user.role === "admin";
+  const isBranchManager = user.role === "branch_manager";
   const clinicPlan = clinic.plan || "PRO";
+  const isPaidTier = ["PRO", "ENTERPRISE"].includes(clinicPlan);
   const subscriptionExpired = isSubscriptionExpired(clinic);
   const subscriptionEnds = clinic.subscriptionEnds;
   const paidSubscriptionActive = hasActivePaidSubscription(clinic);
   const activeProAccess = hasActiveProAccess(clinic);
+  const enterpriseAccess = hasEnterpriseAccess(clinic);
   const trialing = isTrialingClinic(clinic);
   const remainingTrialDays = getTrialDaysRemaining(clinic);
   let remainingPaidDays = 0;
 
-  if (clinicPlan === "PRO" && subscriptionEnds && paidSubscriptionActive) {
+  if (isPaidTier && subscriptionEnds && paidSubscriptionActive) {
     const end = new Date(subscriptionEnds);
     const now = new Date();
     const days = Math.max(
@@ -127,7 +176,7 @@ export default function DashboardLayout() {
 
   useEffect(() => {
     if (
-      clinicPlan !== "PRO" ||
+      !isPaidTier ||
       paidSubscriptionActive ||
       remainingTrialDays <= 0
     )
@@ -148,12 +197,12 @@ export default function DashboardLayout() {
       clearTimeout(showTimer);
       if (hideTimer) clearTimeout(hideTimer);
     };
-  }, [clinicPlan, remainingTrialDays, paidSubscriptionActive]);
+  }, [isPaidTier, remainingTrialDays, paidSubscriptionActive]);
 
   const canViewRecords =
-    ["admin", "doctor", "nurse"].includes(user.role) && activeProAccess;
+    ["admin", "branch_manager", "doctor", "nurse"].includes(user.role) && activeProAccess;
   const showRestrictedAdminShell =
-    subscriptionExpired && user.role === "admin";
+    subscriptionExpired && isAdmin;
 
   const applySummary = (summary = {}) => {
     setAppointmentCount(summary?.appointments?.scheduled || 0);
@@ -210,21 +259,30 @@ export default function DashboardLayout() {
       try {
         const response = await api.get("/auth/clinic-profile");
         const latestClinic = response.data?.clinic || null;
+        const latestBranches = response.data?.branches || getAvailableBranches();
+        const latestActiveBranch = response.data?.activeBranch || null;
 
         if (!isMounted || !latestClinic) {
           return;
         }
 
         setClinicState(latestClinic);
-        updateStoredUser({ clinic: latestClinic });
+        setAvailableBranches(latestBranches);
+        setBranchState(latestActiveBranch);
+        updateStoredUser({
+          clinic: latestClinic,
+          branches: latestBranches,
+          branchId: latestActiveBranch?.id || null,
+          branch: latestActiveBranch,
+        });
 
-        if (user.role !== "admin" && isSubscriptionExpired(latestClinic)) {
+        if (!isAdmin && isSubscriptionExpired(latestClinic)) {
           await logoutCurrentUser();
           navigate("/login", { replace: true });
           return;
         }
 
-        if (user.role === "admin" && isSubscriptionExpired(latestClinic)) {
+        if (isAdmin && isSubscriptionExpired(latestClinic)) {
           navigate("/upgrade", { replace: true });
         }
       } catch {
@@ -239,6 +297,71 @@ export default function DashboardLayout() {
     };
   }, [navigate, user.role]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadBranches = async () => {
+      try {
+        const response = await api.get("/branches");
+        if (!isMounted) return;
+        const branches = (response.data?.branches || []).filter(
+          (branch) => branch?.isActive,
+        );
+        setAvailableBranches(branches);
+
+        const requestedBranchId = getActiveBranchId();
+        const nextBranch =
+          branches.find((branch) => branch.id === requestedBranchId) ||
+          branches.find((branch) => branch.isPrimary) ||
+          branches[0] ||
+          null;
+
+        if (nextBranch) {
+          setBranchState(nextBranch);
+          setActiveBranch(nextBranch);
+          updateStoredUser({
+            branches,
+            branchId: nextBranch.id,
+            branch: nextBranch,
+          });
+        }
+      } catch {
+        // ignore branch list failures and fall back to stored branch
+      }
+    };
+
+    loadBranches();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleBranchChange = async (nextBranchId) => {
+    const nextBranch = availableBranches.find((branch) => branch.id === nextBranchId);
+    if (!nextBranch) return;
+
+    setBranchState(nextBranch);
+    setActiveBranch(nextBranch);
+    updateStoredUser({
+      branchId: nextBranch.id,
+      branch: nextBranch,
+      branches: availableBranches,
+    });
+
+    try {
+      await getDashboardSummary({ forceRefresh: true });
+    } catch {
+      // page-level fetchers will retry
+    }
+
+    const destination = getBranchSwitchDestination(
+      location.pathname,
+      location.search,
+    );
+    window.location.assign(destination);
+  };
+
   const handleLogout = async () => {
     await logoutCurrentUser();
     navigate("/login");
@@ -248,6 +371,8 @@ export default function DashboardLayout() {
     navigate(path);
     setMobileMenuOpen(false);
   };
+
+  const canSwitchBranches = availableBranches.length > 1;
 
   // Determine header title based on pathname
   let headerTitle = "Overview";
@@ -261,6 +386,8 @@ export default function DashboardLayout() {
   else if (location.pathname.includes("/signup")) headerTitle = "Manage Staff";
   else if (location.pathname.includes("/clinic-settings"))
     headerTitle = "Clinic Settings";
+  else if (location.pathname.includes("/branches"))
+    headerTitle = "Manage Branches";
   else if (location.pathname.includes("/patients/"))
     headerTitle = "Patient Record";
   else if (location.pathname.includes("/upgrade")) headerTitle = "Upgrade Plan";
@@ -301,9 +428,15 @@ export default function DashboardLayout() {
               <span className="font-bold text-slate-900 tracking-tight block leading-4">
                 PrimuxCare
               </span>
-              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest">
+              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest flex items-center gap-1 mt-0.5">
                 {user.clinicName}
+                {enterpriseAccess && <Crown size={12} className="text-amber-500 shrink-0" />}
               </span>
+              {activeBranch && (
+                <span className="text-[10px] text-primary-600 font-semibold uppercase tracking-widest block mt-1">
+                  {activeBranch.city || activeBranch.name}{activeBranch.area ? ` - ${activeBranch.area}` : ""}
+                </span>
+              )}
             </div>
           </div>
           <button
@@ -368,18 +501,20 @@ export default function DashboardLayout() {
                   location={location}
                   onNavigate={handleNavClick}
                 />
-                <NavItem
-                  icon={BarChart3}
-                  label="Reports"
-                  path="/reports"
-                  location={location}
-                  onNavigate={handleNavClick}
-                />
+                {(isAdmin || isBranchManager) && (
+                  <NavItem
+                    icon={BarChart3}
+                    label="Reports"
+                    path="/reports"
+                    location={location}
+                    onNavigate={handleNavClick}
+                  />
+                )}
               </>
             )}
           </div>
 
-          {user.role === "admin" && !showRestrictedAdminShell && (
+          {(isAdmin || isBranchManager) && !showRestrictedAdminShell && (
             <div>
               <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
                 Administration
@@ -391,35 +526,50 @@ export default function DashboardLayout() {
                 location={location}
                 onNavigate={handleNavClick}
               />
+              {isAdmin && (
+                <>
+                  <NavItem
+                    icon={Settings}
+                    label="Clinic Settings"
+                    path="/clinic-settings"
+                    location={location}
+                    onNavigate={handleNavClick}
+                  />
+                  {enterpriseAccess && (
+                    <NavItem
+                      icon={Building2}
+                      label="Manage Branches"
+                      path="/branches"
+                      location={location}
+                      onNavigate={handleNavClick}
+                    />
+                  )}
+                  <NavItem
+                    icon={Trash2}
+                    label="Trash"
+                    path="/dashboard?tab=trash"
+                    location={location}
+                    onNavigate={handleNavClick}
+                  />
+                </>
+              )}
+            </div>
+          )}
+
+          {isAdmin && (
+            <div>
+              <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                {showRestrictedAdminShell ? "Renewal" : "SaaS Plan"}
+              </p>
               <NavItem
-                icon={Settings}
-                label="Clinic Settings"
-                path="/clinic-settings"
-                location={location}
-                onNavigate={handleNavClick}
-              />
-              <NavItem
-                icon={Trash2}
-                label="Trash"
-                path="/dashboard?tab=trash"
+                icon={Crown}
+                label={showRestrictedAdminShell ? "Renew Subscription" : "Upgrade Plan"}
+                path="/upgrade"
                 location={location}
                 onNavigate={handleNavClick}
               />
             </div>
           )}
-
-          <div>
-            <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              {showRestrictedAdminShell ? "Renewal" : "SaaS Plan"}
-            </p>
-            <NavItem
-              icon={Crown}
-              label={showRestrictedAdminShell ? "Renew Subscription" : "Upgrade Plan"}
-              path="/upgrade"
-              location={location}
-              onNavigate={handleNavClick}
-            />
-          </div>
         </div>
 
         <div className="p-4 border-t border-surface-100 bg-surface-50 shrink-0">
@@ -458,6 +608,23 @@ export default function DashboardLayout() {
             </h1>
           </div>
           <div className="flex items-center gap-3">
+            {availableBranches.length > 0 && canSwitchBranches && (
+              <div className="hidden md:flex items-center gap-2 rounded-full border border-surface-200 bg-white px-4 py-2 shadow-sm hover:border-primary-300 transition-colors focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-100 relative group cursor-pointer">
+                <Building2 size={16} className="text-primary-500 shrink-0" />
+                <select
+                  value={activeBranch?.id || ""}
+                  onChange={(event) => handleBranchChange(event.target.value)}
+                  className="bg-transparent text-sm font-medium text-slate-700 outline-none appearance-none pr-6 cursor-pointer"
+                >
+                  {availableBranches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.city || branch.name}{branch.area ? ` - ${branch.area}` : ""}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="text-slate-400 absolute right-3.5 pointer-events-none group-hover:text-primary-500 transition-colors" />
+              </div>
+            )}
             <div className="flex items-center gap-2 pl-4 text-sm font-medium text-slate-600 bg-white border border-surface-200 px-4 py-2 rounded-full shadow-sm">
               <Clock size={16} className="text-primary-500 hidden sm:block" />
               {currentTime.toLocaleTimeString([], {
@@ -479,7 +646,7 @@ export default function DashboardLayout() {
             >
               <span className="flex items-center gap-2">
                 <Crown size={18} />
-                Your Pro access has expired. Billing is available, but clinic operations are now locked until renewal.
+                Your paid plan access has expired. Billing is available, but clinic operations are now locked until renewal.
               </span>
               {location.pathname !== "/upgrade" && (
                 <button
@@ -509,7 +676,7 @@ export default function DashboardLayout() {
                 <span className="flex items-center gap-2">
                   <Crown size={18} />
                   {remainingTrialDays <= 3 ? "URGENT: " : ""}You have{" "}
-                  {remainingTrialDays} days left on your 14-day Pro Trial.
+                  {remainingTrialDays} days left on your 14-day {clinicPlan === "ENTERPRISE" ? "Enterprise" : "Pro"} Trial.
                 </span>
                 <div className="flex items-center gap-2">
                   {location.pathname !== "/upgrade" && (
@@ -536,14 +703,14 @@ export default function DashboardLayout() {
             )}
         </AnimatePresence>
 
-        {clinicPlan === "PRO" &&
+        {isPaidTier &&
           paidSubscriptionActive &&
           subscriptionEnds &&
           !showRestrictedAdminShell &&
           remainingPaidDays <= 7 && (
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2.5 text-center text-sm font-bold shadow-sm shrink-0 relative z-10 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 print:hidden">
               <span className="flex items-center gap-2">
-                <Crown size={18} /> Pro Plan renews in {remainingPaidDays} {remainingPaidDays === 1 ? "day" : "days"} (
+                <Crown size={18} /> {clinicPlan === "ENTERPRISE" ? "Enterprise" : "Pro"} Plan renews in {remainingPaidDays} {remainingPaidDays === 1 ? "day" : "days"} (
                 {new Date(subscriptionEnds).toLocaleDateString("en-NG", {
                   year: "numeric",
                   month: "short",

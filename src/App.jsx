@@ -24,6 +24,7 @@ const Billing = lazy(() => import("./pages/Billing"));
 const WaitingRoom = lazy(() => import("./pages/WaitingRoom"));
 const Support = lazy(() => import("./pages/Support"));
 const UpgradePlan = lazy(() => import("./pages/UpgradePlan"));
+const BranchManagement = lazy(() => import("./pages/BranchManagement"));
 const Reports = lazy(() => import("./pages/Reports"));
 const PendingIntakes = lazy(() => import("./pages/PendingIntakes"));
 const PatientIntakeForm = lazy(() => import("./pages/PatientIntakeForm"));
@@ -49,10 +50,18 @@ const ProtectedLayout = () => (
 );
 
 function HomeRedirect() {
-  const user = getStoredUser();
-  const lastRoute = readLastVisitedRoute();
+  const storedUser = getStoredUser();
+  let user = null;
+
+  try {
+    user = storedUser ? JSON.parse(storedUser) : null;
+  } catch {
+    user = null;
+  }
+
+  const lastRoute = readLastVisitedRoute(user);
   
-  const fallbackRoute = user ? lastRoute || "/dashboard" : "/login";
+  const fallbackRoute = storedUser ? lastRoute || "/dashboard" : "/login";
 
   return <Navigate to={fallbackRoute} replace />;
 }
@@ -101,7 +110,7 @@ function App() {
               <Route
                 path="/signup"
                 element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
+                  <ProtectedRoute allowedRoles={["admin", "branch_manager"]}>
                     <Signup />
                   </ProtectedRoute>
                 }
@@ -115,9 +124,17 @@ function App() {
                 }
               />
               <Route
+                path="/branches"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <BranchManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/patients/:id/records"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "doctor", "nurse"]}>
+                  <ProtectedRoute allowedRoles={["admin", "branch_manager", "doctor", "nurse"]}>
                     <PatientRecord />
                   </ProtectedRoute>
                 }

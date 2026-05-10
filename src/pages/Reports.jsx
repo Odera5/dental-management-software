@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { BarChart3, TrendingUp, Users, Calendar, Lock } from "lucide-react";
+import { BarChart3, TrendingUp, Users, Calendar, Lock, Activity, Stethoscope, HeartPulse, Building2, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
@@ -207,6 +207,156 @@ export default function Reports() {
               </Card>
            </div>
         </div>
+
+        {/* Clinical Insights Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+           <Card className="border-slate-200 shadow-sm bg-white">
+              <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
+                 <CardTitle className="flex items-center justify-between w-full text-slate-800">
+                   <div className="flex items-center gap-2">
+                     <Stethoscope className="text-teal-500" size={20} />
+                     <span>Top Diagnoses</span>
+                   </div>
+                   {data.clinicalInsights?.totalDiagnoses > 0 && (
+                     <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+                        {data.clinicalInsights.totalDiagnoses > 5 ? `Top 5 of ${data.clinicalInsights.totalDiagnoses}` : `Showing all ${data.clinicalInsights.totalDiagnoses}`}
+                     </span>
+                   )}
+                 </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                 {!data.clinicalInsights?.topDiagnoses?.length ? (
+                    <div className="text-sm text-slate-400 italic text-center py-4">No diagnostic data available.</div>
+                 ) : (
+                    <div className="space-y-5">
+                       {data.clinicalInsights.topDiagnoses.map((diag, idx) => {
+                          const maxCount = Math.max(...data.clinicalInsights.topDiagnoses.map(d => d.count), 1);
+                          return (
+                            <div key={idx} className="space-y-1.5">
+                               <div className="flex justify-between text-sm">
+                                  <span className="font-semibold text-slate-700 capitalize truncate pr-4">{diag.name}</span>
+                                  <span className="font-extrabold text-slate-900 shrink-0">{diag.count} Cases</span>
+                               </div>
+                               <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                                  <div className="bg-gradient-to-r from-teal-400 to-teal-500 h-full rounded-full transition-all duration-1000" style={{ width: `${Math.max((diag.count / maxCount) * 100, 2)}%` }}></div>
+                               </div>
+                            </div>
+                          );
+                       })}
+                    </div>
+                 )}
+              </CardContent>
+           </Card>
+
+           <Card className="border-slate-200 shadow-sm bg-white">
+              <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
+                 <CardTitle className="flex items-center justify-between w-full text-slate-800">
+                   <div className="flex items-center gap-2">
+                     <HeartPulse className="text-rose-500" size={20} />
+                     <span>Top Presenting Complaints</span>
+                   </div>
+                   {data.clinicalInsights?.totalComplaints > 0 && (
+                     <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+                        {data.clinicalInsights.totalComplaints > 5 ? `Top 5 of ${data.clinicalInsights.totalComplaints}` : `Showing all ${data.clinicalInsights.totalComplaints}`}
+                     </span>
+                   )}
+                 </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                 {!data.clinicalInsights?.topComplaints?.length ? (
+                    <div className="text-sm text-slate-400 italic text-center py-4">No complaint data available.</div>
+                 ) : (
+                    <div className="space-y-5">
+                       {data.clinicalInsights.topComplaints.map((comp, idx) => {
+                          const maxCount = Math.max(...data.clinicalInsights.topComplaints.map(c => c.count), 1);
+                          return (
+                            <div key={idx} className="space-y-1.5">
+                               <div className="flex justify-between text-sm">
+                                  <span className="font-semibold text-slate-700 capitalize truncate pr-4">{comp.name}</span>
+                                  <span className="font-extrabold text-slate-900 shrink-0">{comp.count} Cases</span>
+                               </div>
+                               <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                                  <div className="bg-gradient-to-r from-rose-400 to-rose-500 h-full rounded-full transition-all duration-1000" style={{ width: `${Math.max((comp.count / maxCount) * 100, 2)}%` }}></div>
+                               </div>
+                            </div>
+                          );
+                       })}
+                    </div>
+                 )}
+              </CardContent>
+           </Card>
+        </div>
+
+        {/* Enterprise Cross-Branch Analytics Section */}
+        {data.enterprise && (
+           <div className="mt-10">
+              <div className="flex items-center gap-3 mb-6">
+                 <div className="bg-amber-100 text-amber-600 p-2 rounded-lg shadow-sm border border-amber-200">
+                    <Crown size={24} />
+                 </div>
+                 <div>
+                    <h3 className="text-xl font-bold text-slate-900">Enterprise Analytics</h3>
+                    <p className="text-sm text-slate-500">Cross-branch network performance (Admin Only)</p>
+                 </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <Card className="border-amber-200 shadow-sm bg-gradient-to-br from-amber-50/50 to-white overflow-hidden">
+                    <CardHeader className="border-b border-amber-100 pb-4 bg-amber-50/50">
+                       <CardTitle className="flex items-center gap-2 text-slate-800">
+                         <Building2 className="text-amber-500" size={20} />
+                         Revenue by Branch
+                       </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                       {!data.enterprise.revenueByBranch?.length ? (
+                          <div className="text-sm text-slate-400 italic text-center py-4">No revenue data across branches.</div>
+                       ) : (
+                          <div className="space-y-5">
+                             {data.enterprise.revenueByBranch.map((branch, idx) => {
+                                const maxBranchRev = Math.max(...data.enterprise.revenueByBranch.map(b => b.total), 1);
+                                return (
+                                  <div key={idx} className="space-y-1.5">
+                                     <div className="flex justify-between text-sm">
+                                        <span className="font-bold text-slate-700">{branch.branchName}</span>
+                                        <span className="font-extrabold text-slate-900">₦{branch.total.toLocaleString()}</span>
+                                     </div>
+                                     <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                                        <div className="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-full transition-all duration-1000" style={{ width: `${Math.max((branch.total / maxBranchRev) * 100, 2)}%` }}></div>
+                                     </div>
+                                  </div>
+                                )
+                             })}
+                          </div>
+                       )}
+                    </CardContent>
+                 </Card>
+
+                 <Card className="border-amber-200 shadow-sm bg-gradient-to-br from-amber-50/50 to-white overflow-hidden">
+                    <CardHeader className="border-b border-amber-100 pb-4 bg-amber-50/50">
+                       <CardTitle className="flex items-center gap-2 text-slate-800">
+                         <Users className="text-orange-500" size={20} />
+                         Appointments by Branch
+                       </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                       {!data.enterprise.appointmentsByBranch?.length ? (
+                          <div className="text-sm text-slate-400 italic text-center py-4">No appointment data across branches.</div>
+                       ) : (
+                          <div className="space-y-4">
+                             {data.enterprise.appointmentsByBranch.map((branch, idx) => (
+                                <div key={idx} className="flex justify-between items-center p-3.5 rounded-xl border border-amber-100/50 bg-white shadow-sm">
+                                   <span className="font-bold text-slate-700">{branch.branchName}</span>
+                                   <span className="bg-orange-100 text-orange-700 px-4 py-1.5 rounded-lg text-sm font-black">{branch.count} Visits</span>
+                                </div>
+                             ))}
+                          </div>
+                       )}
+                    </CardContent>
+                 </Card>
+              </div>
+           </div>
+        )}
+
       </div>
     );
   };

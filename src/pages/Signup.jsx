@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { UserPlus, Users, Mail, Shield, ShieldAlert, Key, Link as LinkIcon, Trash2, Power, CheckCircle2 } from "lucide-react";
+import { UserPlus, Users, Mail, Shield, ShieldAlert, Key, Link as LinkIcon, Trash2, Power, CheckCircle2, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -15,10 +15,16 @@ const initialSignupDraft = {
   email: "",
   password: "",
   role: "nurse",
+  assignedBranchIds: [],
 };
 
 const supportEmail = "support@primuxcare.com";
 const whatsappLink = "https://wa.me/2348068073362";
+const ROLE_LABELS = {
+  nurse: "Nurse / Front Desk",
+  doctor: "Doctor",
+  branch_manager: "Branch Manager",
+};
 
 export default function Signup() {
   const MotionDiv = motion.div;
@@ -30,13 +36,20 @@ export default function Signup() {
   const { name, email, password, role } = signupDraft;
   const [showPassword, setShowPassword] = useState(false);
   const [staff, setStaff] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [staffLoading, setStaffLoading] = useState(true);
   const [busyStaffId, setBusyStaffId] = useState("");
+  const [branchEditor, setBranchEditor] = useState(null);
+  const [branchSaving, setBranchSaving] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
+  const [searchQuery, setSearchQuery] = useState("");
   const [confirmConfig, setConfirmConfig] = useState(null);
   const navigate = useNavigate();
   const currentUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user")) || "null");
+  const signupAssignedBranchIds = Array.isArray(signupDraft.assignedBranchIds)
+    ? signupDraft.assignedBranchIds
+    : [];
 
   const showToast = (message, type = "success") => setToast({ show: true, message, type });
 
@@ -46,31 +59,97 @@ export default function Signup() {
     finally { setStaffLoading(false); }
   }, []);
 
+  const fetchBranches = useCallback(async () => {
+    try {
+      const response = await api.get("/branches");
+      setBranches(response.data?.branches || []);
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to load branches", "error");
+    }
+  }, []);
+
   useEffect(() => {
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!currentUser || !["admin", "branch_manager"].includes(currentUser.role)) {
       navigate("/login", { replace: true });
       return;
     }
     fetchStaff();
+    fetchBranches();
+
+    if (currentUser?.branchId && (!signupDraft.assignedBranchIds || signupDraft.assignedBranchIds.length === 0)) {
+      updateSignupDraft({ assignedBranchIds: [currentUser.branchId] });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.role, fetchStaff, navigate]);
+  }, [currentUser?.role, fetchBranches, fetchStaff, navigate]);
 
   const updateSignupDraft = (patch) =>
     setSignupDraft((current) => ({ ...current, ...patch }));
 
-  const resetForm = () => { clearSignupDraft(); };
+  const toggleAssignedBranch = (branchId) =>
+    updateSignupDraft({
+      assignedBranchIds: signupAssignedBranchIds.includes(branchId)
+        ? signupAssignedBranchIds.filter((id) => id !== branchId)
+        : [...signupAssignedBranchIds, branchId],
+    });
 
-  const handleSignup = async (e) => {
-    e.preventDefault();
+  const resetForm = () => { 
+    setSignupDraft({
+      ...initialSignupDraft,
+      assignedBranchIds: currentUser?.branchId ? [currentUser.branchId] : []
+    }); 
+  };
+
+  const submitStaffCreation = async () => {
     if (!name || !email || !password) return showToast("All fields are required", "error");
+    if (signupAssignedBranchIds.length === 0) {
+      return showToast("Assign at least one branch to this staff account", "error");
+    }
     try {
       setLoading(true);
-      await api.post("/auth/signup", { name, email, password, role });
-      showToast("Staff account created successfully", "success");
+      setConfirmConfig((current) =>
+        current?.title === "Confirm Staff Role"
+          ? { ...current, confirmLoading: true }
+          : current,
+      );
+      await api.post("/auth/signup", {
+        name,
+        email,
+        password,
+        role,
+        assignedBranchIds: signupAssignedBranchIds,
+      });
+      showToast("Staff account created. The user must verify their email before they can log in.", "success");
       resetForm();
+      setConfirmConfig(null);
       fetchStaff();
     } catch (err) { showToast(err.response?.data?.message || "Staff creation failed", "error"); } 
-    finally { setLoading(false); }
+    finally {
+      setLoading(false);
+      setConfirmConfig((current) =>
+        current?.title === "Confirm Staff Role"
+          ? { ...current, confirmLoading: false }
+          : current,
+      );
+    }
+  };
+
+  const handleSignup = (e) => {
+    e.preventDefault();
+    if (!name || !email || !password) return showToast("All fields are required", "error");
+    if (signupAssignedBranchIds.length === 0) {
+      return showToast("Assign at least one branch to this staff account", "error");
+    }
+
+    const selectedRoleLabel = ROLE_LABELS[role] || "Staff";
+    setConfirmConfig({
+      title: "Confirm Staff Role",
+      message: `${name} will be created as ${selectedRoleLabel}. This role cannot be changed after account creation. Continue?`,
+      confirmText: "Continue",
+      cancelText: "Cancel",
+      confirmLoading: false,
+      closeOnConfirm: false,
+      onConfirm: submitStaffCreation,
+    });
   };
 
   const handleStatusChange = async (staffMember) => {
@@ -104,6 +183,69 @@ export default function Signup() {
     });
   };
 
+  const filteredStaff = staff.filter(member => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return member.name.toLowerCase().includes(query) || 
+           member.email.toLowerCase().includes(query) || 
+           member.role.toLowerCase().includes(query);
+  });
+
+  const getAssignedBranchLabel = (member) => {
+    if (member.role === "admin") {
+      return "All clinic branches";
+    }
+
+    const assignedIds = Array.isArray(member.assignedBranchIds) ? member.assignedBranchIds : [];
+    const assignedLabels = branches
+      .filter((branch) => assignedIds.includes(branch.id))
+      .map((branch) => `${branch.city || branch.name}${branch.area ? ` - ${branch.area}` : ""}`);
+
+    return assignedLabels.length > 0 ? assignedLabels.join(", ") : "No branches assigned";
+  };
+
+  const openBranchEditor = (member) => {
+    setBranchEditor({
+      id: member.id,
+      name: member.name,
+      role: member.role,
+      assignedBranchIds: Array.isArray(member.assignedBranchIds) ? member.assignedBranchIds : [],
+    });
+  };
+
+  const toggleEditedBranch = (branchId) => {
+    setBranchEditor((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        assignedBranchIds: current.assignedBranchIds.includes(branchId)
+          ? current.assignedBranchIds.filter((id) => id !== branchId)
+          : [...current.assignedBranchIds, branchId],
+      };
+    });
+  };
+
+  const saveBranchAssignments = async () => {
+    if (!branchEditor) return;
+    if (branchEditor.role !== "admin" && branchEditor.assignedBranchIds.length === 0) {
+      return showToast("Assign at least one branch to this staff account", "error");
+    }
+
+    try {
+      setBranchSaving(true);
+      await api.patch(`/auth/staff/${branchEditor.id}/branches`, {
+        assignedBranchIds: branchEditor.assignedBranchIds,
+      });
+      showToast("Staff branch assignments updated", "success");
+      setBranchEditor(null);
+      fetchStaff();
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to update branch assignments", "error");
+    } finally {
+      setBranchSaving(false);
+    }
+  };
+
   return (
     <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-surface-200">
@@ -120,7 +262,7 @@ export default function Signup() {
         <div className="space-y-6">
           <Card className="border border-surface-200 shadow-sm">
             <CardContent className="p-6">
-              <h3 className="font-bold text-lg mb-6 flex items-center text-slate-900"><UserPlus size={18} className="mr-2 text-primary-500" /> Provision Account</h3>
+              <h3 className="font-bold text-lg mb-6 mt-3 flex items-center text-slate-900"><UserPlus size={18} className="mr-2 text-primary-500" /> Provision Account</h3>
               <form onSubmit={handleSignup} className="space-y-4">
                 <Input label="Full Name *" value={name} onChange={(e) => updateSignupDraft({ name: e.target.value })} icon={UserPlus} className="bg-slate-50" />
                 <Input label="Email Address *" type="email" value={email} onChange={(e) => updateSignupDraft({ email: e.target.value })} icon={Mail} className="bg-slate-50" />
@@ -141,10 +283,44 @@ export default function Signup() {
                       <select value={role} onChange={(e) => updateSignupDraft({ role: e.target.value })} className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 bg-slate-50 text-sm focus:ring-primary-500 shadow-sm appearance-none h-[46px] capitalize">
                         <option value="nurse">Nurse / Front Desk</option>
                         <option value="doctor">Doctor</option>
-                        <option value="admin">Administrator</option>
+                        {currentUser?.role === "admin" && <option value="branch_manager">Branch Manager</option>}
                       </select>
                    </div>
                 </div>
+
+                {currentUser?.role === "admin" ? (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Assigned Branches *</label>
+                    <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      {branches.filter((branch) => branch.isActive).length === 0 ? (
+                        <p className="text-sm text-slate-500">No active branches available yet.</p>
+                      ) : (
+                        branches
+                          .filter((branch) => branch.isActive)
+                          .map((branch) => (
+                            <label
+                              key={branch.id}
+                              className="flex items-center gap-3 rounded-lg bg-white px-3 py-2 text-sm text-slate-700"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={signupAssignedBranchIds.includes(branch.id)}
+                                onChange={() => toggleAssignedBranch(branch.id)}
+                              />
+                              <span>{branch.city || branch.name}{branch.area ? ` - ${branch.area}` : ""}</span>
+                            </label>
+                          ))
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Assigned Branch</label>
+                    <div className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-slate-100 text-sm text-slate-500 shadow-sm h-[46px] flex items-center cursor-not-allowed">
+                      {currentUser?.branch?.city || currentUser?.branch?.name}{currentUser?.branch?.area ? ` - ${currentUser?.branch?.area}` : ""} (Default)
+                    </div>
+                  </div>
+                )}
 
                 <div className="pt-4">
                    <Button type="submit" isLoading={loading} className="w-full shadow-md h-12 text-sm sm:text-base font-semibold">Generate Staff Credentials</Button>
@@ -155,7 +331,7 @@ export default function Signup() {
 
           <Card className="border border-teal-200 bg-gradient-to-br from-teal-50 to-emerald-50">
              <CardContent className="p-6">
-                <h3 className="font-bold text-teal-900 mb-2 flex items-center"><ShieldAlert size={18} className="mr-2" /> Support Context</h3>
+                <h3 className="font-bold text-teal-900 mb-2 mt-3 flex items-center"><ShieldAlert size={18} className="mr-2" /> Support Context</h3>
                 <p className="text-sm text-teal-800 leading-relaxed mb-4">If you require structural administrative assistance or need to verify billing parameters, reach out to our team.</p>
                 <div className="space-y-2">
                    <a href={`mailto:${supportEmail}`} className="flex items-center text-sm font-medium text-teal-700 hover:text-teal-900 bg-white/50 px-3 py-2 rounded-lg transition-colors border border-teal-100"><Mail size={16} className="mr-3" /> {supportEmail}</a>
@@ -168,24 +344,35 @@ export default function Signup() {
         {/* Right Col: Staff List */}
         <Card className="border border-surface-200 shadow-sm">
            <CardContent className="p-0">
-             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="font-bold text-lg flex items-center text-slate-900"><Users size={18} className="mr-2 text-primary-500" /> Provisioned Accounts Directory</h3>
-                <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full">{staff.length} Active Accounts</span>
+             <div className="p-6 border-b border-slate-100 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-lg flex items-center text-slate-900"><Users size={18} className="mr-2 text-primary-500" /> Provisioned Accounts Directory</h3>
+                  <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full">{staff.length} Accounts</span>
+                </div>
+                <Input 
+                   icon={Search} 
+                   placeholder="Search by name, email, or role..." 
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
+                   className="bg-slate-50"
+                />
              </div>
 
              {staffLoading ? (
                <div className="p-12 text-center flex flex-col items-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent mb-4" /><p className="text-slate-500 font-medium">Fetching directory...</p></div>
              ) : staff.length === 0 ? (
                <div className="p-16 text-center flex flex-col items-center"><Users size={48} className="text-slate-300 mb-4" /><p className="text-lg font-medium text-slate-700">No personnel accounts</p></div>
+             ) : filteredStaff.length === 0 ? (
+               <div className="p-16 text-center flex flex-col items-center"><Search size={48} className="text-slate-300 mb-4" /><p className="text-lg font-medium text-slate-700">No accounts match your search</p></div>
              ) : (
                <div className="overflow-x-auto">
                  <table className="w-full text-sm">
                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
-                     <tr><th className="px-6 py-4 text-left font-semibold">User details</th><th className="px-6 py-4 text-left font-semibold">Role assignment</th><th className="px-6 py-4 text-center font-semibold">System Access</th><th className="px-6 py-4 text-right font-semibold">Actions</th></tr>
+                     <tr><th className="px-6 py-4 text-left font-semibold">User details</th><th className="px-6 py-4 text-left font-semibold">Role assignment</th><th className="px-6 py-4 text-left font-semibold">Assigned branches</th><th className="px-6 py-4 text-center font-semibold">System Access</th><th className="px-6 py-4 text-right font-semibold">Actions</th></tr>
                    </thead>
                    <tbody className="divide-y divide-slate-100">
                      <AnimatePresence>
-                       {staff.map((member) => {
+                       {filteredStaff.map((member) => {
                          const isCurrentUser = member.id === currentUser?.id;
                          const isBusy = busyStaffId === member.id;
                          
@@ -206,8 +393,13 @@ export default function Signup() {
                              </td>
                              <td className="px-6 py-4">
                                 <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold capitalize tracking-wider ${member.role === 'admin' ? 'bg-purple-100 text-purple-700' : member.role === 'doctor' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                  {member.role === "nurse" ? "Nurse / Desk" : member.role}
+                                  {member.role === "nurse" ? "Nurse / Desk" : member.role === "branch_manager" ? "Branch Manager" : member.role}
                                 </span>
+                             </td>
+                             <td className="px-6 py-4">
+                                <p className="max-w-xs text-xs leading-5 text-slate-600">
+                                  {getAssignedBranchLabel(member)}
+                                </p>
                              </td>
                              <td className="px-6 py-4 text-center">
                                 <span className={`inline-flex items-center justify-center w-full max-w-[100px] px-2.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-widest ${member.isActive ? "bg-green-100 text-green-700 border border-green-200" : "bg-red-100 text-red-700 border border-red-200"}`}>
@@ -216,6 +408,17 @@ export default function Signup() {
                              </td>
                              <td className="px-6 py-4 text-right">
                                 <div className="flex items-center justify-end gap-2">
+                                  {member.role !== "admin" && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openBranchEditor(member)}
+                                      disabled={isBusy}
+                                      className="hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200"
+                                    >
+                                      Branches
+                                    </Button>
+                                  )}
                                   <Button variant={member.isActive ? "outline" : "primary"} size="sm" onClick={() => handleStatusChange(member)} disabled={isBusy || isCurrentUser} className={member.isActive ? "hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200" : "bg-green-600 hover:bg-green-700 text-white"}>
                                     {isBusy ? "..." : member.isActive ? <Power size={14} className="mr-1" /> : <CheckCircle2 size={14} className="mr-1" />}
                                     {member.isActive ? <span className="hidden sm:inline">Suspend</span> : <span className="hidden sm:inline">Enable</span>}
@@ -243,6 +446,47 @@ export default function Signup() {
         onClose={() => setConfirmConfig(null)} 
         {...confirmConfig} 
       />
+      {branchEditor && (
+        <div className="fixed inset-0 z-[180] flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => !branchSaving && setBranchEditor(null)}
+          />
+          <div className="relative z-10 w-full max-w-lg rounded-2xl border border-slate-100 bg-white shadow-xl">
+            <div className="border-b border-slate-100 px-6 py-5">
+              <h3 className="text-lg font-bold text-slate-900">
+                Assign Branches to {branchEditor.name}
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                This staff account will only see and use the branches selected here.
+              </p>
+            </div>
+            <div className="space-y-3 px-6 py-5">
+              {branches.filter((branch) => branch.isActive).map((branch) => (
+                <label
+                  key={branch.id}
+                  className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-700"
+                >
+                  <input
+                    type="checkbox"
+                    checked={(branchEditor.assignedBranchIds || []).includes(branch.id)}
+                    onChange={() => toggleEditedBranch(branch.id)}
+                  />
+                  <span>{branch.city || branch.name}{branch.area ? ` - ${branch.area}` : ""}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4 sm:flex-row sm:justify-end">
+              <Button variant="outline" className="bg-white" onClick={() => setBranchEditor(null)} disabled={branchSaving}>
+                Cancel
+              </Button>
+              <Button onClick={saveBranchAssignments} isLoading={branchSaving}>
+                Save Branches
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </MotionDiv>
   );
 }

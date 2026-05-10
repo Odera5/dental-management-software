@@ -6,9 +6,10 @@ const patientByIdCache = new Map();
 export const getPatientPickerOptions = async ({
   search = "",
   limit = 20,
+  global = false,
 } = {}) => {
   const normalizedSearch = search.trim();
-  const cacheKey = `${normalizedSearch}::${limit}`;
+  const cacheKey = `${normalizedSearch}::${limit}::${global}`;
 
   if (!normalizedSearch && defaultOptionsCache.has(cacheKey)) {
     return defaultOptionsCache.get(cacheKey);
@@ -18,6 +19,7 @@ export const getPatientPickerOptions = async ({
     params: {
       search: normalizedSearch || undefined,
       limit,
+      global: global || undefined,
     },
   });
 

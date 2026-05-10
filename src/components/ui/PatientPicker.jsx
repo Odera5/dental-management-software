@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { ChevronDown, ChevronUp, Search, User } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, User, Globe } from "lucide-react";
 import { getEntityId } from "../../utils/entityId";
 import {
   getPatientPickerOptionById,
@@ -24,6 +24,11 @@ export default function PatientPicker({
   const [loading, setLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState(initialOption);
   const dropdownRef = useRef(null);
+
+  const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
+  const clinicPlan = storedUser?.clinic?.plan || "PRO";
+  const isEnterprise = clinicPlan === "ENTERPRISE";
+  const [globalSearch, setGlobalSearch] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -83,6 +88,7 @@ export default function PatientPicker({
         const results = await getPatientPickerOptions({
           search: query,
           limit: 20,
+          global: globalSearch || undefined,
         });
         if (!cancelled) {
           setOptions(results);
@@ -102,7 +108,7 @@ export default function PatientPicker({
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [disabled, isOpen, query]);
+  }, [disabled, isOpen, query, globalSearch]);
 
   const handleSelect = (option) => {
     setSelectedOption(option);
@@ -152,6 +158,23 @@ export default function PatientPicker({
                 icon={Search}
                 className="h-10 text-sm"
               />
+              {isEnterprise && (
+                <div className="mt-2 flex items-center justify-between px-1">
+                  <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                    <Globe size={12} /> Search entire clinic?
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setGlobalSearch(s => !s);
+                    }}
+                    className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded transition-colors ${globalSearch ? "bg-primary-100 text-primary-700" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                  >
+                    {globalSearch ? "ON" : "OFF"}
+                  </button>
+                </div>
+              )}
             </div>
             <div className="max-h-64 overflow-y-auto p-1">
               {allowClear && value && (

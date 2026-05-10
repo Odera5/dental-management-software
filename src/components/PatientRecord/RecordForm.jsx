@@ -71,7 +71,7 @@ const initializeTeethState = (initialDentition, savedTeeth = []) => {
   };
 };
 
-function FormField({ label, name, value, onChange, type = "text", rows = 1, required = false, placeholder = "", unit }) {
+function FormField({ label, name, value, onChange, type = "text", rows = 1, required = false, placeholder = "", unit, max }) {
   return (
     <div className="space-y-1.5 focus-within:text-primary-600 transition-colors">
       <label className="text-sm font-semibold text-slate-700 leading-none">{label} {required && <span className="text-red-500">*</span>}</label>
@@ -79,11 +79,11 @@ function FormField({ label, name, value, onChange, type = "text", rows = 1, requ
         <textarea name={name} value={value} onChange={onChange} rows={rows} required={required} placeholder={placeholder} className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
       ) : unit ? (
         <div className="relative flex items-center">
-          <input name={name} type={type} value={value} onChange={onChange} required={required} placeholder={placeholder} className="w-full rounded-xl border border-slate-200 p-3 pr-16 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-shadow h-[46px]" />
+          <input name={name} type={type} value={value} onChange={onChange} required={required} placeholder={placeholder} max={max} className="w-full rounded-xl border border-slate-200 p-3 pr-16 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-shadow h-[46px]" />
           <span className="absolute right-4 text-slate-400 text-sm font-medium">{unit}</span>
         </div>
       ) : (
-        <input name={name} type={type} value={value} onChange={onChange} required={required} placeholder={placeholder} className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-shadow h-[46px]" />
+        <input name={name} type={type} value={value} onChange={onChange} required={required} placeholder={placeholder} max={max} className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-shadow h-[46px]" />
       )}
     </div>
   );
@@ -660,7 +660,7 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
 
           {recordData.consentObtained && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-xl border border-emerald-100 animate-in fade-in zoom-in-95 duration-200">
-              <FormField label="Date Obtained" name="consentDate" type="datetime-local" value={formatDateTimeLocal(recordData.consentDate)} onChange={handleChange} required={true} />
+              <FormField label="Date Obtained" name="consentDate" type="datetime-local" value={formatDateTimeLocal(recordData.consentDate)} onChange={handleChange} required={true} max={formatDateTimeLocal(new Date().toISOString())} />
               <FormField label="Takes By (Clinician)" name="consentTakenBy" value={recordData.consentTakenBy || ""} onChange={handleChange} placeholder="Dr. Name" required={true} />
               <div className="md:col-span-2">
                 <FormField label="Consent Details (Optional)" name="consentNotes" value={recordData.consentNotes || ""} onChange={handleChange} type="textarea" rows={2} placeholder="Verbal consent obtained after discussing risks and alternatives..." />

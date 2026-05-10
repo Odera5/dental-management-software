@@ -62,13 +62,15 @@ export default function PaystackCallback() {
         }
 
         const clinic = response.data?.clinic || {};
+        const activatedPlanName =
+          clinic?.plan === "ENTERPRISE" ? "Enterprise" : "Pro";
         updateStoredUserClinic(clinic);
         setStatus("success");
         setMessage(
           response.data?.message ||
             (hasStoredSession
-              ? "Your PrimuxCare Pro subscription is now active."
-              : "Your PrimuxCare Pro payment was confirmed. Sign in to continue."),
+              ? `Your PrimuxCare ${activatedPlanName} subscription is now active.`
+              : `Your PrimuxCare ${activatedPlanName} payment was confirmed. Sign in to continue.`),
         );
 
         window.setTimeout(() => {

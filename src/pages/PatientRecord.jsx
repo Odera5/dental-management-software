@@ -24,8 +24,14 @@ export default function PatientRecord() {
   const { id } = useParams();
   const navigate = useNavigate();
   const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user"))) || {};
-  const canEditPatient = storedUser.role === "admin" || storedUser.role === "doctor";
-  const canManageRecords = storedUser.role === "admin" || storedUser.role === "doctor";
+  const canEditPatient =
+    storedUser.role === "admin" ||
+    storedUser.role === "branch_manager" ||
+    storedUser.role === "doctor";
+  const canManageRecords =
+    storedUser.role === "admin" ||
+    storedUser.role === "branch_manager" ||
+    storedUser.role === "doctor";
   const patientEditDraftKey = `primuxcare:draft:patient-edit:${id}`;
   const patientEditModalKey = `primuxcare:draft:patient-edit-modal:${id}`;
   const recordFiltersStorageKey = `primuxcare:draft:patient-record:filters:${id}`;

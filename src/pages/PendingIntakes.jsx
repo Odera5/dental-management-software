@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, X, Search, Calendar, Clock, User, Phone, MapPin, Mail, AlertCircle } from "lucide-react";
+import { Check, X, Search, Calendar, Clock, User, Phone, MapPin, Mail, AlertCircle, Link as LinkIcon, Copy, CheckCircle2, RefreshCw, Power, Building2 } from "lucide-react";
 import Button from "../components/ui/Button";
 import ConfirmModal from "../components/ui/ConfirmModal";
 import Toast from "../components/Toast";
 import api from "../services/api";
+import { hasActiveProAccess } from "../utils/clinicAccess";
 
 export default function PendingIntakes() {
+  const storedUser =
+    JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user")) || "null") || {};
+  const currentRole = storedUser?.role || "nurse";
   const [intakes, setIntakes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -20,12 +24,20 @@ export default function PendingIntakes() {
   const [approvalDrafts, setApprovalDrafts] = useState({});
   const [availableSlotsByIntake, setAvailableSlotsByIntake] = useState({});
   const [slotLoadingByIntake, setSlotLoadingByIntake] = useState({});
+  const [intakeAccess, setIntakeAccess] = useState(null);
+  const [intakeUpdating, setIntakeUpdating] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const showToast = (message, type = "success") => setToast({ message, type });
   const createApprovalDraft = () => ({
     assignedDate: "",
     assignedTime: "",
   });
+  const canRegenerateLink = ["admin", "branch_manager"].includes(currentRole);
+  const hasProAccess = hasActiveProAccess(intakeAccess?.clinic || storedUser?.clinic || {});
+  const intakeLink = intakeAccess?.intakePublicToken
+    ? `${window.location.origin}/intake/${intakeAccess.clinicId}?access=${encodeURIComponent(intakeAccess.intakePublicToken)}&branchId=${encodeURIComponent(intakeAccess.branch?.id || "")}`
+    : "";
 
   const syncApprovalDrafts = (items) => {
     setApprovalDrafts((current) => {
@@ -103,6 +115,31 @@ export default function PendingIntakes() {
     fetchIntakes();
   }, [page, debouncedSearch]);
 
+  useEffect(() => {
+    fetchIntakeAccess();
+  }, []);
+
+  const fetchIntakeAccess = async () => {
+    try {
+      const response = await api.get("/auth/clinic-profile");
+      const clinic = response.data?.clinic || {};
+      const activeBranch = response.data?.activeBranch || null;
+
+      setIntakeAccess({
+        clinicId: clinic.id || storedUser?.clinic?.id || "",
+        clinic,
+        branch: activeBranch,
+        intakeEnabled: Boolean(clinic.intakeEnabled),
+        intakePublicToken: clinic.intakePublicToken || null,
+      });
+    } catch (error) {
+      showToast(
+        error.response?.data?.message || "Failed to load branch intake settings",
+        "error",
+      );
+    }
+  };
+
   const fetchIntakes = async (background = false) => {
     try {
       if (!background) setLoading(true);
@@ -115,6 +152,70 @@ export default function PendingIntakes() {
       console.error("Failed to fetch pending intakes", error);
     } finally {
       if (!background) setLoading(false);
+    }
+  };
+
+  const handleToggleIntakeAccess = async (nextEnabled) => {
+    try {
+      setIntakeUpdating(true);
+      const response = await api.put("/auth/clinic-profile/intake-link", {
+        intakeEnabled: nextEnabled,
+      });
+      setIntakeAccess((current) => ({
+        ...(current || {}),
+        intakeEnabled: Boolean(response.data?.clinic?.intakeEnabled),
+        intakePublicToken: response.data?.clinic?.intakePublicToken || current?.intakePublicToken || null,
+        branch: response.data?.branch || current?.branch || null,
+      }));
+      showToast(
+        response.data?.message ||
+          (nextEnabled ? "Patient intake enabled" : "Patient intake disabled"),
+        "success",
+      );
+    } catch (error) {
+      showToast(
+        error.response?.data?.message || "Failed to update branch intake access",
+        "error",
+      );
+    } finally {
+      setIntakeUpdating(false);
+    }
+  };
+
+  const handleRegenerateIntakeLink = async () => {
+    try {
+      setIntakeUpdating(true);
+      const response = await api.post("/auth/clinic-profile/intake-link/regenerate");
+      setIntakeAccess((current) => ({
+        ...(current || {}),
+        intakeEnabled: Boolean(response.data?.clinic?.intakeEnabled),
+        intakePublicToken: response.data?.clinic?.intakePublicToken || null,
+        branch: response.data?.branch || current?.branch || null,
+      }));
+      showToast(response.data?.message || "Patient intake link regenerated", "success");
+    } catch (error) {
+      showToast(
+        error.response?.data?.message || "Failed to regenerate branch intake link",
+        "error",
+      );
+    } finally {
+      setIntakeUpdating(false);
+    }
+  };
+
+  const handleCopyIntakeLink = async () => {
+    if (!intakeLink || !intakeAccess?.intakeEnabled) {
+      showToast("Enable intake and generate a secure link first", "error");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(intakeLink);
+      setLinkCopied(true);
+      showToast("Branch intake link copied to clipboard", "success");
+      setTimeout(() => setLinkCopied(false), 3000);
+    } catch {
+      showToast("Failed to copy intake link", "error");
     }
   };
 
@@ -195,22 +296,91 @@ export default function PendingIntakes() {
         danger
       />
       
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Pending Intakes</h1>
-          <p className="text-slate-500 mt-1">Review and approve online patient registrations.</p>
-        </div>
-        <div className="relative max-w-xs w-full">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-slate-400" />
+      <div className="mb-8 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Pending Intakes</h1>
+            <p className="text-slate-500 mt-1">Review and approve online patient registrations.</p>
           </div>
-          <input
-            type="text"
-            className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl bg-white text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            placeholder="Search by name or phone..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <div className="relative max-w-xs w-full">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={18} className="text-slate-400" />
+            </div>
+            <input
+              type="text"
+              className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl bg-white text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Search by name or phone..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                <LinkIcon size={18} className="text-primary-600" />
+                Branch Intake Link
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Enable, copy, and manage the secure intake link for the branch you are currently working in.
+              </p>
+            </div>
+            <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest ${intakeAccess?.intakeEnabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+              <Building2 size={12} />
+              {intakeAccess?.branch?.city || intakeAccess?.branch?.name || "Current branch"}
+            </span>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Button
+              variant={intakeAccess?.intakeEnabled ? "outline" : "primary"}
+              onClick={() => handleToggleIntakeAccess(!intakeAccess?.intakeEnabled)}
+              isLoading={intakeUpdating}
+              disabled={!hasProAccess}
+              className={intakeAccess?.intakeEnabled ? "w-full sm:w-auto bg-white" : "w-full sm:w-auto"}
+            >
+              <Power size={16} className="mr-2" />
+              {intakeAccess?.intakeEnabled ? "Disable Intake" : "Enable Intake"}
+            </Button>
+            {canRegenerateLink && (
+              <Button
+                variant="outline"
+                onClick={handleRegenerateIntakeLink}
+                isLoading={intakeUpdating}
+                disabled={!hasProAccess}
+                className="w-full sm:w-auto bg-white"
+              >
+                <RefreshCw size={16} className="mr-2" />
+                Regenerate Link
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={handleCopyIntakeLink}
+              disabled={!hasProAccess || !intakeAccess?.intakeEnabled || !intakeLink}
+              className="w-full sm:w-auto bg-white"
+            >
+              {linkCopied ? <CheckCircle2 size={16} className="mr-2 text-emerald-600" /> : <Copy size={16} className="mr-2" />}
+              {linkCopied ? "Copied" : "Copy Link"}
+            </Button>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            <div className="truncate font-mono">
+              {intakeLink || "Enable intake for this branch to generate a secure share link."}
+            </div>
+          </div>
+
+          <p className="mt-3 text-xs leading-5 text-slate-400">
+            Doctors, nurses, and branch managers can enable or disable intake for the current branch. Only admins and branch managers can regenerate the secure link because regeneration revokes the old one immediately.
+          </p>
+          {!hasProAccess && (
+            <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
+              Active Pro or Enterprise access is required before branch intake links can be used.
+            </p>
+          )}
         </div>
       </div>
 

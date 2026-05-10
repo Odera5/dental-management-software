@@ -65,9 +65,9 @@ export default function Login() {
       setError("");
       setSuccess("");
 
-      let destination = readLastVisitedRoute() || "/dashboard";
+      let destination = readLastVisitedRoute(user) || "/dashboard";
       if (destination === "/dashboard") {
-        clearLastVisitedRoute();
+        clearLastVisitedRoute(user);
       }
       navigate(destination, { replace: true });
     } catch (err) {

@@ -2,7 +2,7 @@ import React, { useCallback, useDeferredValue, useEffect, useState } from "react
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
-  Users, Calendar, Activity, CreditCard, Search, RefreshCw, ArchiveRestore, Trash2, Upload, Download, Lock
+  Users, Calendar, Activity, CreditCard, Search, RefreshCw, ArchiveRestore, Trash2, Upload, Download, Lock, Globe
 } from "lucide-react";
 import Papa from "papaparse";
 import CsvImportModal from "../components/Patients/CsvImportModal";
@@ -50,8 +50,8 @@ export default function Dashboard() {
     role: storedUser.role || "nurse",
   };
   
-  const canViewRecords = ["admin", "doctor", "nurse"].includes(user.role);
-  const canDeletePatients = ["admin", "doctor", "nurse"].includes(user.role);
+  const canViewRecords = ["admin", "branch_manager", "doctor", "nurse"].includes(user.role);
+  const canDeletePatients = ["admin", "branch_manager", "doctor", "nurse"].includes(user.role);
 
   const [patients, setPatients] = useState([]);
   const [patientsToday, setPatientsToday] = useState(
@@ -72,9 +72,9 @@ export default function Dashboard() {
   const [trash, setTrash] = useState([]);
   const [directoryState, setDirectoryState] = usePersistentState(
     "primuxcare:draft:dashboard-directory",
-    { searchQuery: "", sortConfig: { key: null, direction: "asc" }, currentPage: 1 },
+    { searchQuery: "", sortConfig: { key: null, direction: "asc" }, currentPage: 1, globalSearch: false },
   );
-  const { searchQuery, sortConfig, currentPage } = directoryState;
+  const { searchQuery, sortConfig, currentPage, globalSearch } = directoryState;
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [currentDay, setCurrentDay] = useState(formatLocalDateKey());
@@ -196,6 +196,7 @@ export default function Dashboard() {
           search: deferredSearchQuery || undefined,
           sortBy: sortConfig.key || undefined,
           sortDirection: sortConfig.key ? sortConfig.direction : "desc",
+          global: globalSearch || undefined,
         },
       });
       const pageData = Array.isArray(res.data?.data)
@@ -216,7 +217,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, deferredSearchQuery, sortConfig.direction, sortConfig.key]);
+  }, [currentPage, deferredSearchQuery, sortConfig.direction, sortConfig.key, globalSearch]);
 
   const fetchTrash = useCallback(async () => {
     if (user.role !== "admin") return;
@@ -452,15 +453,32 @@ export default function Dashboard() {
             </h2>
             
             {/* Search Bar - Shifted towards the center/next to title */}
-            <div className="w-full sm:w-72 lg:ml-4">
-              <Input 
-                placeholder="Search by name, card, phone..."
-                value={searchQuery}
-                onChange={(e) => setDirectoryState((current) => ({ ...current, searchQuery: e.target.value }))}
-                onClear={() => setDirectoryState((current) => ({ ...current, searchQuery: "" }))}
-                icon={Search}
-                className="bg-white"
-              />
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto lg:ml-4">
+              <div className="w-full sm:w-72">
+                <Input 
+                  placeholder="Search by name, card, phone..."
+                  value={searchQuery}
+                  onChange={(e) => setDirectoryState((current) => ({ ...current, searchQuery: e.target.value }))}
+                  onClear={() => setDirectoryState((current) => ({ ...current, searchQuery: "" }))}
+                  icon={Search}
+                  className="bg-white"
+                />
+              </div>
+              {clinicPlan === "ENTERPRISE" && !showTrash && (
+                <button
+                  type="button"
+                  onClick={() => setDirectoryState(s => ({ ...s, globalSearch: !s.globalSearch }))}
+                  className={`flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors shrink-0 h-[38px] ${
+                    globalSearch 
+                      ? "bg-primary-50 border-primary-200 text-primary-700" 
+                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                  }`}
+                  title="Search across all clinic branches"
+                >
+                  <Globe size={16} className={globalSearch ? "text-primary-500" : "text-slate-400"} />
+                  <span className="hidden sm:inline">Global Search</span>
+                </button>
+              )}
             </div>
           </div>
 
