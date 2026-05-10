@@ -1,5 +1,6 @@
-const rawApiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const apiOrigin = rawApiUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+import { getApiOrigin } from "./apiUrl";
+
+const apiOrigin = getApiOrigin().replace(/\/$/, "");
 
 export const resolveAssetUrl = (url) => {
   if (!url) return "";

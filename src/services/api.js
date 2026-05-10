@@ -6,9 +6,10 @@ import {
 } from "../utils/authStorage";
 import { getActiveBranchId } from "../utils/branchStorage";
 import { clearLastVisitedRoute } from "../utils/persistence";
+import { normalizeApiUrl } from "../utils/apiUrl";
 
 const api = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api`,
+  baseURL: `${normalizeApiUrl(import.meta.env.VITE_API_URL)}/api`,
   withCredentials: true,
 });
 
@@ -49,7 +50,7 @@ api.interceptors.response.use(
             refreshPromise = null;
           });
 
-        const response = await refreshPromise;
+        await refreshPromise;
 
         // The new token is set via httpOnly cookie, just retry the request
         return api(originalRequest);
