@@ -46,6 +46,8 @@ export default function RegisterPatient() {
     const fullName = `${form.firstName?.trim() || ""} ${form.lastName?.trim() || ""} ${form.otherName?.trim() || ""}`.trim();
     if (!form.firstName?.trim() || !form.lastName?.trim()) return showToast("First and Last name are required.", "error");
     if (!form.age || Number(form.age) <= 0) return showToast("Age must be greater than 0.", "error");
+    if (!form.phone?.trim()) return showToast("Phone number is required.", "error");
+    if (!form.address?.trim()) return showToast("Residential address is required.", "error");
     if (form.email && !/\S+@\S+\.\S+/.test(form.email)) return showToast("Invalid email address.", "error");
 
     try {
@@ -196,13 +198,14 @@ export default function RegisterPatient() {
                  </div>
 
                  <Input
-                  label="Phone Number"
+                  label="Phone Number *"
                   name="phone"
                   icon={Phone}
                   value={form.phone}
                   onChange={handleChange}
                   placeholder="+1 (555) 000-0000"
                   disabled={loading}
+                  required
                 />
               </div>
 
@@ -218,13 +221,14 @@ export default function RegisterPatient() {
               />
 
               <Input
-                label="Residential Address"
+                label="Residential Address *"
                 name="address"
                 icon={MapPin}
                 value={form.address}
                 onChange={handleChange}
                 placeholder="Full street address"
                 disabled={loading}
+                required
               />
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-6 mt-6 border-t border-slate-100">

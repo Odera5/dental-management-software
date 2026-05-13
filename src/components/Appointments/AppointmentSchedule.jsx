@@ -368,8 +368,8 @@ export default function AppointmentSchedule({ patientId = null }) {
                     <div className={`absolute top-0 left-0 w-1.5 h-full ${getStatusStyle(apt.status).split(' ')[0]}`} />
                     <CardContent className="p-5 pl-7 flex flex-col h-full gap-4">
                     <div className="flex justify-between items-start gap-2">
-                      <div>
-                        <h3 className="font-bold text-slate-900 text-lg leading-tight line-clamp-1">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold text-slate-900 text-lg leading-tight truncate">
                           {apt.patientId?.name || "Unknown Patient"}
                         </h3>
                         <p className="text-xs font-semibold text-primary-600 mt-1 uppercase tracking-wider">{getTypeLabel(apt.appointmentType)}</p>
@@ -385,7 +385,7 @@ export default function AppointmentSchedule({ patientId = null }) {
                           </span>
                         )}
                       </div>
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full border uppercase tracking-wider ${getStatusStyle(apt.status)}`}>
+                      <span className={`shrink-0 mr-1 text-[10px] font-bold px-2 py-1 rounded-full border uppercase tracking-wider ${getStatusStyle(apt.status)}`}>
                         {apt.status}
                       </span>
                     </div>

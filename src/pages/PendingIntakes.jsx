@@ -5,7 +5,7 @@ import Button from "../components/ui/Button";
 import ConfirmModal from "../components/ui/ConfirmModal";
 import Toast from "../components/Toast";
 import api from "../services/api";
-import { hasActiveProAccess } from "../utils/clinicAccess";
+import { hasActiveProAccess, hasEnterpriseAccess } from "../utils/clinicAccess";
 import { getStoredUserObject } from "../utils/authStorage";
 
 export default function PendingIntakes() {
@@ -35,6 +35,7 @@ export default function PendingIntakes() {
   });
   const canRegenerateLink = ["admin", "branch_manager"].includes(currentRole);
   const hasProAccess = hasActiveProAccess(intakeAccess?.clinic || storedUser?.clinic || {});
+  const enterpriseAccess = hasEnterpriseAccess(intakeAccess?.clinic || storedUser?.clinic || {});
   const intakeLink = intakeAccess?.intakePublicToken
     ? `${window.location.origin}/intake/${intakeAccess.clinicId}?access=${encodeURIComponent(intakeAccess.intakePublicToken)}&branchId=${encodeURIComponent(intakeAccess.branch?.id || "")}`
     : "";
@@ -296,7 +297,7 @@ export default function PendingIntakes() {
         danger
       />
       
-      <div className="mb-8 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <div className="mb-8 flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Pending Intakes</h1>
@@ -321,16 +322,18 @@ export default function PendingIntakes() {
             <div>
               <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
                 <LinkIcon size={18} className="text-primary-600" />
-                Branch Intake Link
+                {enterpriseAccess ? "Branch Intake Link" : "Patient Intake Link"}
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Enable, copy, and manage the secure intake link for the branch you are currently working in.
+                Enable, copy, and manage the secure intake link for {enterpriseAccess ? "the branch you are currently working in" : "your clinic"}.
               </p>
             </div>
-            <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest ${intakeAccess?.intakeEnabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-              <Building2 size={12} />
-              {intakeAccess?.branch?.city || intakeAccess?.branch?.name || "Current branch"}
-            </span>
+            {enterpriseAccess && (
+              <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest ${intakeAccess?.intakeEnabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                <Building2 size={12} />
+                {intakeAccess?.branch?.city || intakeAccess?.branch?.name || "Current branch"}
+              </span>
+            )}
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">

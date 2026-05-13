@@ -27,7 +27,9 @@ export default function PatientIntakeForm() {
   const totalSteps = 3;
 
   const [form, setForm] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
+    otherName: "",
     age: "",
     gender: "other",
     phone: "",
@@ -144,12 +146,13 @@ export default function PatientIntakeForm() {
     if (currentStep === 1) {
       const ageNum = parseInt(form.age, 10);
       const isAgeValid = !isNaN(ageNum) && ageNum >= 0 && ageNum <= 120;
-      return form.name.trim() !== "" && form.age.trim() !== "" && isAgeValid;
+      return form.firstName.trim() !== "" && form.lastName.trim() !== "" && form.age.trim() !== "" && isAgeValid;
     }
     if (currentStep === 2) {
       const isPhoneValid = form.phone.trim() !== "" && /^[0-9+\-() ]*$/.test(form.phone);
       const isEmailValid = form.email.trim() === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
-      return isPhoneValid && isEmailValid;
+      const isAddressValid = form.address.trim() !== "";
+      return isPhoneValid && isEmailValid && isAddressValid;
     }
     if (currentStep === 3) {
       return true; // Date/Time are optional, but good to have
@@ -162,8 +165,10 @@ export default function PatientIntakeForm() {
     setSubmitting(true);
     setError(null);
     try {
+      const fullName = `${form.firstName?.trim() || ""} ${form.lastName?.trim() || ""} ${form.otherName?.trim() || ""}`.trim();
       await api.post(`/intake/${clinicId}`, {
         ...form,
+        name: fullName,
         access: accessToken,
         branchId: requestedBranchId,
       });
@@ -203,7 +208,7 @@ export default function PatientIntakeForm() {
                <CheckCircle size={40} />
             </motion.div>
             <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Request Sent!</h2>
-            <p className="text-slate-600 mb-6">Your registration and appointment request have been securely sent to <strong>{clinic?.name}</strong>{clinic?.branch ? ` (${clinic.branch.city || clinic.branch.name}${clinic.branch.area ? ` - ${clinic.branch.area}` : ""})` : ""}.</p>
+            <p className="text-slate-600 mb-6">Your registration and appointment request have been securely sent to <strong>{clinic?.name}</strong>{clinic?.branch && clinic?.plan === "ENTERPRISE" ? ` (${clinic.branch.city || clinic.branch.name}${clinic.branch.area ? ` - ${clinic.branch.area}` : ""})` : ""}.</p>
             <p className="text-sm font-medium text-slate-400">The clinic staff will review and confirm your appointment shortly. You may now close this window.</p>
          </div>
        </div>
@@ -236,7 +241,7 @@ export default function PatientIntakeForm() {
          )}
          <motion.h1 initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="text-2xl sm:text-3xl font-black text-slate-900 text-center tracking-tight leading-tight">{clinic?.name}</motion.h1>
          <motion.p initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="mt-2 text-sm text-slate-500 uppercase tracking-widest font-semibold flex items-center"><Building size={14} className="mr-1.5" /> Patient Intake</motion.p>
-         {clinic?.branch && (
+         {clinic?.branch && clinic?.plan === "ENTERPRISE" && (
             <motion.p initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }} className="mt-2 text-sm font-semibold text-primary-700 text-center">
               {clinic.branch.city || clinic.branch.name}{clinic.branch.area ? ` - ${clinic.branch.area}` : ""}
             </motion.p>
@@ -274,8 +279,10 @@ export default function PatientIntakeForm() {
                            <p className="text-slate-500 text-sm mt-1">Let's start with your basic information.</p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <Input label="First Name *" name="firstName" value={form.firstName} onChange={handleChange} required placeholder="e.g. Jane" className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
+                           <Input label="Last Name *" name="lastName" value={form.lastName} onChange={handleChange} required placeholder="e.g. Doe" className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
                            <div className="md:col-span-2">
-                             <Input label="Full Name *" name="name" value={form.name} onChange={handleChange} required placeholder="e.g. Jane Doe" className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
+                             <Input label="Other Name" name="otherName" value={form.otherName} onChange={handleChange} placeholder="Optional" className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
                            </div>
                            <Input label="Age *" name="age" type="number" value={form.age} onChange={handleChange} required placeholder="Years" className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
                            <div className="space-y-1.5">
@@ -301,8 +308,8 @@ export default function PatientIntakeForm() {
                            <Input label="Mobile Phone *" name="phone" value={form.phone} onChange={handleChange} required placeholder="e.g. +234..." className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
                            <Input label="Email Address" name="email" type="email" value={form.email} onChange={handleChange} placeholder="Optional" className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
                            <div className="md:col-span-2 space-y-1.5">
-                              <label className="text-sm font-semibold text-slate-700 block">Home Address</label>
-                              <textarea name="address" value={form.address} onChange={handleChange} rows="3" placeholder="Residential address" className="w-full rounded-xl border border-slate-200 p-4 bg-slate-50 text-slate-900 text-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow resize-none"></textarea>
+                              <label className="text-sm font-semibold text-slate-700 block">Home Address *</label>
+                              <textarea name="address" value={form.address} onChange={handleChange} required rows="3" placeholder="Residential address" className="w-full rounded-xl border border-slate-200 p-4 bg-slate-50 text-slate-900 text-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow resize-none"></textarea>
                            </div>
                         </div>
                      </motion.div>

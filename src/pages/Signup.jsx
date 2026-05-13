@@ -10,12 +10,14 @@ import Toast from "../components/Toast";
 import ConfirmModal from "../components/ui/ConfirmModal";
 import usePersistentState from "../hooks/usePersistentState";
 import { getStoredUserObject } from "../utils/authStorage";
+import { hasEnterpriseAccess } from "../utils/clinicAccess";
 
 const initialSignupDraft = {
   name: "",
   email: "",
   password: "",
   role: "nurse",
+  customRoleTitle: "",
   assignedBranchIds: [],
 };
 
@@ -34,7 +36,7 @@ export default function Signup() {
     "primuxcare:draft:signup",
     initialSignupDraft,
   );
-  const { name, email, password, role } = signupDraft;
+  const { name, email, password, role, customRoleTitle } = signupDraft;
   const [showPassword, setShowPassword] = useState(false);
   const [staff, setStaff] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -51,6 +53,7 @@ export default function Signup() {
   const signupAssignedBranchIds = Array.isArray(signupDraft.assignedBranchIds)
     ? signupDraft.assignedBranchIds
     : [];
+  const enterpriseAccess = hasEnterpriseAccess(currentUser?.clinic || {});
 
   const showToast = (message, type = "success") => setToast({ show: true, message, type });
 
@@ -102,7 +105,7 @@ export default function Signup() {
 
   const submitStaffCreation = async () => {
     if (!name || !email || !password) return showToast("All fields are required", "error");
-    if (signupAssignedBranchIds.length === 0) {
+    if (enterpriseAccess && signupAssignedBranchIds.length === 0) {
       return showToast("Assign at least one branch to this staff account", "error");
     }
     try {
@@ -117,7 +120,8 @@ export default function Signup() {
         email,
         password,
         role,
-        assignedBranchIds: signupAssignedBranchIds,
+        customRoleTitle,
+        assignedBranchIds: enterpriseAccess ? signupAssignedBranchIds : (branches[0] ? [branches[0].id] : []),
       });
       showToast("Staff account created. The user must verify their email before they can log in.", "success");
       resetForm();
@@ -137,7 +141,7 @@ export default function Signup() {
   const handleSignup = (e) => {
     e.preventDefault();
     if (!name || !email || !password) return showToast("All fields are required", "error");
-    if (signupAssignedBranchIds.length === 0) {
+    if (enterpriseAccess && signupAssignedBranchIds.length === 0) {
       return showToast("Assign at least one branch to this staff account", "error");
     }
 
@@ -278,49 +282,59 @@ export default function Signup() {
                 </div>
 
                 <div className="space-y-1.5">
-                   <label className="text-sm font-medium text-slate-700">Account Role *</label>
-                   <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Shield size={18} className="text-slate-400" /></div>
-                      <select value={role} onChange={(e) => updateSignupDraft({ role: e.target.value })} className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 bg-slate-50 text-sm focus:ring-primary-500 shadow-sm appearance-none h-[46px] capitalize">
-                        <option value="nurse">Nurse / Front Desk</option>
-                        <option value="doctor">Doctor</option>
-                        {currentUser?.role === "admin" && <option value="branch_manager">Branch Manager</option>}
-                      </select>
-                   </div>
-                </div>
+                    <label className="text-sm font-medium text-slate-700">Account Role *</label>
+                    <div className="relative">
+                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Shield size={18} className="text-slate-400" /></div>
+                       <select value={role} onChange={(e) => updateSignupDraft({ role: e.target.value })} className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 bg-slate-50 text-sm focus:ring-primary-500 shadow-sm appearance-none h-[46px] capitalize">
+                         <option value="nurse">Nurse / Front Desk</option>
+                         <option value="doctor">Doctor</option>
+                         {currentUser?.role === "admin" && enterpriseAccess && <option value="branch_manager">Branch Manager</option>}
+                       </select>
+                    </div>
+                 </div>
 
-                {currentUser?.role === "admin" ? (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Assigned Branches *</label>
-                    <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                      {branches.filter((branch) => branch.isActive).length === 0 ? (
-                        <p className="text-sm text-slate-500">No active branches available yet.</p>
-                      ) : (
-                        branches
-                          .filter((branch) => branch.isActive)
-                          .map((branch) => (
-                            <label
-                              key={branch.id}
-                              className="flex items-center gap-3 rounded-lg bg-white px-3 py-2 text-sm text-slate-700"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={signupAssignedBranchIds.includes(branch.id)}
-                                onChange={() => toggleAssignedBranch(branch.id)}
-                              />
-                              <span>{branch.city || branch.name}{branch.area ? ` - ${branch.area}` : ""}</span>
-                            </label>
-                          ))
-                      )}
+                 <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Custom Job Title <span className="text-slate-400 font-normal">(Optional)</span></label>
+                    <div className="relative">
+                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><ShieldAlert size={18} className="text-slate-400" /></div>
+                       <input type="text" placeholder="e.g. Senior Hygienist" value={customRoleTitle || ""} onChange={(e) => updateSignupDraft({ customRoleTitle: e.target.value })} className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 bg-slate-50 text-sm focus:ring-primary-500 shadow-sm h-[46px]" />
                     </div>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Assigned Branch</label>
-                    <div className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-slate-100 text-sm text-slate-500 shadow-sm h-[46px] flex items-center cursor-not-allowed">
-                      {currentUser?.branch?.city || currentUser?.branch?.name}{currentUser?.branch?.area ? ` - ${currentUser?.branch?.area}` : ""} (Default)
+                 </div>
+
+                {enterpriseAccess && (
+                  currentUser?.role === "admin" ? (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">Assigned Branches *</label>
+                      <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        {branches.filter((branch) => branch.isActive).length === 0 ? (
+                          <p className="text-sm text-slate-500">No active branches available yet.</p>
+                        ) : (
+                          branches
+                            .filter((branch) => branch.isActive)
+                            .map((branch) => (
+                              <label
+                                key={branch.id}
+                                className="flex items-center gap-3 rounded-lg bg-white px-3 py-2 text-sm text-slate-700"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={signupAssignedBranchIds.includes(branch.id)}
+                                  onChange={() => toggleAssignedBranch(branch.id)}
+                                />
+                                <span>{branch.city || branch.name}{branch.area ? ` - ${branch.area}` : ""}</span>
+                              </label>
+                            ))
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-700">Assigned Branch</label>
+                      <div className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-slate-100 text-sm text-slate-500 shadow-sm h-[46px] flex items-center cursor-not-allowed">
+                        {currentUser?.branch?.city || currentUser?.branch?.name}{currentUser?.branch?.area ? ` - ${currentUser?.branch?.area}` : ""} (Default)
+                      </div>
+                    </div>
+                  )
                 )}
 
                 <div className="pt-4">
@@ -369,7 +383,7 @@ export default function Signup() {
                <div className="overflow-x-auto">
                  <table className="w-full text-sm">
                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
-                     <tr><th className="px-6 py-4 text-left font-semibold">User details</th><th className="px-6 py-4 text-left font-semibold">Role assignment</th><th className="px-6 py-4 text-left font-semibold">Assigned branches</th><th className="px-6 py-4 text-center font-semibold">System Access</th><th className="px-6 py-4 text-right font-semibold">Actions</th></tr>
+                     <tr><th className="px-6 py-4 text-left font-semibold">User details</th><th className="px-6 py-4 text-left font-semibold">Role assignment</th>{enterpriseAccess && <th className="px-6 py-4 text-left font-semibold">Assigned branches</th>}<th className="px-6 py-4 text-center font-semibold">System Access</th><th className="px-6 py-4 text-right font-semibold">Actions</th></tr>
                    </thead>
                    <tbody className="divide-y divide-slate-100">
                      <AnimatePresence>
@@ -394,14 +408,16 @@ export default function Signup() {
                              </td>
                              <td className="px-6 py-4">
                                 <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold capitalize tracking-wider ${member.role === 'admin' ? 'bg-purple-100 text-purple-700' : member.role === 'doctor' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                  {member.role === "nurse" ? "Nurse / Desk" : member.role === "branch_manager" ? "Branch Manager" : member.role}
+                                  {member.customRoleTitle || (member.role === "nurse" ? "Nurse / Desk" : member.role === "branch_manager" ? "Branch Manager" : member.role)}
                                 </span>
                              </td>
-                             <td className="px-6 py-4">
-                                <p className="max-w-xs text-xs leading-5 text-slate-600">
-                                  {getAssignedBranchLabel(member)}
-                                </p>
-                             </td>
+                             {enterpriseAccess && (
+                               <td className="px-6 py-4">
+                                  <p className="max-w-xs text-xs leading-5 text-slate-600">
+                                    {getAssignedBranchLabel(member)}
+                                  </p>
+                               </td>
+                             )}
                              <td className="px-6 py-4 text-center">
                                 <span className={`inline-flex items-center justify-center w-full max-w-[100px] px-2.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-widest ${member.isActive ? "bg-green-100 text-green-700 border border-green-200" : "bg-red-100 text-red-700 border border-red-200"}`}>
                                    {member.isActive ? "Enabled" : "Suspended"}
@@ -409,7 +425,7 @@ export default function Signup() {
                              </td>
                              <td className="px-6 py-4 text-right">
                                 <div className="flex items-center justify-end gap-2">
-                                  {member.role !== "admin" && (
+                                  {enterpriseAccess && member.role !== "admin" && (
                                     <Button
                                       variant="outline"
                                       size="sm"

@@ -14,6 +14,7 @@ export default function ConfirmModal({
   danger = false,
   confirmLoading = false,
   closeOnConfirm = true,
+  onCancelClick,
 }) {
   return (
     <AnimatePresence>
@@ -68,7 +69,13 @@ export default function ConfirmModal({
               <Button
                 variant="outline"
                 className="w-full sm:w-auto bg-white"
-                onClick={onClose}
+                onClick={() => {
+                  if (onCancelClick) {
+                    onCancelClick();
+                  } else {
+                    onClose();
+                  }
+                }}
                 disabled={confirmLoading}
               >
                 {cancelText}

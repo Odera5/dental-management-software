@@ -140,6 +140,7 @@ export default function DashboardLayout() {
   const user = {
     name: storedUser.name || storedUser.email || "User",
     role: storedUser.role || "nurse",
+    displayRole: storedUser.customRoleTitle || storedUser.role || "nurse",
     clinicName: clinicState?.name || storedUser.clinic?.name || "Clinic",
   };
 
@@ -366,7 +367,7 @@ export default function DashboardLayout() {
     setMobileMenuOpen(false);
   };
 
-  const canSwitchBranches = availableBranches.length > 1;
+  const canSwitchBranches = enterpriseAccess && availableBranches.length > 1;
 
   // Determine header title based on pathname
   let headerTitle = "Overview";
@@ -426,7 +427,7 @@ export default function DashboardLayout() {
                 {user.clinicName}
                 {enterpriseAccess && <Crown size={12} className="text-amber-500 shrink-0" />}
               </span>
-              {activeBranch && (
+              {enterpriseAccess && activeBranch && (
                 <span className="text-[10px] text-primary-600 font-semibold uppercase tracking-widest block mt-1">
                   {activeBranch.city || activeBranch.name}{activeBranch.area ? ` - ${activeBranch.area}` : ""}
                 </span>
@@ -575,7 +576,7 @@ export default function DashboardLayout() {
               <p className="text-sm font-semibold text-slate-900 truncate">
                 {user.name}
               </p>
-              <p className="text-xs text-slate-500 capitalize">{user.role}</p>
+              <p className="text-xs text-slate-500 capitalize">{user.displayRole === "nurse" && !storedUser.customRoleTitle ? "Nurse / Desk" : user.displayRole === "branch_manager" && !storedUser.customRoleTitle ? "Branch Manager" : user.displayRole}</p>
             </div>
           </div>
           <Button

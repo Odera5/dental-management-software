@@ -158,6 +158,78 @@ export default function UpgradePlan() {
     });
   };
 
+  const handleEnterpriseUpgradeClick = () => {
+    if (paidSubscriptionActive && !isEnterprise) {
+      setConfirmConfig({
+        title: "Cancel Existing Plan?",
+        message:
+          "You currently have an active Professional plan. To avoid duplicate charges, we highly recommend canceling it before subscribing to Enterprise. Would you like us to automatically cancel your Professional plan for you?",
+        confirmText: "Yes, Cancel & Upgrade",
+        cancelText: "No, Just Upgrade",
+        onConfirm: async () => {
+          try {
+            setEnterpriseCheckoutLoading(true);
+            const response = await api.post("/billing/paystack/cancel");
+            const updatedClinic = response.data?.clinic || null;
+            if (updatedClinic) {
+              setBillingInfo(updatedClinic);
+              syncStoredUserClinic(updatedClinic);
+            }
+            await handleUpgradeClick("ENTERPRISE", isAnnual ? "annually" : "monthly");
+          } catch (error) {
+            setToast({
+              message: "Could not cancel existing plan automatically. Please cancel it manually.",
+              type: "error",
+            });
+            setEnterpriseCheckoutLoading(false);
+          }
+        },
+        onCancelClick: () => {
+          setConfirmConfig(null);
+          handleUpgradeClick("ENTERPRISE", isAnnual ? "annually" : "monthly");
+        },
+      });
+    } else {
+      handleUpgradeClick("ENTERPRISE", isAnnual ? "annually" : "monthly");
+    }
+  };
+
+  const handleProUpgradeClick = () => {
+    if (paidSubscriptionActive && isEnterprise) {
+      setConfirmConfig({
+        title: "Cancel Existing Plan?",
+        message:
+          "You currently have an active Enterprise plan. To avoid duplicate charges, we highly recommend canceling it before switching to Professional. Would you like us to automatically cancel your Enterprise plan for you?",
+        confirmText: "Yes, Cancel & Switch",
+        cancelText: "No, Just Switch",
+        onConfirm: async () => {
+          try {
+            setCheckoutLoading(true);
+            const response = await api.post("/billing/paystack/cancel");
+            const updatedClinic = response.data?.clinic || null;
+            if (updatedClinic) {
+              setBillingInfo(updatedClinic);
+              syncStoredUserClinic(updatedClinic);
+            }
+            await handleUpgradeClick("PRO", isAnnual ? "annually" : "monthly");
+          } catch (error) {
+            setToast({
+              message: "Could not cancel existing plan automatically. Please cancel it manually.",
+              type: "error",
+            });
+            setCheckoutLoading(false);
+          }
+        },
+        onCancelClick: () => {
+          setConfirmConfig(null);
+          handleUpgradeClick("PRO", isAnnual ? "annually" : "monthly");
+        },
+      });
+    } else {
+      handleUpgradeClick("PRO", isAnnual ? "annually" : "monthly");
+    }
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="w-full max-w-4xl mx-auto p-6 md:p-8 min-h-full">
       {toast && (
@@ -264,27 +336,7 @@ export default function UpgradePlan() {
             </span>
           </div>
 
-          {!paidSubscriptionActive && (
-            <Button
-              className="w-full py-4 text-base font-bold bg-primary-500 hover:bg-primary-400 text-white shadow-[0_0_20px_rgba(14,165,233,0.3)] border-transparent"
-              onClick={handleUpgradeClick}
-              isLoading={checkoutLoading}
-            >
-              {trialing
-                ? "Start Paid Subscription"
-                : "Subscribe Now"}
-            </Button>
-          )}
-
-          <div className="mt-5 mb-5 flex justify-center items-center">
-            <p className="text-slate-600 text-xs font-medium bg-white px-4 py-2 rounded-xl border border-slate-200 text-center leading-relaxed">
-              {paidSubscriptionActive
-                ? "Your subscription is currently active with secure recurring billing in NGN."
-                : "New clinics begin with a 14-day trial, then continue with secure recurring billing in NGN."}
-            </p>
-          </div>
-
-          {paidSubscriptionActive && (
+          {isPro && paidSubscriptionActive ? (
             <div className="mb-6 space-y-3">
               <Button
                 variant="outline"
@@ -292,10 +344,30 @@ export default function UpgradePlan() {
                 onClick={handleCancelAutoRenew}
                 isLoading={cancelLoading}
               >
-                Cancel Subscription
+                Cancel Professional Subscription
               </Button>
             </div>
+          ) : (
+            <Button
+              className="w-full py-4 text-base font-bold bg-primary-500 hover:bg-primary-400 text-white shadow-[0_0_20px_rgba(14,165,233,0.3)] border-transparent mb-6"
+              onClick={handleProUpgradeClick}
+              isLoading={checkoutLoading}
+            >
+              {isEnterprise
+                ? "Switch to Professional"
+                : trialing
+                  ? "Start Paid Subscription"
+                  : "Subscribe Now"}
+            </Button>
           )}
+
+          <div className="mb-5 flex justify-center items-center">
+            <p className="text-slate-600 text-xs font-medium bg-white px-4 py-2 rounded-xl border border-slate-200 text-center leading-relaxed">
+              {paidSubscriptionActive
+                ? "Your subscription is currently active with secure recurring billing in NGN."
+                : "New clinics begin with a 14-day trial, then continue with secure recurring billing in NGN."}
+            </p>
+          </div>
 
           <div className="space-y-4 flex-1">
             <FeatureItem included highlight>
@@ -316,12 +388,12 @@ export default function UpgradePlan() {
             <FeatureItem included>
               Automated Appointment Reminder Emails
             </FeatureItem>
-            <FeatureItem included>Advanced Analytics</FeatureItem>
+            <FeatureItem included>Simple Analytic</FeatureItem>
             <FeatureItem included>Custom Invoice Branding</FeatureItem>
             <FeatureItem included>
               Advanced Role-Based Access (RBAC)
             </FeatureItem>
-            <FeatureItem included>Priority 24/7 Support</FeatureItem>
+            <FeatureItem included>24/7 Support</FeatureItem>
           </div>
         </div>
 
@@ -349,27 +421,37 @@ export default function UpgradePlan() {
             </p>
           </div>
 
-          <div className="mb-8">
-            <span className="text-3xl md:text-4xl font-extrabold text-white">
-              NGN 150,000
+          <div className="mb-8 flex items-end gap-1">
+            <span className="text-3xl md:text-4xl font-extrabold text-white transition-all">
+              NGN {isAnnual ? "1,500,000" : "150,000"}
             </span>
-            <span className="ml-1 text-sm font-medium text-slate-400">
-              / month
+            <span className="text-slate-400 font-medium mb-1 transition-all">
+              / {isAnnual ? "year" : "month"}
             </span>
-            <p className="mt-2 text-sm text-slate-400">
-              Monthly enterprise billing for multi-location clinics and hospital groups.
-            </p>
           </div>
+          <p className="mt-2 text-sm text-slate-400 mb-8">
+            Enterprise billing for multi-location clinics and hospital groups.
+          </p>
 
-          {enterpriseAccess ? (
-            <div className="mb-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-100">
-              Enterprise access is active on this clinic account. Branch management is unlocked.
+          {isEnterprise && paidSubscriptionActive ? (
+            <div className="mb-6 space-y-3">
+              <div className="mb-3 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-100">
+                Enterprise access is active on this clinic account. Branch management is unlocked.
+              </div>
+              <Button
+                variant="outline"
+                className="w-full border-red-400/20 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                onClick={handleCancelAutoRenew}
+                isLoading={cancelLoading}
+              >
+                Cancel Enterprise Subscription
+              </Button>
             </div>
           ) : (
             <Button
               variant="outline"
               className="mb-6 w-full border-white/20 bg-white/10 text-white hover:bg-white/15"
-              onClick={() => handleUpgradeClick("ENTERPRISE", "monthly")}
+              onClick={handleEnterpriseUpgradeClick}
               isLoading={enterpriseCheckoutLoading}
             >
               {paidSubscriptionActive && !isEnterprise
@@ -380,11 +462,14 @@ export default function UpgradePlan() {
           )}
 
           <div className="space-y-4 flex-1">
+            <FeatureItem included dark highlight icon={<Crown size={18} />}>
+              Everything in Professional Plan
+            </FeatureItem>
             <FeatureItem included dark icon={<Building2 size={18} />}>
               Multi-Branch Management
             </FeatureItem>
             <FeatureItem included dark>
-              Separate branches for locations like Bodija and Sango
+              Separate branches for locations
             </FeatureItem>
             <FeatureItem included dark>
               Branch identity duplicate protection
@@ -397,6 +482,12 @@ export default function UpgradePlan() {
             </FeatureItem>
             <FeatureItem included dark>
               Centralized admin expansion path for branch-scoped staff and analytics
+            </FeatureItem>
+            <FeatureItem included dark>
+              Advance Analytic
+            </FeatureItem>
+            <FeatureItem included dark>
+              Priority 24/7 Support
             </FeatureItem>
           </div>
         </div>
