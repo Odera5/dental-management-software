@@ -304,12 +304,12 @@ export default function UpgradePlan() {
         </div>
       </div>
 
-      <div className="grid gap-8 xl:grid-cols-2">
+      <div className="grid gap-8 md:grid-cols-2">
         <div className="bg-gradient-to-b from-slate-50 via-white to-slate-100 rounded-3xl p-8 md:p-7 border border-slate-200 shadow-xl flex flex-col relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
           {isPro && (
             <div className="absolute top-5 right-5 z-10">
               <span className="bg-primary-500 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
-                {paidSubscriptionActive ? "Active Plan" : "Current Trial"}
+                {paidSubscriptionActive ? "Current Plan" : "Current Trial"}
               </span>
             </div>
           )}
@@ -355,9 +355,7 @@ export default function UpgradePlan() {
             >
               {isEnterprise
                 ? "Switch to Professional"
-                : trialing
-                  ? "Start Paid Subscription"
-                  : "Subscribe Now"}
+                : "Unlock Professional Access"}
             </Button>
           )}
 
@@ -405,17 +403,21 @@ export default function UpgradePlan() {
               </span>
             </div>
           )}
-          <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 rounded-3xl p-8 md:p-7 border border-slate-800 shadow-xl flex flex-col h-full relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-            <div className="absolute -top-16 -right-10 h-40 w-40 rounded-full bg-sky-400/20 blur-3xl" />
-            <div className="absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-amber-400/20 blur-3xl" />
-
-          <div className="mb-6 relative">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-bold uppercase tracking-widest text-amber-300">
-              <Building2 size={16} />
-              Enterprise
+          <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 rounded-3xl p-8 md:p-7 border border-slate-800 shadow-xl flex flex-col h-full relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+            <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+              <div className="absolute -top-16 -right-10 h-40 w-40 rounded-full bg-sky-400/20 blur-3xl" />
+              <div className="absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-amber-400/20 blur-3xl" />
             </div>
-            <h3 className="mt-5 text-2xl font-bold text-white">Enterprise Plan</h3>
-            <p className="mt-2 text-sm leading-7 text-slate-300">
+
+            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 z-10">
+              <span className="bg-gradient-to-r from-slate-800 to-slate-950 border border-slate-700 text-amber-300 text-sm font-bold uppercase tracking-widest py-1.5 px-4 rounded-full shadow-lg flex items-center gap-1.5 whitespace-nowrap">
+                <Building2 size={16} /> Enterprise
+              </span>
+            </div>
+
+            <div className="mb-6 mt-4 relative z-10">
+              <h3 className="text-2xl font-bold text-white">Enterprise Plan</h3>
+              <p className="mt-2 text-sm leading-7 text-slate-300">
               Built for clinic groups that need multi-branch control, branch-level
               separation, and centralized oversight.
             </p>
@@ -456,7 +458,7 @@ export default function UpgradePlan() {
             >
               {paidSubscriptionActive && !isEnterprise
                 ? "Upgrade to Enterprise"
-                : "Subscribe to Enterprise"}
+                : "Get Enterprise Features"}
               <ArrowRight size={16} className="ml-2" />
             </Button>
           )}

@@ -98,7 +98,7 @@ export default function ClinicSettings() {
     const isDays = offset !== "" && offset >= 1440 && offset % 1440 === 0;
     const unit = isDays ? 'days' : isMinutes ? 'minutes' : 'hours';
     const displayValue = offset === "" ? "" : isDays ? offset / 1440 : isMinutes ? offset : offset / 60;
-    const label = offset === "" ? "this reminder" : `${displayValue} ${unit} before`;
+    const label = offset === "" ? "this reminder" : `${displayValue} ${Number(displayValue) === 1 ? unit.slice(0, -1) : unit} before`;
 
     setConfirmConfig({
       title: "Delete Reminder",
@@ -577,7 +577,7 @@ export default function ClinicSettings() {
                                 <div key={index} className="flex flex-wrap sm:flex-nowrap items-center gap-3 bg-white p-3 rounded-xl border border-emerald-100 shadow-sm">
                                   <span className="text-sm font-semibold text-slate-600 min-w-fit">Set time</span>
                                   {isEditing ? (
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-1 gap-2 min-w-[200px]">
                                       <Input 
                                         type="number" min="0" step="1"
                                         value={activeValue} 
@@ -586,7 +586,7 @@ export default function ClinicSettings() {
                                            const val = rawVal === "" ? "" : Math.max(0, parseInt(rawVal, 10) || 0);
                                            setEditingReminders(prev => ({...prev, [index]: { ...prev[index], value: val }}));
                                         }}
-                                        className="w-24 text-center !mb-0" 
+                                        className="w-20 sm:w-24 text-center !mb-0 shrink-0" 
                                       />
                                       <Select 
                                         value={activeUnit}
@@ -594,7 +594,7 @@ export default function ClinicSettings() {
                                            const newUnit = e.target.value;
                                            setEditingReminders(prev => ({...prev, [index]: { ...prev[index], unit: newUnit }}));
                                         }}
-                                        className="w-32 !mb-0"
+                                        className="flex-1 min-w-[120px] !mb-0"
                                       >
                                         <option value="minutes">Minutes</option>
                                         <option value="hours">Hours</option>
@@ -604,12 +604,12 @@ export default function ClinicSettings() {
                                   ) : (
                                     <div className="flex">
                                       <span className="text-sm font-bold text-emerald-700 bg-emerald-100/60 px-3 py-1.5 rounded-lg">
-                                        {activeValue} {activeUnit.charAt(0).toUpperCase() + activeUnit.slice(1)}
+                                        {activeValue} {Number(activeValue) === 1 ? activeUnit.charAt(0).toUpperCase() + activeUnit.slice(1, -1) : activeUnit.charAt(0).toUpperCase() + activeUnit.slice(1)}
                                       </span>
                                     </div>
                                   )}
                                   
-                                  <span className="text-sm font-semibold text-slate-600 min-w-fit">before</span>
+                                  {!isEditing && <span className="text-sm font-semibold text-slate-600 min-w-fit">before</span>}
                                   
                                   <div className="flex items-center gap-2 ml-auto">
                                     {isEditing && (
@@ -620,9 +620,11 @@ export default function ClinicSettings() {
                                     <Button type="button" size="sm" variant={isEditing ? "default" : "outline"} onClick={() => toggleEditReminder(index)} className={isEditing ? "bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-sm" : "text-slate-600 bg-white"}>
                                       {isEditing ? <><Save size={14} className="mr-1.5" /> Save</> : <><Edit2 size={14} className="mr-1.5" /> Edit</>}
                                     </Button>
-                                    <Button type="button" size="sm" variant="ghost" onClick={() => handleDeleteReminderClick(index)} className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2">
-                                      <Trash2 size={16} />
-                                    </Button>
+                                    {!isEditing && (
+                                      <Button type="button" size="sm" variant="ghost" onClick={() => handleDeleteReminderClick(index)} className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2">
+                                        <Trash2 size={16} />
+                                      </Button>
+                                    )}
                                   </div>
                                 </div>
                               );
