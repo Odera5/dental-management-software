@@ -90,8 +90,7 @@ export default function TrashPatients() {
   // =========================
   // BULK ACTIONS
   // =========================
-  const handleRestore = async () => {
-    if (!selected.size) return showToast("No patients selected", "error");
+  const executeRestore = async () => {
     setLoading(true);
     try {
       await api.put("/patients/trash/restore", { ids: Array.from(selected) });
@@ -106,9 +105,18 @@ export default function TrashPatients() {
     }
   };
 
-  const handlePermanentDelete = async () => {
+  const handleRestore = () => {
     if (!selected.size) return showToast("No patients selected", "error");
-    if (false) return;
+    setConfirmConfig({
+      title: "Restore Patients",
+      message: `Are you sure you want to restore the selected ${selected.size} patient(s)? Their clinical records will be active again.`,
+      confirmText: "Restore Patients",
+      danger: false,
+      onConfirm: executeRestore,
+    });
+  };
+
+  const executePermanentDelete = async () => {
     setLoading(true);
     try {
       await api.delete("/patients/trash/permanent", { data: { ids: Array.from(selected) } });
@@ -121,6 +129,17 @@ export default function TrashPatients() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePermanentDelete = () => {
+    if (!selected.size) return showToast("No patients selected", "error");
+    setConfirmConfig({
+      title: "Delete Permanently",
+      message: `Are you sure you want to permanently delete the selected ${selected.size} patient(s)? This action cannot be undone and all associated records will be lost forever.`,
+      confirmText: "Delete Forever",
+      danger: true,
+      onConfirm: executePermanentDelete,
+    });
   };
 
   // =========================
@@ -161,51 +180,55 @@ export default function TrashPatients() {
         </button>
       </div>
 
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="p-2 text-center">
-              <input
-                type="checkbox"
-                checked={
-                  patients.length > 0 &&
-                  patients.every((patient) =>
-                    selected.has(getEntityId(patient)),
-                  )
-                }
-                onChange={toggleSelectAll}
-              />
-            </th>
-            <th className="p-2">Name</th>
-            <th className="p-2">Age</th>
-            <th className="p-2">Deleted At</th>
-          </tr>
-        </thead>
-        <tbody>
-          {patients.length === 0 ? (
-            <tr>
-              <td colSpan="4" className="text-center p-4">
-                No trashed patients
-              </td>
+      <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+        <table className="w-full border-collapse text-left text-sm text-slate-600">
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-200 font-semibold text-slate-700">
+              <th className="p-3 text-center w-12">
+                <input
+                  type="checkbox"
+                  checked={
+                    patients.length > 0 &&
+                    patients.every((patient) =>
+                      selected.has(getEntityId(patient)),
+                    )
+                  }
+                  onChange={toggleSelectAll}
+                  className="rounded border-slate-300 text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer"
+                />
+              </th>
+              <th className="p-3">Name</th>
+              <th className="p-3">Age</th>
+              <th className="p-3">Deleted At</th>
             </tr>
-          ) : (
-            patients.map((p) => (
-              <tr key={getEntityId(p)} className="border-b">
-                <td className="p-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(getEntityId(p))}
-                    onChange={() => toggleSelect(getEntityId(p))}
-                  />
+          </thead>
+          <tbody className="divide-y divide-slate-100 bg-white">
+            {patients.length === 0 ? (
+              <tr>
+                <td colSpan="4" className="text-center p-8 text-slate-400 font-medium">
+                  No trashed patients
                 </td>
-                <td className="p-2">{p.name}</td>
-                <td className="p-2">{p.age}</td>
-                <td className="p-2">{new Date(p.updatedAt).toLocaleString()}</td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              patients.map((p) => (
+                <tr key={getEntityId(p)} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="p-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(getEntityId(p))}
+                      onChange={() => toggleSelect(getEntityId(p))}
+                      className="rounded border-slate-300 text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer"
+                    />
+                  </td>
+                  <td className="p-3 font-semibold text-slate-900">{p.name}</td>
+                  <td className="p-3 text-slate-600">{p.age}</td>
+                  <td className="p-3 text-slate-500">{new Date(p.updatedAt).toLocaleString()}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {totalPages > 1 && (
         <div className="mt-4 flex justify-center gap-2">
@@ -239,6 +262,12 @@ export default function TrashPatients() {
       <div className="mt-3 text-center text-sm text-slate-500">
         Showing {patients.length} of {totalResults} trashed patients
       </div>
+
+      <ConfirmModal
+        isOpen={!!confirmConfig}
+        onClose={() => setConfirmConfig(null)}
+        {...confirmConfig}
+      />
     </motion.div>
   );
 }

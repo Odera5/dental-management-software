@@ -396,14 +396,14 @@ export default function UpgradePlan() {
         </div>
 
         <div className="relative h-full">
-          {isEnterprise && (
-            <div className="absolute top-0 right-8 transform -translate-y-1/2 z-10">
-              <span className="bg-amber-500 text-slate-950 text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
-                Current Plan
-              </span>
-            </div>
-          )}
           <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 rounded-3xl p-8 md:p-7 border border-slate-800 shadow-xl flex flex-col h-full relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+            {isEnterprise && (
+              <div className="absolute top-5 right-5 z-10">
+                <span className="bg-primary-500 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
+                  {paidSubscriptionActive ? "Current Plan" : "Current Trial"}
+                </span>
+              </div>
+            )}
             <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
               <div className="absolute -top-16 -right-10 h-40 w-40 rounded-full bg-sky-400/20 blur-3xl" />
               <div className="absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-amber-400/20 blur-3xl" />

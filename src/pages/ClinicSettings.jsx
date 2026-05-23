@@ -42,6 +42,7 @@ export default function ClinicSettings() {
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
+  const [initiatingDeactivation, setInitiatingDeactivation] = useState(false);
   const [copied, setCopied] = useState(false);
   const [intakeUpdating, setIntakeUpdating] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
@@ -68,7 +69,7 @@ export default function ClinicSettings() {
       
       setForm(newForm);
       setEditingReminders(prev => { const next = {...prev}; delete next[index]; return next; });
-      await saveSection("profile", newForm, "Reminder saved successfully");
+      await saveSection("reminders", newForm, "Reminder saved successfully");
     } else {
       const offset = form.reminderOffsets[index];
       const isMinutes = offset === "" || offset < 60 || offset % 60 !== 0;
@@ -89,6 +90,11 @@ export default function ClinicSettings() {
         nextOffsets[index] = reminderOriginals[index];
         return { ...c, reminderOffsets: nextOffsets };
       });
+    } else {
+      setForm(c => ({
+        ...c,
+        reminderOffsets: (c.reminderOffsets || []).filter((_, i) => i !== index)
+      }));
     }
   };
 
@@ -120,7 +126,7 @@ export default function ClinicSettings() {
             return acc;
           }, {});
         });
-        await saveSection("profile", newForm, "Reminder deleted successfully");
+        await saveSection("reminders", newForm, "Reminder deleted successfully");
       }
     });
   };
@@ -132,13 +138,21 @@ export default function ClinicSettings() {
       ...c,
       reminderOffsets: [...(c.reminderOffsets || []), newOffset]
     }));
-    setReminderOriginals(prev => ({...prev, [newIndex]: newOffset}));
     setEditingReminders(prev => ({...prev, [newIndex]: { value: 1, unit: 'hours' }}));
   };
 
   const [deactivateStep, setDeactivateStep] = useState(0);
   const [deactivatePassword, setDeactivatePassword] = useState("");
   const [deactivateOtp, setDeactivateOtp] = useState("");
+  const [resendCountdown, setResendCountdown] = useState(0);
+
+  useEffect(() => {
+    if (resendCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCountdown(prev => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCountdown]);
 
   const toggleEditPreset = async (index) => {
     if (editingPresets[index]) {
@@ -169,12 +183,17 @@ export default function ClinicSettings() {
     setEditingPresets(prev => ({...prev, [index]: false}));
     setCustomInputs(prev => ({...prev, [`${index}_desc`]: false, [`${index}_cat`]: false}));
     
-    if (presetOriginals[index]) {
+    if (presetOriginals[index] !== undefined) {
       setForm(c => {
         const nextPrices = [...c.procedurePresetPrices];
         nextPrices[index] = presetOriginals[index];
         return { ...c, procedurePresetPrices: nextPrices };
       });
+    } else {
+      setForm(c => ({
+        ...c,
+        procedurePresetPrices: c.procedurePresetPrices.filter((_, i) => i !== index)
+      }));
     }
   };
 
@@ -229,7 +248,6 @@ export default function ClinicSettings() {
       ...c,
       procedurePresetPrices: [...c.procedurePresetPrices, newPreset]
     }));
-    setPresetOriginals(prev => ({...prev, [newIndex]: { ...newPreset }}));
     setEditingPresets(prev => ({...prev, [newIndex]: true}));
   };
   
@@ -388,6 +406,17 @@ export default function ClinicSettings() {
       payload.brandColor = billingInfo?.brandColor || "#0f172a";
       payload.logoUrl = billingInfo?.logoUrl || "";
       payload.reminderOffsets = billingInfo?.reminderOffsets || payload.reminderOffsets;
+    } else if (section === "reminders") {
+      payload.clinicName = billingInfo?.name || payload.clinicName;
+      payload.clinicEmail = billingInfo?.email || payload.clinicEmail;
+      payload.clinicPhone = billingInfo?.phone || payload.clinicPhone;
+      payload.clinicCountry = billingInfo?.country || payload.clinicCountry;
+      payload.clinicCity = billingInfo?.city || payload.clinicCity;
+      payload.clinicAddress = billingInfo?.address || payload.clinicAddress;
+      payload.contactPerson = billingInfo?.contactPerson || payload.contactPerson;
+      payload.brandColor = billingInfo?.brandColor || "#0f172a";
+      payload.logoUrl = billingInfo?.logoUrl || "";
+      payload.procedurePresetPrices = billingInfo?.procedurePresetPrices ? normalizeProcedurePresets(billingInfo.procedurePresetPrices) : payload.procedurePresetPrices;
     }
 
     try {
@@ -419,6 +448,11 @@ export default function ClinicSettings() {
           ...c,
           procedurePresetPrices: normalizeProcedurePresets(clinic.procedurePresetPrices)
         }));
+      } else if (section === "reminders") {
+        setForm(c => ({
+          ...c,
+          reminderOffsets: clinic.reminderOffsets || [1440, 120]
+        }));
       }
       
       setBillingInfo((current) => ({ ...(current || {}), ...clinic }));
@@ -444,14 +478,15 @@ export default function ClinicSettings() {
     if (e) e.preventDefault();
     if (!deactivatePassword) return setToast({ show: true, message: "Password is required", type: "error" });
     try {
-      setDeactivating(true);
+      setInitiatingDeactivation(true);
       const res = await api.post("/auth/clinic-profile/deactivate/initiate", { password: deactivatePassword });
       setToast({ show: true, message: res.data.message || "OTP sent to your email", type: "success" });
       setDeactivateStep(2);
+      setResendCountdown(120); // Start 2-minute countdown
     } catch (err) {
       setToast({ show: true, message: err.response?.data?.message || "Failed to initiate deactivation", type: "error" });
     } finally {
-      setDeactivating(false);
+      setInitiatingDeactivation(false);
     }
   };
 
@@ -855,7 +890,7 @@ export default function ClinicSettings() {
                                       type="number" min="0" step="0.01" 
                                       value={preset.unitPrice} 
                                       onChange={(e) => handleProcedurePriceChange(index, e.target.value)} 
-                                      className="w-full text-right font-mono font-bold text-slate-900 border border-emerald-200 rounded p-1.5 text-base bg-slate-100 focus:ring-2 focus:ring-emerald-500 outline-none" 
+                                      className="w-full max-w-[160px] text-right font-mono font-bold text-slate-900 border border-emerald-200 rounded p-1.5 text-base bg-slate-100 focus:ring-2 focus:ring-emerald-500 outline-none" 
                                    />
                                 ) : (
                                    <div className="text-sm font-bold text-emerald-700 bg-emerald-100/60 px-3 py-1.5 rounded-lg group-hover:bg-emerald-200/60 transition-colors inline-block w-fit text-right">
@@ -928,7 +963,7 @@ export default function ClinicSettings() {
                   </div>
                   <div className="flex items-center justify-end gap-3">
                     <Button type="button" variant="outline" onClick={() => setDeactivateStep(0)}>Cancel</Button>
-                    <Button type="submit" className="bg-red-600 hover:bg-red-700 text-white border-0 shadow-sm" isLoading={deactivating}>Continue</Button>
+                    <Button type="submit" className="bg-red-600 hover:bg-red-700 text-white border-0 shadow-sm" isLoading={initiatingDeactivation} disabled={!deactivatePassword.trim() || initiatingDeactivation}>Continue</Button>
                   </div>
                 </form>
               )}
@@ -951,13 +986,22 @@ export default function ClinicSettings() {
                     />
                   </div>
                   <div className="flex items-center justify-between mb-6">
-                    <button type="button" onClick={initiateDeactivation} disabled={deactivating} className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 bg-transparent border-0 outline-none cursor-pointer">
-                      Resend Code
+                    <button 
+                      type="button" 
+                      onClick={initiateDeactivation} 
+                      disabled={initiatingDeactivation || resendCountdown > 0} 
+                      className={`text-sm font-semibold border-0 bg-transparent outline-none cursor-pointer ${
+                        resendCountdown > 0 
+                          ? "text-slate-400 cursor-not-allowed" 
+                          : "text-emerald-600 hover:text-emerald-700"
+                      }`}
+                    >
+                      {resendCountdown > 0 ? `Resend Code (${resendCountdown}s)` : "Resend Code"}
                     </button>
                   </div>
                   <div className="flex items-center justify-end gap-3">
                     <Button type="button" variant="outline" onClick={() => setDeactivateStep(0)}>Cancel</Button>
-                    <Button type="submit" className="bg-red-600 hover:bg-red-700 text-white border-0 shadow-sm" isLoading={deactivating}>Yes, Deactivate</Button>
+                    <Button type="submit" className="bg-red-600 hover:bg-red-700 text-white border-0 shadow-sm" isLoading={deactivating} disabled={!deactivateOtp.trim() || deactivating}>Yes, Deactivate</Button>
                   </div>
                 </form>
               )}

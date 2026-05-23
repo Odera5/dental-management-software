@@ -39,6 +39,11 @@ export default function PatientIntakeForm() {
     preferredTime: ""
   });
 
+  const [formErrors, setFormErrors] = useState({
+    phone: "",
+    email: ""
+  });
+
   useEffect(() => {
     const fetchClinic = async () => {
       try {
@@ -116,7 +121,32 @@ export default function PatientIntakeForm() {
     fetchAvailableSlots();
   }, [accessToken, clinicId, form.preferredDate, requestedBranchId]);
 
-  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(f => ({ ...f, [name]: value }));
+
+    if (name === "phone") {
+      const hasLetters = /[a-zA-Z]/.test(value);
+      const isValidFormat = value.trim() === "" || /^[0-9+\-() ]*$/.test(value);
+      
+      if (hasLetters) {
+        setFormErrors(errs => ({ ...errs, phone: "Invalid phone number. Letters are not allowed." }));
+      } else if (!isValidFormat) {
+        setFormErrors(errs => ({ ...errs, phone: "Invalid phone number format." }));
+      } else {
+        setFormErrors(errs => ({ ...errs, phone: "" }));
+      }
+    }
+
+    if (name === "email") {
+      const isEmailValid = value.trim() === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      if (!isEmailValid) {
+        setFormErrors(errs => ({ ...errs, email: "Invalid email address format." }));
+      } else {
+        setFormErrors(errs => ({ ...errs, email: "" }));
+      }
+    }
+  };
 
   const formatSelectedDateLabel = (value) => {
     if (!value) return "selected date";
@@ -149,8 +179,8 @@ export default function PatientIntakeForm() {
       return form.firstName.trim() !== "" && form.lastName.trim() !== "" && form.age.trim() !== "" && isAgeValid;
     }
     if (currentStep === 2) {
-      const isPhoneValid = form.phone.trim() !== "" && /^[0-9+\-() ]*$/.test(form.phone);
-      const isEmailValid = form.email.trim() === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
+      const isPhoneValid = form.phone.trim() !== "" && !formErrors.phone && /^[0-9+\-() ]*$/.test(form.phone) && !/[a-zA-Z]/.test(form.phone);
+      const isEmailValid = !formErrors.email && (form.email.trim() === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email));
       const isAddressValid = form.address.trim() !== "";
       return isPhoneValid && isEmailValid && isAddressValid;
     }
@@ -305,8 +335,8 @@ export default function PatientIntakeForm() {
                            <p className="text-slate-500 text-sm mt-1">How can we reach you?</p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                           <Input label="Mobile Phone *" name="phone" value={form.phone} onChange={handleChange} required placeholder="e.g. +234..." className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
-                           <Input label="Email Address" name="email" type="email" value={form.email} onChange={handleChange} placeholder="Optional" className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
+                           <Input label="Mobile Phone *" name="phone" value={form.phone} onChange={handleChange} required error={formErrors.phone} placeholder="e.g. +234..." className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
+                           <Input label="Email Address" name="email" type="email" value={form.email} onChange={handleChange} error={formErrors.email} placeholder="Optional" className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
                            <div className="md:col-span-2 space-y-1.5">
                               <label className="text-sm font-semibold text-slate-700 block">Home Address *</label>
                               <textarea name="address" value={form.address} onChange={handleChange} required rows="3" placeholder="Residential address" className="w-full rounded-xl border border-slate-200 p-4 bg-slate-50 text-slate-900 text-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow resize-none"></textarea>

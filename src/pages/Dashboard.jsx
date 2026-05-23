@@ -330,7 +330,7 @@ export default function Dashboard() {
     });
   };
 
-  const handleRestore = async (patientId) => {
+  const executeRestore = async (patientId) => {
     try {
       const res = await api.put(`/patients/${patientId}/restore`);
       if (res.status === 200) {
@@ -342,6 +342,16 @@ export default function Dashboard() {
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to restore patient", "error");
     }
+  };
+
+  const handleRestore = (patientId) => {
+    setConfirmConfig({
+      title: "Restore Patient",
+      message: "Are you sure you want to restore this patient? Their clinical records will be active again.",
+      confirmText: "Restore Patient",
+      danger: false,
+      onConfirm: () => executeRestore(patientId)
+    });
   };
 
   const executePermanentDelete = async (patientId) => {
