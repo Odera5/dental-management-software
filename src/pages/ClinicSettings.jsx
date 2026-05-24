@@ -720,17 +720,17 @@ export default function ClinicSettings() {
              {/* Patient Intake URL (Pro) */}
              <Card className="border border-surface-200 shadow-sm relative overflow-hidden mb-6">
                  <CardContent className="p-8">
-                    <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-4">
-                       <div>
-                        <h3 className="font-bold text-slate-900 text-lg flex items-center mb-1"><LinkIcon size={20} className="mr-2 text-primary-600" /> Current Branch Intake Form</h3>
-                        <p className="text-slate-500 text-sm">This link applies to the branch currently selected in your header branch switcher.</p>
-                       </div>
-                       {!hasProAccess && (
-                         <div className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center border border-amber-200">
-                           <Lock size={14} className="mr-1.5" /> PRO Feature
-                         </div>
-                       )}
-                    </div>
+                     <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-4">
+                        <div>
+                         <h3 className="font-bold text-slate-900 text-lg flex items-center mb-1"><LinkIcon size={20} className="mr-2 text-primary-600" /> {currentClinic?.plan === "ENTERPRISE" ? "Current Branch Intake Form" : "Patient Intake Form"}</h3>
+                         <p className="text-slate-500 text-sm">{currentClinic?.plan === "ENTERPRISE" ? "This link applies to the branch currently selected in your header branch switcher." : "This secure link allows patients to fill out their intake forms online."}</p>
+                        </div>
+                        {!hasProAccess && (
+                          <div className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center border border-amber-200">
+                            <Lock size={14} className="mr-1.5" /> PRO Feature
+                          </div>
+                        )}
+                     </div>
                     
                     <div className={`mt-4 ${!hasProAccess ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
                        <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -763,7 +763,7 @@ export default function ClinicSettings() {
                              {copied ? "Copied" : "Copy"}
                           </Button>
                        </div>
-                       <p className="text-xs text-slate-400 mt-3">Only patients with this secure tokenized link can open the intake form for the selected branch. Regenerating the link immediately revokes the old one.</p>
+                       <p className="text-xs text-slate-400 mt-3">{currentClinic?.plan === "ENTERPRISE" ? "Only patients with this secure tokenized link can open the intake form for the selected branch. Regenerating the link immediately revokes the old one." : "Only patients with this secure tokenized link can open the intake form. Regenerating the link immediately revokes the old one."}</p>
                     </div>
 
                     {!hasProAccess && (
