@@ -407,7 +407,7 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
                             )}
                             {!isFrontDesk && (
                               <Button variant="outline" size="sm" onClick={() => handleOpenRecord(getEntityId(entry.patientId) || entry.patientId)} className="w-full bg-white">
-                                Open Chart
+                                Open Record
                               </Button>
                             )}
                             {(isFrontDesk || entry.status === "completed") && (

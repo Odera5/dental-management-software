@@ -43,6 +43,12 @@ function RecordItem({ record, expandedRecordId, setExpandedRecordId, handleDelet
 
   useEffect(() => { if (virtualizer) virtualizer.measure(); }, [isExpanded, virtualizer]);
 
+  useEffect(() => {
+    if (!isEditing) {
+      setEditingRecordData({ ...createEmptyRecord(), ...record });
+    }
+  }, [record, isEditing, setEditingRecordData]);
+
   const cancelEditing = useCallback(() => {
     clearEditingFlag();
     clearEditingDraft();
@@ -96,6 +102,41 @@ function RecordItem({ record, expandedRecordId, setExpandedRecordId, handleDelet
               <RecordSection title="Medical History / Comorbidities" content={formatWithCommas(record.comorbidities)} icon={Activity} keyword={searchKeyword} />
               <RecordSection title="Allergies" content={formatWithCommas(record.allergies)} icon={AlertCircle} keyword={searchKeyword} />
               <RecordSection title="Current Medications" content={formatWithCommas(record.currentMedication)} icon={Activity} keyword={searchKeyword} />
+
+              {(() => {
+                let vitals = {};
+                try {
+                  vitals = typeof record.vitals === 'string' ? JSON.parse(record.vitals || "{}") : (record.vitals || {});
+                } catch {
+                  vitals = {};
+                }
+
+                const vitalsFields = [
+                  ["Blood Pressure", vitals.bloodPressure ? `${vitals.bloodPressure} mmHg` : null],
+                  ["Heart Rate", vitals.heartRate ? `${vitals.heartRate} bpm` : null],
+                  ["Temperature", vitals.temperature ? `${vitals.temperature} °C` : null],
+                  ["Weight", vitals.weight ? `${vitals.weight} kg` : null],
+                  ["Blood Glucose", vitals.bloodGlucose ? `${vitals.bloodGlucose} mg/dL` : null],
+                ].filter(([, value]) => value);
+
+                if (vitalsFields.length === 0) return null;
+
+                return (
+                  <div className="mb-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <h4 className="flex items-center text-sm font-bold text-slate-700 mb-3 uppercase tracking-widest">
+                      <Activity size={14} className="mr-2 text-rose-500" /> Patient Vitals
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                      {vitalsFields.map(([label, value]) => (
+                        <div key={label} className="bg-white p-3 rounded-lg border border-slate-200">
+                          <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</span>
+                          <div className="text-sm text-slate-800 font-semibold">{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {examSections.length > 0 ? (
                 <div className="mb-4 bg-slate-50 rounded-xl p-4 border border-slate-100">

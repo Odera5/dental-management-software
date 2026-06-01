@@ -2,7 +2,7 @@ import React, { useCallback, useDeferredValue, useEffect, useState } from "react
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
-  Users, Calendar, Activity, CreditCard, Search, RefreshCw, ArchiveRestore, Trash2, Upload, Download, Lock, Globe
+  Users, Calendar, Activity, CreditCard, Search, RefreshCw, ArchiveRestore, Trash2, Upload, Download, Lock, Globe, AlertCircle
 } from "lucide-react";
 import Papa from "papaparse";
 import CsvImportModal from "../components/Patients/CsvImportModal";
@@ -131,7 +131,7 @@ export default function Dashboard() {
           Name: p.name,
           Age: p.age,
           Gender: p.gender,
-          Phone: p.phone,
+          Phone: p.phone ? `\t${p.phone}` : "",
           Email: p.email,
           Address: p.address,
           CardNumber: p.cardNumber,
@@ -467,7 +467,7 @@ export default function Dashboard() {
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto lg:ml-4">
               <div className="w-full sm:w-72">
                 <Input 
-                  placeholder="Search by name, card, phone..."
+                  placeholder="Search by name, card, age, phone..."
                   value={searchQuery}
                   onChange={(e) => setDirectoryState((current) => ({ ...current, searchQuery: e.target.value }))}
                   onClear={() => setDirectoryState((current) => ({ ...current, searchQuery: "" }))}
@@ -506,6 +506,15 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        {showTrash && (
+          <div className="mx-4 mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 text-amber-800 text-sm">
+            <AlertCircle size={18} className="shrink-0 mt-0.5 text-amber-600" />
+            <div>
+              <span className="font-semibold">Notice:</span> Records moved to the Trash will stay here for 6 months from the day they were deleted. After 6 months, they will be automatically and permanently deleted forever.
+            </div>
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600 whitespace-nowrap">
@@ -572,9 +581,6 @@ export default function Dashboard() {
                             <>
                               <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-200 hover:text-emerald-800 hover:bg-emerald-50" onClick={() => handleRestore(patientId)}>
                                 <ArchiveRestore size={16} className="mr-1" /> Restore
-                              </Button>
-                              <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => handlePermanentDelete(patientId)}>
-                                Delete Forever
                               </Button>
                             </>
                           ) : canDeletePatients ? (

@@ -9,7 +9,6 @@ import ConfirmModal from "../components/ui/ConfirmModal";
 import RecordForm from "../components/PatientRecord/RecordForm";
 import RecordItem from "../components/PatientRecord/RecordItem";
 import SearchFilterSort from "../components/PatientRecord/SearchFilterSort";
-import VitalsChart from "../components/PatientRecord/VitalsChart";
 import { createEmptyRecord } from "../components/PatientRecord/recordUtils";
 import { getEntityId } from "../utils/entityId";
 import Button from "../components/ui/Button";
@@ -350,8 +349,6 @@ export default function PatientRecord() {
         onChange={setRecordFilters}
         storageKey={recordFiltersStorageKey}
       />
-
-      {records.length > 0 && <VitalsChart records={records} />}
 
       <div className="space-y-4">
         {records.length === 0 ? (

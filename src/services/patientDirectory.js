@@ -1,7 +1,18 @@
-import api from "./api";
+import api, { apiWriteListeners } from "./api";
 
 const defaultOptionsCache = new Map();
 const patientByIdCache = new Map();
+
+export const clearPatientDirectoryCache = () => {
+  defaultOptionsCache.clear();
+  patientByIdCache.clear();
+};
+
+apiWriteListeners.push((config) => {
+  if (config.url && config.url.includes("/patients")) {
+    clearPatientDirectoryCache();
+  }
+});
 
 export const getPatientPickerOptions = async ({
   search = "",

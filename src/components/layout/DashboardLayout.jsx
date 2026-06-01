@@ -554,7 +554,7 @@ export default function DashboardLayout() {
           {isAdmin && (
             <div>
               <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                {showRestrictedAdminShell ? "Renewal" : "SaaS Plan"}
+                {showRestrictedAdminShell ? "Renewal" : "Clinic Plan"}
               </p>
               <NavItem
                 icon={Crown}

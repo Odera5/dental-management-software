@@ -39,8 +39,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+export const apiWriteListeners = [];
+
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const config = response.config;
+    if (["post", "put", "delete", "patch"].includes(config?.method?.toLowerCase())) {
+      apiWriteListeners.forEach((listener) => {
+        try {
+          listener(config);
+        } catch (e) {
+          console.error("API write listener error:", e);
+        }
+      });
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
     const hasUser = !!getStoredUser();

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { createEmptyRecord } from "./recordUtils";
 import { useNavigate } from "react-router-dom";
 import Button from "../ui/Button";
@@ -72,31 +72,39 @@ const initializeTeethState = (initialDentition, savedTeeth = []) => {
   };
 };
 
-function FormField({ label, name, value, onChange, type = "text", rows = 1, required = false, placeholder = "", unit, max }) {
+function FormField({ label, name, value, onChange, type = "text", rows = 1, required = false, placeholder = "", unit, max, error }) {
   return (
-    <div className="space-y-1.5 focus-within:text-primary-600 transition-colors">
+    <div className="space-y-1.5 focus-within:text-primary-600 transition-colors w-full">
       <label className="text-sm font-semibold text-slate-700 leading-none">{label} {required && <span className="text-red-500">*</span>}</label>
       {type === "textarea" ? (
-        <textarea name={name} value={value} onChange={onChange} rows={rows} required={required} placeholder={placeholder} className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none transition-shadow" />
+        <textarea name={name} value={value} onChange={onChange} rows={rows} required={required} placeholder={placeholder} className={`w-full rounded-xl border ${error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-200 focus:ring-primary-500'} p-3 bg-white text-sm focus:outline-none focus:ring-2 shadow-sm resize-none transition-shadow`} />
       ) : unit ? (
-        <div className="relative flex items-center">
-          <input name={name} type={type} value={value} onChange={onChange} required={required} placeholder={placeholder} max={max} className="w-full rounded-xl border border-slate-200 p-3 pr-16 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-shadow h-[46px]" />
-          <span className="absolute right-4 text-slate-400 text-sm font-medium">{unit}</span>
+        <div className="relative flex flex-col w-full">
+          <div className="relative flex items-center w-full">
+            <input name={name} type={type} value={value} onChange={onChange} required={required} placeholder={placeholder} max={max} className={`w-full rounded-xl border ${error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-200 focus:ring-primary-500'} p-3 pr-16 bg-white text-sm focus:outline-none focus:ring-2 shadow-sm transition-shadow h-[46px]`} />
+            <span className="absolute right-4 text-slate-400 text-sm font-medium">{unit}</span>
+          </div>
+          {error && <span className="text-red-500 text-[11px] font-medium mt-1 leading-tight animate-in fade-in slide-in-from-top-1 duration-150">{error}</span>}
         </div>
       ) : (
-        <input name={name} type={type} value={value} onChange={onChange} required={required} placeholder={placeholder} max={max} className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-shadow h-[46px]" />
+        <div className="flex flex-col w-full">
+          <input name={name} type={type} value={value} onChange={onChange} required={required} placeholder={placeholder} max={max} className={`w-full rounded-xl border ${error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-200 focus:ring-primary-500'} p-3 bg-white text-sm focus:outline-none focus:ring-2 shadow-sm transition-shadow h-[46px]`} />
+          {error && <span className="text-red-500 text-[11px] font-medium mt-1 leading-tight animate-in fade-in slide-in-from-top-1 duration-150">{error}</span>}
+        </div>
       )}
     </div>
   );
 }
 
-function CheckboxField({ label, name, checked, onChange }) {
+function CheckboxField({ label, name, checked, onChange, required = false }) {
   return (
     <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 cursor-pointer hover:bg-slate-50 transition-colors shadow-sm focus-within:ring-2 focus-within:ring-primary-500">
       <div className="relative flex items-center">
         <input type="checkbox" name={name} checked={checked} onChange={onChange} className="h-5 w-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
       </div>
-      <span className="font-semibold text-slate-800 select-none flex-1">{label}</span>
+      <span className="font-semibold text-slate-800 select-none flex-1">
+        {label} {required && <span className="text-red-500 ml-1">*</span>}
+      </span>
     </label>
   );
 }
@@ -185,6 +193,13 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
       setNotificationModal({ show: true, message: "Please provide the consent date and the clinician who took the consent." });
       return;
     }
+
+    const hasVitalsErrors = Object.values(vitalsErrors).some(error => error !== "");
+    if (hasVitalsErrors) {
+      setNotificationModal({ show: true, message: "Please fix the invalid vital signs before saving the record." });
+      return;
+    }
+
     onSubmit(e);
   };
   const [activeExamTab, setActiveExamTab] = useState("extraoral");
@@ -194,6 +209,38 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
   const [templateCategory, setTemplateCategory] = useState("");
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [notificationModal, setNotificationModal] = useState({ show: false, message: "" });
+  const [vitalsErrors, setVitalsErrors] = useState({});
+
+  useEffect(() => {
+    const initialVitals = typeof recordData.vitals === 'string' ? JSON.parse(recordData.vitals || "{}") : (recordData.vitals || {});
+    const errors = {};
+    Object.entries(initialVitals).forEach(([name, value]) => {
+      if (value && String(value).trim() !== "") {
+        const valStr = String(value).trim();
+        if (name === "bloodPressure") {
+          if (!/^\d{2,3}\/\d{2,3}$/.test(valStr)) {
+            errors.bloodPressure = "Format must be Systolic/Diastolic (e.g. 120/80)";
+          }
+        } else {
+          const numVal = parseFloat(valStr);
+          if (isNaN(numVal)) {
+            errors[name] = "Must be a valid number";
+          } else {
+            if (name === "heartRate") {
+              if (numVal <= 0 || numVal >= 300) errors.heartRate = "Must be between 1 and 299 bpm";
+            } else if (name === "temperature") {
+              if (numVal <= 20 || numVal >= 45) errors.temperature = "Must be between 20.1°C and 44.9°C";
+            } else if (name === "weight") {
+              if (numVal <= 0 || numVal >= 500) errors.weight = "Must be between 0.1 and 499.9 kg";
+            } else if (name === "bloodGlucose") {
+              if (numVal <= 0 || numVal >= 1000) errors.bloodGlucose = "Must be between 0.1 and 999.9 mg/dL";
+            }
+          }
+        }
+      }
+    });
+    setVitalsErrors(errors);
+  }, []);
 
   const storedUser = getStoredUserObject() || {};
   const proAccessActive = hasActiveProAccess(storedUser?.clinic);
@@ -360,6 +407,44 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
 
   const handleVitalsChange = (e) => {
     const { name, value } = e.target;
+
+    let errorMsg = "";
+    if (value.trim() !== "") {
+      if (name === "bloodPressure") {
+        if (!/^\d{2,3}\/\d{2,3}$/.test(value.trim())) {
+          errorMsg = "Format must be Systolic/Diastolic (e.g. 120/80)";
+        }
+      } else {
+        const numVal = parseFloat(value);
+        if (isNaN(numVal)) {
+          errorMsg = "Must be a valid number";
+        } else {
+          if (name === "heartRate") {
+            if (numVal <= 0 || numVal >= 300) {
+              errorMsg = "Must be between 1 and 299 bpm";
+            }
+          } else if (name === "temperature") {
+            if (numVal <= 20 || numVal >= 45) {
+              errorMsg = "Must be between 20.1°C and 44.9°C";
+            }
+          } else if (name === "weight") {
+            if (numVal <= 0 || numVal >= 500) {
+              errorMsg = "Must be between 0.1 and 499.9 kg";
+            }
+          } else if (name === "bloodGlucose") {
+            if (numVal <= 0 || numVal >= 1000) {
+              errorMsg = "Must be between 0.1 and 999.9 mg/dL";
+            }
+          }
+        }
+      }
+    }
+
+    setVitalsErrors((prev) => ({
+      ...prev,
+      [name]: errorMsg,
+    }));
+
     setRecordData((prev) => {
       const currentVitals = typeof prev.vitals === 'string' ? JSON.parse(prev.vitals || "{}") : (prev.vitals || {});
       return {
@@ -442,11 +527,11 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
       <div className="p-6 border border-slate-200 rounded-2xl shadow-sm bg-white">
         <h2 className="font-bold mb-4 text-lg text-slate-900 border-b border-slate-100 pb-2 flex items-center"><Activity size={20} className="mr-2 text-rose-500" /> Patient Vitals</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-          <FormField label="Blood Pressure" unit="mmHg" name="bloodPressure" value={parsedVitals.bloodPressure || ""} onChange={handleVitalsChange} placeholder="120/80" />
-          <FormField label="Heart Rate" unit="bpm" name="heartRate" type="number" value={parsedVitals.heartRate || ""} onChange={handleVitalsChange} placeholder="72" />
-          <FormField label="Temperature" unit="°C" name="temperature" type="number" step="0.1" value={parsedVitals.temperature || ""} onChange={handleVitalsChange} placeholder="36.5" />
-          <FormField label="Weight" unit="kg" name="weight" type="number" step="0.1" value={parsedVitals.weight || ""} onChange={handleVitalsChange} placeholder="70.5" />
-          <FormField label="Blood Glucose" unit="mg/dL" name="bloodGlucose" type="number" step="0.1" value={parsedVitals.bloodGlucose || ""} onChange={handleVitalsChange} placeholder="90" />
+          <FormField label="Blood Pressure" unit="mmHg" name="bloodPressure" value={parsedVitals.bloodPressure || ""} onChange={handleVitalsChange} placeholder="120/80" error={vitalsErrors.bloodPressure} />
+          <FormField label="Heart Rate" unit="bpm" name="heartRate" type="number" value={parsedVitals.heartRate || ""} onChange={handleVitalsChange} placeholder="72" error={vitalsErrors.heartRate} />
+          <FormField label="Temperature" unit="°C" name="temperature" type="number" step="0.1" value={parsedVitals.temperature || ""} onChange={handleVitalsChange} placeholder="36.5" error={vitalsErrors.temperature} />
+          <FormField label="Weight" unit="kg" name="weight" type="number" step="0.1" value={parsedVitals.weight || ""} onChange={handleVitalsChange} placeholder="70.5" error={vitalsErrors.weight} />
+          <FormField label="Blood Glucose" unit="mg/dL" name="bloodGlucose" type="number" step="0.1" value={parsedVitals.bloodGlucose || ""} onChange={handleVitalsChange} placeholder="90" error={vitalsErrors.bloodGlucose} />
         </div>
       </div>
 
@@ -654,10 +739,10 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
       </div>
 
       <div className="p-6 border border-slate-200 rounded-2xl shadow-sm bg-gradient-to-br from-slate-50 to-white">
-        <h2 className="font-bold mb-4 text-lg text-slate-900 border-b border-slate-200 pb-2 flex items-center"><Shield size={20} className="mr-2 text-slate-400" /> Informed Consent</h2>
+        <h2 className="font-bold mb-4 text-lg text-slate-900 border-b border-slate-200 pb-2 flex items-center"><Shield size={20} className="mr-2 text-slate-400" /> Informed Consent <span className="text-red-500 ml-1">*</span></h2>
         
         <div className="space-y-6">
-          <CheckboxField label="I confirm that informed consent was obtained from the patient (or guardian) before commencing treatment." name="consentObtained" checked={Boolean(recordData.consentObtained)} onChange={handleCheckboxChange} />
+          <CheckboxField label="I confirm that informed consent was obtained from the patient (or guardian) before commencing treatment." name="consentObtained" checked={Boolean(recordData.consentObtained)} onChange={handleCheckboxChange} required={true} />
 
           {recordData.consentObtained && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-xl border border-emerald-100 animate-in fade-in zoom-in-95 duration-200">
