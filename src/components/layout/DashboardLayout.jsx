@@ -18,6 +18,7 @@ import {
   Inbox,
   Building2,
   ChevronDown,
+  History,
 } from "lucide-react";
 import api, { logoutCurrentUser } from "../../services/api";
 import {
@@ -381,6 +382,8 @@ export default function DashboardLayout() {
   else if (location.pathname.includes("/signup")) headerTitle = "Manage Staff";
   else if (location.pathname.includes("/clinic-settings"))
     headerTitle = "Clinic Settings";
+  else if (location.pathname.includes("/audit-logs"))
+    headerTitle = "Activity Logs";
   else if (location.pathname.includes("/branches"))
     headerTitle = "Manage Branches";
   else if (location.pathname.includes("/patients/"))
@@ -527,6 +530,13 @@ export default function DashboardLayout() {
                     icon={Settings}
                     label="Clinic Settings"
                     path="/clinic-settings"
+                    location={location}
+                    onNavigate={handleNavClick}
+                  />
+                  <NavItem
+                    icon={History}
+                    label="Activity Logs"
+                    path="/audit-logs"
                     location={location}
                     onNavigate={handleNavClick}
                   />

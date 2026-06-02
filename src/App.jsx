@@ -34,6 +34,7 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const AppointmentResponse = lazy(() => import("./pages/AppointmentResponse"));
 const DashboardLayout = lazy(() => import("./components/layout/DashboardLayout"));
+const AuditLogs = lazy(() => import("./pages/AuditLogs"));
 
 function RouteLoader() {
   return (
@@ -120,6 +121,14 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={["admin"]}>
                     <ClinicSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/audit-logs"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <AuditLogs />
                   </ProtectedRoute>
                 }
               />
