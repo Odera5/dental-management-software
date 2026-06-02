@@ -107,6 +107,18 @@ export function removeStoredValue(key, preferred = "session") {
 
 export function readLastVisitedRoute(userOverride = null) {
   const storageKey = getLastVisitedRouteKey(userOverride);
+  const timestampKey = `${storageKey}:timestamp`;
+
+  const sessionTimestamp = readStoredJson(timestampKey, null, "session");
+  const localTimestamp = readStoredJson(timestampKey, null, "local");
+  const timestamp = sessionTimestamp || localTimestamp;
+
+  const EXPIRATION_LIMIT = 15 * 60 * 1000; // 15 minutes in ms
+  if (timestamp && Date.now() - timestamp > EXPIRATION_LIMIT) {
+    clearLastVisitedRoute(userOverride);
+    return null;
+  }
+
   const sessionValue = readStoredJson(
     storageKey,
     null,
@@ -121,19 +133,25 @@ export function readLastVisitedRoute(userOverride = null) {
 export function writeLastVisitedRoute(value, userOverride = null) {
   if (!isValidLastVisitedRoute(value)) return;
   const storageKey = getLastVisitedRouteKey(userOverride);
+  const timestampKey = `${storageKey}:timestamp`;
+  const now = Date.now();
 
   ["session", "local"].forEach((preferred) => {
     writeStoredJson(storageKey, value, preferred);
+    writeStoredJson(timestampKey, now, preferred);
   });
 }
 
 export function clearLastVisitedRoute(userOverride = null) {
   const storageKey = getLastVisitedRouteKey(userOverride);
+  const timestampKey = `${storageKey}:timestamp`;
 
   ["session", "local"].forEach((preferred) => {
     removeStoredValue(storageKey, preferred);
+    removeStoredValue(timestampKey, preferred);
     if (storageKey !== STORAGE_KEYS.lastVisitedRoute) {
       removeStoredValue(STORAGE_KEYS.lastVisitedRoute, preferred);
+      removeStoredValue(`${STORAGE_KEYS.lastVisitedRoute}:timestamp`, preferred);
     }
   });
 }
