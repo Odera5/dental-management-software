@@ -109,25 +109,29 @@ export function readLastVisitedRoute(userOverride = null) {
   const storageKey = getLastVisitedRouteKey(userOverride);
   const timestampKey = `${storageKey}:timestamp`;
 
+  const sessionValue = readStoredJson(storageKey, null, "session");
+  const localValue = readStoredJson(storageKey, null, "local");
+  const routeValue = sessionValue || localValue;
+
+  // If no route is stored at all, return null
+  if (!isValidLastVisitedRoute(routeValue)) {
+    return null;
+  }
+
   const sessionTimestamp = readStoredJson(timestampKey, null, "session");
   const localTimestamp = readStoredJson(timestampKey, null, "local");
   const timestamp = sessionTimestamp || localTimestamp;
 
   const EXPIRATION_LIMIT = 15 * 60 * 1000; // 15 minutes in ms
-  if (timestamp && Date.now() - timestamp > EXPIRATION_LIMIT) {
+
+  // If a route exists but has no timestamp (legacy/invalid state)
+  // or the timestamp is older than 15 minutes, clear it and return null.
+  if (!timestamp || Date.now() - timestamp > EXPIRATION_LIMIT) {
     clearLastVisitedRoute(userOverride);
     return null;
   }
 
-  const sessionValue = readStoredJson(
-    storageKey,
-    null,
-    "session",
-  );
-  if (isValidLastVisitedRoute(sessionValue)) return sessionValue;
-
-  const localValue = readStoredJson(storageKey, null, "local");
-  return isValidLastVisitedRoute(localValue) ? localValue : null;
+  return isValidLastVisitedRoute(sessionValue) ? sessionValue : localValue;
 }
 
 export function writeLastVisitedRoute(value, userOverride = null) {
