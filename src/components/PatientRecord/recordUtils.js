@@ -31,8 +31,9 @@ const CONDITION_LABELS = {
   missing: "Missing",
 };
 
-export const toothLabel = (num, dentition) => {
-  if (dentition === "adult") {
+export const toothLabel = (num) => {
+  const isChild = num >= 50;
+  if (!isChild) {
     if (num >= 11 && num <= 18) return num - 10;
     if (num >= 21 && num <= 28) return num - 20;
     if (num >= 31 && num <= 38) return num - 30;
@@ -63,27 +64,46 @@ export const palmerNotation = (num) => {
 export const formatToothFindings = (teeth = [], dentition = "adult") => {
   if (!Array.isArray(teeth)) return [];
 
-  const grouped = teeth.reduce((acc, tooth) => {
-    if (!tooth?.condition || tooth.condition === "present") return acc;
+  const grouped = {};
 
-    if (!acc[tooth.condition]) {
-      acc[tooth.condition] = [];
-    }
+  teeth.forEach((tooth) => {
+    if (!tooth) return;
 
-    acc[tooth.condition].push({
-      number: tooth.number,
-      label: toothLabel(tooth.number, dentition),
-      notation: palmerNotation(tooth.number),
+    const resolvedConditions = Array.isArray(tooth.conditions)
+      ? tooth.conditions
+      : tooth.condition && tooth.condition !== "present"
+        ? [tooth.condition]
+        : [];
+
+    resolvedConditions.forEach((cond) => {
+      if (!cond) return;
+
+      if (!grouped[cond]) {
+        grouped[cond] = [];
+      }
+
+      grouped[cond].push({
+        number: tooth.number,
+        label: toothLabel(tooth.number),
+        notation: palmerNotation(tooth.number),
+      });
     });
+  });
 
-    return acc;
-  }, {});
+  const findings = [];
+  const sortedConditions = ["present", "carious", "tender", "mobile", "fractured", "missing"];
 
-  return Object.entries(grouped).map(([condition, entries]) => ({
-    condition,
-    label: CONDITION_LABELS[condition] || condition,
-    teeth: entries,
-  }));
+  sortedConditions.forEach((cond) => {
+    if (grouped[cond] && grouped[cond].length > 0) {
+      findings.push({
+        condition: cond,
+        label: cond === "present" ? "Teeth Present" : cond === "missing" ? "Missing Teeth" : CONDITION_LABELS[cond] || cond,
+        teeth: grouped[cond],
+      });
+    }
+  });
+
+  return findings;
 };
 
 const imageExtensions = /\.(jpeg|jpg|png|gif|webp|bmp|svg)$/i;

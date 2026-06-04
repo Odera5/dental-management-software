@@ -24,7 +24,7 @@ export default function PatientIntakeForm() {
   const [slotLoading, setSlotLoading] = useState(false);
 
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 3;
+  const totalSteps = 4;
 
   const [form, setForm] = useState({
     firstName: "",
@@ -35,6 +35,10 @@ export default function PatientIntakeForm() {
     phone: "",
     email: "",
     address: "",
+    nextOfKinName: "",
+    nextOfKinPhone: "",
+    nextOfKinRelationship: "",
+    nextOfKinAddress: "",
     preferredDate: "",
     preferredTime: ""
   });
@@ -185,6 +189,9 @@ export default function PatientIntakeForm() {
       return isPhoneValid && isEmailValid && isAddressValid;
     }
     if (currentStep === 3) {
+      return true; // Next of kin fields are optional
+    }
+    if (currentStep === 4) {
       return true; // Date/Time are optional, but good to have
     }
     return false;
@@ -233,14 +240,14 @@ export default function PatientIntakeForm() {
   if (success) {
      return (
        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center relative" style={{ backgroundColor: clinic.brandColor ? `${clinic.brandColor}10` : '#f8fafc' }}>
-         <div className="bg-white p-10 rounded-3xl shadow-xl max-w-md w-full relative z-10 border border-white">
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 20 }} className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
-               <CheckCircle size={40} />
-            </motion.div>
-            <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Request Sent!</h2>
-            <p className="text-slate-600 mb-6">Your registration and appointment request have been securely sent to <strong>{clinic?.name}</strong>{clinic?.branch && clinic?.plan === "ENTERPRISE" ? ` (${clinic.branch.city || clinic.branch.name}${clinic.branch.area ? ` - ${clinic.branch.area}` : ""})` : ""}.</p>
-            <p className="text-sm font-medium text-slate-400">The clinic staff will review and confirm your appointment shortly. You may now close this window.</p>
-         </div>
+          <div className="bg-white p-10 rounded-3xl shadow-xl max-w-md w-full relative z-10 border border-white">
+             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 20 }} className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle size={40} />
+             </motion.div>
+             <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Request Sent!</h2>
+             <p className="text-slate-600 mb-6">Your registration and appointment request have been securely sent to <strong>{clinic?.name}</strong>{clinic?.branch && clinic?.plan === "ENTERPRISE" ? ` (${clinic.branch.city || clinic.branch.name}${clinic.branch.area ? ` - ${clinic.branch.area}` : ""})` : ""}.</p>
+             <p className="text-sm font-medium text-slate-400">The clinic staff will review and confirm your appointment shortly. You may now close this window.</p>
+          </div>
        </div>
      );
   }
@@ -273,7 +280,7 @@ export default function PatientIntakeForm() {
          <motion.p initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="mt-2 text-sm text-slate-500 uppercase tracking-widest font-semibold flex items-center"><Building size={14} className="mr-1.5" /> Patient Intake</motion.p>
          {clinic?.branch && clinic?.plan === "ENTERPRISE" && (
             <motion.p initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }} className="mt-2 text-sm font-semibold text-primary-700 text-center">
-              {clinic.branch.city || clinic.branch.name}{clinic.branch.area ? ` - ${clinic.branch.area}` : ""}
+               {clinic.branch.city || clinic.branch.name}{clinic.branch.area ? ` - ${clinic.branch.area}` : ""}
             </motion.p>
          )}
       </div>
@@ -284,7 +291,7 @@ export default function PatientIntakeForm() {
          {/* PROGRESS BAR */}
          <div className="bg-slate-50/50 border-b border-slate-100 px-8 py-5 flex items-center justify-between">
             <div className="flex gap-2">
-               {[1, 2, 3].map((step) => (
+               {[1, 2, 3, 4].map((step) => (
                   <div key={step} className={`h-2.5 rounded-full transition-all duration-500 ${step === currentStep ? 'w-10' : step < currentStep ? 'w-6 opacity-60' : 'w-4 opacity-30 bg-slate-300'}`} style={step <= currentStep ? buttonStyle : {}} />
                ))}
             </div>
@@ -345,9 +352,28 @@ export default function PatientIntakeForm() {
                      </motion.div>
                   )}
 
-                  {/* STEP 3: APPOINTMENT PREFERENCE */}
+                  {/* STEP 3: NEXT OF KIN */}
                   {currentStep === 3 && (
                      <motion.div key="step3" variants={variants} initial="initial" animate="animate" exit="exit" className="space-y-6">
+                        <div>
+                           <h2 className="text-2xl font-bold text-slate-900">Next of Kin Details</h2>
+                           <p className="text-slate-500 text-sm mt-1">Please provide emergency contact details (Optional).</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <Input label="Next of Kin Name" name="nextOfKinName" value={form.nextOfKinName} onChange={handleChange} placeholder="e.g. John Doe" className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
+                           <Input label="Relationship" name="nextOfKinRelationship" value={form.nextOfKinRelationship} onChange={handleChange} placeholder="e.g. Spouse, Parent, Sibling" className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
+                           <Input label="Contact Number" name="nextOfKinPhone" value={form.nextOfKinPhone} onChange={handleChange} placeholder="e.g. +234..." className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
+                           <div className="md:col-span-2 space-y-1.5">
+                              <label className="text-sm font-semibold text-slate-700 block">Address</label>
+                              <textarea name="nextOfKinAddress" value={form.nextOfKinAddress} onChange={handleChange} rows="2" placeholder="Next of kin residential address" className="w-full rounded-xl border border-slate-200 p-4 bg-slate-50 text-slate-900 text-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow resize-none"></textarea>
+                           </div>
+                        </div>
+                     </motion.div>
+                  )}
+
+                  {/* STEP 4: APPOINTMENT PREFERENCE */}
+                  {currentStep === 4 && (
+                     <motion.div key="step4" variants={variants} initial="initial" animate="animate" exit="exit" className="space-y-6">
                         <div>
                            <h2 className="text-2xl font-bold text-slate-900">Appointment Request</h2>
                            <p className="text-slate-500 text-sm mt-1">When would you like to visit us? (Optional)</p>
@@ -385,7 +411,7 @@ export default function PatientIntakeForm() {
                               </div>
                            </div>
                            <p className="text-xs text-slate-400 mt-4 leading-relaxed">
-                              * Note: Your selected time is based on current availability. The clinic will review and confirm the appointment.
+                               * Note: Your selected time is based on current availability. The clinic will review and confirm the appointment.
                            </p>
                         </div>
                      </motion.div>

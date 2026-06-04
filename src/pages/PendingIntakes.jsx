@@ -470,6 +470,34 @@ export default function PendingIntakes() {
                     </div>
                  </div>
 
+                 {intake.nextOfKinName && (
+                   <div className="px-5 pb-3">
+                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                       <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 text-slate-500">
+                         Next of Kin / Emergency Contact
+                       </h4>
+                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs text-slate-700">
+                         <div>
+                           <span className="font-semibold text-slate-400 block mb-0.5">Name</span>
+                           <span className="font-semibold text-slate-800">{intake.nextOfKinName}</span>
+                         </div>
+                         <div>
+                           <span className="font-semibold text-slate-400 block mb-0.5">Relationship</span>
+                           <span className="font-semibold text-slate-800">{intake.nextOfKinRelationship || "Not specified"}</span>
+                         </div>
+                         <div>
+                           <span className="font-semibold text-slate-400 block mb-0.5">Phone</span>
+                           <span className="font-semibold text-slate-800">{intake.nextOfKinPhone || "Not specified"}</span>
+                         </div>
+                         <div>
+                           <span className="font-semibold text-slate-400 block mb-0.5">Address</span>
+                           <span className="font-semibold text-slate-800 break-words">{intake.nextOfKinAddress || "Not specified"}</span>
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+                 )}
+
                  <div className="px-5 pb-5">
                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">

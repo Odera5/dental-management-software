@@ -20,6 +20,10 @@ const emptyPatientForm = {
   gender: "other",
   phone: "",
   address: "",
+  nextOfKinName: "",
+  nextOfKinPhone: "",
+  nextOfKinRelationship: "",
+  nextOfKinAddress: "",
 };
 
 export default function RegisterPatient() {
@@ -60,6 +64,10 @@ export default function RegisterPatient() {
         phone: form.phone?.trim() || "",
         address: form.address?.trim() || "",
         email: form.email?.trim() || "",
+        nextOfKinName: form.nextOfKinName?.trim() || "",
+        nextOfKinPhone: form.nextOfKinPhone?.trim() || "",
+        nextOfKinRelationship: form.nextOfKinRelationship?.trim() || "",
+        nextOfKinAddress: form.nextOfKinAddress?.trim() || "",
       };
 
       const res = await api.post("/patients", payload);
@@ -230,6 +238,49 @@ export default function RegisterPatient() {
                 disabled={loading}
                 required
               />
+
+              <div className="pt-6 border-t border-slate-100">
+                <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+                  <User size={18} className="text-primary-600" />
+                  Next of Kin / Emergency Contact
+                </h3>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <Input
+                    label="Next of Kin Name"
+                    name="nextOfKinName"
+                    value={form.nextOfKinName || ""}
+                    onChange={handleChange}
+                    placeholder="e.g. John Doe"
+                    disabled={loading}
+                  />
+                  <Input
+                    label="Relationship"
+                    name="nextOfKinRelationship"
+                    value={form.nextOfKinRelationship || ""}
+                    onChange={handleChange}
+                    placeholder="e.g. Spouse, Parent, Sibling"
+                    disabled={loading}
+                  />
+                  <Input
+                    label="Contact Number"
+                    name="nextOfKinPhone"
+                    icon={Phone}
+                    value={form.nextOfKinPhone || ""}
+                    onChange={handleChange}
+                    placeholder="e.g. +1 (555) 000-0000"
+                    disabled={loading}
+                  />
+                  <Input
+                    label="Address"
+                    name="nextOfKinAddress"
+                    icon={MapPin}
+                    value={form.nextOfKinAddress || ""}
+                    onChange={handleChange}
+                    placeholder="Next of Kin residential address"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-6 mt-6 border-t border-slate-100">
                 <Button type="submit" size="lg" isLoading={loading} className="w-full sm:w-auto whitespace-nowrap">

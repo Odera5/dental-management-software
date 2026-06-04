@@ -28,7 +28,7 @@ const CHILD_TEETH = [55, 54, 53, 52, 51, 61, 62, 63, 64, 65, 85, 84, 83, 82, 81,
 const TOOTH_CONDITIONS = ["present", "carious", "tender", "mobile", "fractured", "missing"];
 const CONDITION_LABELS = { present: "Present", carious: "Carious", tender: "Tender", mobile: "Mobile", fractured: "Fractured", missing: "Missing" };
 
-const initTeeth = (nums) => nums.map((n) => ({ number: n, condition: "present" }));
+const initTeeth = (nums) => nums.map((n) => ({ number: n, conditions: [] }));
 
 const toothLabel = (num, dentition) => {
   if (dentition === "adult") {
@@ -64,11 +64,26 @@ const initializeTeethState = (initialDentition, savedTeeth = []) => {
 
   if (!Array.isArray(savedTeeth) || savedTeeth.length === 0) return { adult: baseAdultTeeth, child: baseChildTeeth };
 
-  const savedConditions = new Map(savedTeeth.map((tooth) => [Number(tooth.number), tooth.condition || "present"]));
+  const savedConditions = new Map(
+    savedTeeth.map((tooth) => {
+      const resolvedConditions = Array.isArray(tooth.conditions)
+        ? tooth.conditions
+        : tooth.condition && tooth.condition !== "present"
+          ? [tooth.condition]
+          : [];
+      return [Number(tooth.number), resolvedConditions];
+    })
+  );
 
   return {
-    adult: baseAdultTeeth.map((tooth) => ({ ...tooth, condition: initialDentition === "adult" && savedConditions.has(tooth.number) ? savedConditions.get(tooth.number) : tooth.condition })),
-    child: baseChildTeeth.map((tooth) => ({ ...tooth, condition: initialDentition === "child" && savedConditions.has(tooth.number) ? savedConditions.get(tooth.number) : tooth.condition })),
+    adult: baseAdultTeeth.map((tooth) => ({
+      ...tooth,
+      conditions: initialDentition === "adult" && savedConditions.has(tooth.number) ? savedConditions.get(tooth.number) : tooth.conditions,
+    })),
+    child: baseChildTeeth.map((tooth) => ({
+      ...tooth,
+      conditions: initialDentition === "child" && savedConditions.has(tooth.number) ? savedConditions.get(tooth.number) : tooth.conditions,
+    })),
   };
 };
 
@@ -109,6 +124,59 @@ function CheckboxField({ label, name, checked, onChange, required = false }) {
   );
 }
 
+const CONDITION_COLORS = {
+  present: "#10b981",   // emerald-500
+  carious: "#f43f5e",   // rose-500
+  tender: "#fbbf24",    // amber-400
+  mobile: "#fb923c",    // orange-400
+  fractured: "#a855f7", // purple-500
+  missing: "#cbd5e1",   // slate-300
+};
+
+const getToothStyleAndClass = (conditions = []) => {
+  if (!conditions || conditions.length === 0) {
+    return {
+      style: {},
+      className: "bg-white text-slate-700 border-slate-300 hover:bg-slate-100",
+    };
+  }
+
+  if (conditions.includes("missing")) {
+    return {
+      style: {},
+      className: "bg-slate-300 text-slate-500 border-slate-400 opacity-60 line-through",
+    };
+  }
+
+  if (conditions.length === 1) {
+    const cond = conditions[0];
+    const baseClass = "text-white ring-2 ring-offset-1";
+    if (cond === "present") return { style: {}, className: `${baseClass} bg-emerald-500 border-emerald-600 ring-emerald-500` };
+    if (cond === "carious") return { style: {}, className: `${baseClass} bg-rose-500 border-rose-600 ring-rose-500` };
+    if (cond === "tender") return { style: {}, className: `${baseClass} bg-amber-400 text-amber-900 border-amber-500 ring-amber-400` };
+    if (cond === "mobile") return { style: {}, className: `${baseClass} bg-orange-400 border-orange-500 ring-orange-400` };
+    if (cond === "fractured") return { style: {}, className: `${baseClass} bg-purple-500 border-purple-600 ring-purple-500` };
+  }
+
+  const stopPercent = 100 / conditions.length;
+  const gradientStops = conditions.map((cond, idx) => {
+    const color = CONDITION_COLORS[cond] || "#ffffff";
+    const start = idx * stopPercent;
+    const end = (idx + 1) * stopPercent;
+    return `${color} ${start}%, ${color} ${end}%`;
+  });
+
+  const isTenderOnlyOrMissing = !conditions.some(c => c !== "tender" && c !== "missing");
+  const textColorClass = isTenderOnlyOrMissing ? "text-slate-800" : "text-white";
+
+  return {
+    style: {
+      background: `linear-gradient(135deg, ${gradientStops.join(", ")})`,
+    },
+    className: `border-slate-400 ring-2 ring-slate-400 ring-offset-1 shadow-sm ${textColorClass}`,
+  };
+};
+
 function ToothChart({ teeth, onToothClick, dentition }) {
   const quadrants = {
     UR: teeth.filter((t) => [11, 12, 13, 14, 15, 16, 17, 18, 51, 52, 53, 54, 55].includes(t.number)).sort((a, b) => b.number - a.number),
@@ -117,26 +185,31 @@ function ToothChart({ teeth, onToothClick, dentition }) {
     LR: teeth.filter((t) => [41, 42, 43, 44, 45, 46, 47, 48, 81, 82, 83, 84, 85].includes(t.number)).sort((a, b) => b.number - a.number),
   };
 
-  const getToothClass = (condition) => {
-    if (condition === "carious") return "bg-rose-500 text-white border-rose-600 ring-2 ring-rose-500 ring-offset-1";
-    if (condition === "tender") return "bg-amber-400 text-amber-900 border-amber-500 ring-2 ring-amber-400 ring-offset-1";
-    if (condition === "mobile") return "bg-orange-400 text-white border-orange-500 ring-2 ring-orange-400 ring-offset-1";
-    if (condition === "fractured") return "bg-purple-500 text-white border-purple-600 ring-2 ring-purple-500 ring-offset-1";
-    if (condition === "missing") return "bg-slate-300 text-slate-500 border-slate-400 opacity-60 line-through";
-    return "bg-white text-slate-700 border-slate-300 hover:bg-slate-100";
-  };
-
   const renderRow = (left, right) => (
     <div className="flex justify-center md:justify-between items-center w-full max-w-2xl mx-auto flex-wrap md:flex-nowrap gap-4 md:gap-8 mb-2">
       <div className="flex gap-1.5 flex-1 justify-center md:justify-end border-b-2 border-slate-300 pb-2 md:border-b-0 md:pb-0 md:border-r-2 md:pr-4">
-        {left.map((t) => (
-          <button key={t.number} type="button" onClick={() => onToothClick(t.number)} className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg text-sm font-bold flex items-center justify-center cursor-pointer transition-all hover:-translate-y-1 ${getToothClass(t.condition)}`} title={`${palmerNotation(t.number)} - ${CONDITION_LABELS[t.condition]}`}>{toothLabel(t.number, dentition)}</button>
-        ))}
+        {left.map((t) => {
+          const resolvedConditions = Array.isArray(t.conditions) ? t.conditions : (t.condition && t.condition !== "present" ? [t.condition] : []);
+          const { style, className } = getToothStyleAndClass(resolvedConditions);
+          const label = resolvedConditions.length > 0
+            ? resolvedConditions.map(c => CONDITION_LABELS[c]).join(", ")
+            : "Present";
+          return (
+            <button key={t.number} type="button" onClick={() => onToothClick(t.number)} style={style} className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg text-sm font-bold flex items-center justify-center cursor-pointer transition-all hover:-translate-y-1 ${className}`} title={`${palmerNotation(t.number)} - ${label}`}>{toothLabel(t.number, dentition)}</button>
+          );
+        })}
       </div>
       <div className="flex gap-1.5 flex-1 justify-center md:justify-start border-t-2 border-slate-300 pt-2 md:border-t-0 md:pt-0">
-        {right.map((t) => (
-          <button key={t.number} type="button" onClick={() => onToothClick(t.number)} className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg text-sm font-bold flex items-center justify-center cursor-pointer transition-all hover:-translate-y-1 ${getToothClass(t.condition)}`} title={`${palmerNotation(t.number)} - ${CONDITION_LABELS[t.condition]}`}>{toothLabel(t.number, dentition)}</button>
-        ))}
+        {right.map((t) => {
+          const resolvedConditions = Array.isArray(t.conditions) ? t.conditions : (t.condition && t.condition !== "present" ? [t.condition] : []);
+          const { style, className } = getToothStyleAndClass(resolvedConditions);
+          const label = resolvedConditions.length > 0
+            ? resolvedConditions.map(c => CONDITION_LABELS[c]).join(", ")
+            : "Present";
+          return (
+            <button key={t.number} type="button" onClick={() => onToothClick(t.number)} style={style} className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg text-sm font-bold flex items-center justify-center cursor-pointer transition-all hover:-translate-y-1 ${className}`} title={`${palmerNotation(t.number)} - ${label}`}>{toothLabel(t.number, dentition)}</button>
+          );
+        })}
       </div>
     </div>
   );
@@ -386,20 +459,125 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
   const teeth = dentition === "adult" ? adultTeeth : childTeeth;
   const setTeeth = dentition === "adult" ? setAdultTeeth : setChildTeeth;
 
+  const areAllTeethPresent = teeth.length > 0 && teeth.every((t) => {
+    const resolvedConditions = Array.isArray(t.conditions)
+      ? t.conditions
+      : t.condition && t.condition !== "present"
+        ? [t.condition]
+        : [];
+    return resolvedConditions.includes("present");
+  });
+
+  const isAnyToothPresent = teeth.length > 0 && teeth.some((t) => {
+    const resolvedConditions = Array.isArray(t.conditions)
+      ? t.conditions
+      : t.condition && t.condition !== "present"
+        ? [t.condition]
+        : [];
+    return resolvedConditions.includes("present");
+  });
+
   const syncRecordTeeth = useCallback((nextDentition, nextTeeth) => {
     setRecordData((prev) => ({ ...prev, dentition: nextDentition, teeth: nextTeeth }));
   }, [setRecordData]);
 
   const handleToothClick = useCallback((num) => {
     setTeeth((prev) => {
-      const updatedTeeth = prev.map((t) => t.number === num ? { ...t, condition: t.condition === activeCondition ? "present" : activeCondition } : t);
+      const updatedTeeth = prev.map((t) => {
+        if (t.number !== num) return t;
+
+        const resolvedConditions = Array.isArray(t.conditions)
+          ? t.conditions
+          : t.condition && t.condition !== "present"
+            ? [t.condition]
+            : [];
+
+        let nextConditions;
+        if (activeCondition === "present") {
+          const cleanConditions = resolvedConditions.filter((c) => c !== "missing");
+          if (cleanConditions.includes("present")) {
+            nextConditions = cleanConditions.filter((c) => c !== "present");
+          } else {
+            nextConditions = [...cleanConditions, "present"];
+          }
+        } else if (activeCondition === "missing") {
+          nextConditions = resolvedConditions.includes("missing") ? [] : ["missing"];
+        } else {
+          const cleanConditions = resolvedConditions.filter((c) => c !== "missing");
+          if (cleanConditions.includes(activeCondition)) {
+            nextConditions = cleanConditions.filter((c) => c !== activeCondition);
+          } else {
+            nextConditions = [...cleanConditions, activeCondition];
+          }
+        }
+
+        return {
+          ...t,
+          conditions: nextConditions,
+          condition: nextConditions[0] || "present",
+        };
+      });
       syncRecordTeeth(dentition, updatedTeeth);
       return updatedTeeth;
     });
   }, [activeCondition, dentition, setTeeth, syncRecordTeeth]);
 
+  const handleMarkAllPresent = useCallback(() => {
+    setTeeth((prev) => {
+      const updatedTeeth = prev.map((t) => {
+        const resolvedConditions = Array.isArray(t.conditions)
+          ? t.conditions
+          : t.condition && t.condition !== "present"
+            ? [t.condition]
+            : [];
+        const cleanConditions = resolvedConditions.filter((c) => c !== "missing");
+        const nextConditions = cleanConditions.includes("present")
+          ? cleanConditions
+          : [...cleanConditions, "present"];
+
+        return {
+          ...t,
+          conditions: nextConditions,
+          condition: nextConditions[0] || "present",
+        };
+      });
+      syncRecordTeeth(dentition, updatedTeeth);
+      return updatedTeeth;
+    });
+  }, [dentition, setTeeth, syncRecordTeeth]);
+
+  const handleRemoveAllPresent = useCallback(() => {
+    setTeeth((prev) => {
+      const updatedTeeth = prev.map((t) => {
+        const resolvedConditions = Array.isArray(t.conditions)
+          ? t.conditions
+          : t.condition && t.condition !== "present"
+            ? [t.condition]
+            : [];
+        const nextConditions = resolvedConditions.filter((c) => c !== "present");
+
+        return {
+          ...t,
+          conditions: nextConditions,
+          condition: nextConditions[0] || "present",
+        };
+      });
+      syncRecordTeeth(dentition, updatedTeeth);
+      return updatedTeeth;
+    });
+  }, [dentition, setTeeth, syncRecordTeeth]);
+
   const getAffectedTeethByQuadrant = (condition) => {
-    const affected = teeth.filter((t) => t.condition === condition).map((t) => t.number);
+    const affected = teeth
+      .filter((t) => {
+        const resolvedConditions = Array.isArray(t.conditions)
+          ? t.conditions
+          : t.condition && t.condition !== "present"
+            ? [t.condition]
+            : [];
+        return resolvedConditions.includes(condition);
+      })
+      .map((t) => t.number);
     return groupByQuadrant(affected, dentition);
   };
 
@@ -610,17 +788,34 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
                    <p className="text-xs text-slate-500">Click a condition below, then select teeth on the chart.</p>
                 </div>
                 
-                <div className="flex flex-wrap items-center gap-3">
-                  <select value={dentition} onChange={(e) => { const next = e.target.value; setDentition(next); syncRecordTeeth(next, next === "adult" ? adultTeeth : childTeeth); }} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-primary-700 shadow-sm focus:ring-2 focus:ring-primary-500 h-[40px]">
-                    <option value="adult">Adult Dentition (32)</option>
-                    <option value="child">Child Dentition (20)</option>
-                  </select>
+                <div className="flex flex-col items-end gap-2">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <select value={dentition} onChange={(e) => { const next = e.target.value; setDentition(next); syncRecordTeeth(next, next === "adult" ? adultTeeth : childTeeth); }} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-primary-700 shadow-sm focus:ring-2 focus:ring-primary-500 h-[40px]">
+                      <option value="adult">Adult Dentition (32)</option>
+                      <option value="child">Child Dentition (20)</option>
+                    </select>
 
-                  <div className="flex bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-1">
-                    {TOOTH_CONDITIONS.filter((c) => c !== "present").map((c) => (
-                      <button key={c} type="button" onClick={() => setActiveCondition(c)} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${activeCondition === c ? "bg-slate-800 text-white shadow-md transform scale-105" : "text-slate-600 hover:bg-slate-100"}`}>{CONDITION_LABELS[c]}</button>
-                    ))}
+                    <div className="flex bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-1">
+                      {TOOTH_CONDITIONS.map((c) => (
+                        <button key={c} type="button" onClick={() => setActiveCondition(c)} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${activeCondition === c ? "bg-slate-800 text-white shadow-md transform scale-105" : "text-slate-600 hover:bg-slate-100"}`}>{CONDITION_LABELS[c]}</button>
+                      ))}
+                    </div>
+
+                    {activeCondition === "present" && (
+                      <button
+                        type="button"
+                        onClick={areAllTeethPresent ? handleRemoveAllPresent : handleMarkAllPresent}
+                        className={`px-4 py-2 text-xs font-bold rounded-xl text-white shadow-sm transition-all h-[40px] cursor-pointer flex items-center justify-center gap-1.5 ${areAllTeethPresent ? "bg-slate-600 hover:bg-slate-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
+                      >
+                        {areAllTeethPresent ? "Remove All Present" : "Mark All Present"}
+                      </button>
+                    )}
                   </div>
+                  {activeCondition === "present" && isAnyToothPresent && (
+                    <span className="text-[11px] text-slate-500 font-semibold italic animate-in fade-in slide-in-from-top-1 duration-200">
+                      * If a tooth is missing, click on the tooth on the chart to remove it from the list.
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -628,12 +823,14 @@ export default function RecordForm({ recordData, setRecordData, onSubmit, submit
                 <ToothChart teeth={teeth} onToothClick={handleToothClick} dentition={dentition} />
 
                 <div className="mt-6 pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {TOOTH_CONDITIONS.filter((c) => c !== "present").map((c) => {
+                  {TOOTH_CONDITIONS.map((c) => {
                     const grouped = getAffectedTeethByQuadrant(c);
                     if (!Object.values(grouped).some((q) => q.length > 0)) return null;
                     return (
                       <div key={c} className="bg-slate-50 rounded-xl p-3 border border-slate-200 text-sm">
-                        <strong className="block text-slate-900 mb-2 uppercase tracking-wide text-xs border-b border-slate-200 pb-1">{CONDITION_LABELS[c]} Affected</strong>
+                        <strong className="block text-slate-900 mb-2 uppercase tracking-wide text-xs border-b border-slate-200 pb-1">
+                          {c === "present" ? "Teeth Present" : c === "missing" ? "Missing Teeth" : `${CONDITION_LABELS[c]} Affected`}
+                        </strong>
                         <div className="space-y-1">
                           {["UR", "UL", "LR", "LL"].map((q) => grouped[q].length > 0 && (
                             <div key={q} className="flex justify-between"><span className="text-slate-500 font-semibold text-xs">{q}</span><span className="font-mono text-slate-900 font-bold">{grouped[q].join(", ")}</span></div>

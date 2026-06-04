@@ -57,7 +57,7 @@ export default function PatientRecord() {
   });
   const [patientForm, setPatientForm, clearPatientFormDraft] = usePersistentState(
     patientEditDraftKey,
-    { name: "", cardNumber: "", age: "", gender: "other", phone: "", email: "", address: "" },
+    { name: "", cardNumber: "", age: "", gender: "other", phone: "", email: "", address: "", nextOfKinName: "", nextOfKinPhone: "", nextOfKinRelationship: "", nextOfKinAddress: "" },
   );
 
   const [newRecord, setNewRecord, clearNewRecordDraft] = usePersistentState(
@@ -150,6 +150,8 @@ export default function PatientRecord() {
             name: resPatient.data?.name || "", cardNumber: resPatient.data?.cardNumber || "",
             age: resPatient.data?.age || "", gender: resPatient.data?.gender || "other",
             phone: resPatient.data?.phone || "", email: resPatient.data?.email || "", address: resPatient.data?.address || "",
+            nextOfKinName: resPatient.data?.nextOfKinName || "", nextOfKinPhone: resPatient.data?.nextOfKinPhone || "",
+            nextOfKinRelationship: resPatient.data?.nextOfKinRelationship || "", nextOfKinAddress: resPatient.data?.nextOfKinAddress || "",
           });
         }
         setRecords(resRecords.data?.data || []);
@@ -292,6 +294,8 @@ export default function PatientRecord() {
     setPatientForm({
       name: patient.name || "", cardNumber: patient.cardNumber || "", age: patient.age || "",
       gender: patient.gender || "other", phone: patient.phone || "", email: patient.email || "", address: patient.address || "",
+      nextOfKinName: patient.nextOfKinName || "", nextOfKinPhone: patient.nextOfKinPhone || "",
+      nextOfKinRelationship: patient.nextOfKinRelationship || "", nextOfKinAddress: patient.nextOfKinAddress || "",
     });
     setShowEditPatientModal(true);
   };
@@ -300,6 +304,8 @@ export default function PatientRecord() {
     e.preventDefault();
     if (!patientForm.name.trim()) return showToast("Patient name cannot be empty.", "error");
     if (!patientForm.age || Number(patientForm.age) <= 0) return showToast("Age must be greater than 0.", "error");
+    if (!patientForm.phone?.trim()) return showToast("Phone number is required.", "error");
+    if (!patientForm.address?.trim()) return showToast("Home address is required.", "error");
     if (patientForm.email && !/\S+@\S+\.\S+/.test(patientForm.email)) return showToast("Invalid email.", "error");
 
     try {
@@ -321,22 +327,64 @@ export default function PatientRecord() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 max-w-7xl mx-auto pb-12">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-surface-200">
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-             <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="bg-white border-slate-200"><ArrowLeft size={16} className="mr-1" /> Back</Button>
+      <div className="flex flex-col bg-white p-6 rounded-2xl shadow-sm border border-surface-200">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+               <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="bg-white border-slate-200"><ArrowLeft size={16} className="mr-1" /> Back</Button>
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 mb-1 flex items-center">{patient.name}</h2>
+            <div className="text-sm font-medium text-slate-500 flex items-center flex-wrap gap-x-4 gap-y-1 mt-2">
+               <span className="flex items-center"><Hash size={14} className="mr-1 text-slate-400" /> {patient.cardNumber || "No ID"}</span>
+               <span className="flex items-center"><User size={14} className="mr-1 text-slate-400" /> {patient.age}y, <span className="capitalize ml-1">{patient.gender || "Other"}</span></span>
+               {patient.phone && <span className="flex items-center"><Phone size={14} className="mr-1 text-slate-400" /> {patient.phone}</span>}
+            </div>
           </div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900 mb-1 flex items-center">{patient.name}</h2>
-          <div className="text-sm font-medium text-slate-500 flex items-center flex-wrap gap-x-4 gap-y-1 mt-2">
-             <span className="flex items-center"><Hash size={14} className="mr-1 text-slate-400" /> {patient.cardNumber || "No ID"}</span>
-             <span className="flex items-center"><User size={14} className="mr-1 text-slate-400" /> {patient.age}y, <span className="capitalize ml-1">{patient.gender || "Other"}</span></span>
-             {patient.phone && <span className="flex items-center"><Phone size={14} className="mr-1 text-slate-400" /> {patient.phone}</span>}
+          <div className="flex flex-wrap gap-3 w-full md:w-auto mt-4 md:mt-0">
+            {canEditPatient && <Button variant="outline" onClick={openEditPatientModal} className="flex-1 md:flex-none border-primary-200 text-primary-700 bg-primary-50 hover:bg-primary-100"><UserCog size={18} className="mr-2" /> Edit Info</Button>}
+            {canManageRecords && <Button onClick={() => setShowAddModal(true)} className="flex-1 md:flex-none shadow-md"><Plus size={18} className="mr-2" /> New Record</Button>}
           </div>
         </div>
-        <div className="flex flex-wrap gap-3 w-full md:w-auto mt-4 md:mt-0">
-          {canEditPatient && <Button variant="outline" onClick={openEditPatientModal} className="flex-1 md:flex-none border-primary-200 text-primary-700 bg-primary-50 hover:bg-primary-100"><UserCog size={18} className="mr-2" /> Edit Info</Button>}
-          {canManageRecords && <Button onClick={() => setShowAddModal(true)} className="flex-1 md:flex-none shadow-md"><Plus size={18} className="mr-2" /> New Record</Button>}
-        </div>
+
+        {(patient.email || patient.address || patient.nextOfKinName) && (
+          <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-slate-600">
+            {patient.email && (
+              <div>
+                <span className="font-semibold text-slate-700 block text-xs uppercase tracking-wider mb-0.5">Email</span>
+                <span className="break-words">{patient.email}</span>
+              </div>
+            )}
+            {patient.address && (
+              <div className="md:col-span-2">
+                <span className="font-semibold text-slate-700 block text-xs uppercase tracking-wider mb-0.5">Home Address</span>
+                <span className="break-words">{patient.address}</span>
+              </div>
+            )}
+            {patient.nextOfKinName && (
+              <div className="col-span-1 md:col-span-3 bg-slate-50 p-4 rounded-xl border border-slate-100 mt-2">
+                <span className="font-bold text-slate-800 block text-xs uppercase tracking-wider mb-2">Next of Kin / Emergency Contact</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                  <div>
+                    <span className="font-medium text-slate-500 block">Name</span>
+                    <span className="font-semibold text-slate-800">{patient.nextOfKinName}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-500 block">Relationship</span>
+                    <span className="font-semibold text-slate-800">{patient.nextOfKinRelationship || "Not specified"}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-500 block">Phone</span>
+                    <span className="font-semibold text-slate-800">{patient.nextOfKinPhone || "Not specified"}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-500 block">Address</span>
+                    <span className="font-semibold text-slate-800">{patient.nextOfKinAddress || "Not specified"}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex justify-center md:justify-start gap-2 border-b border-slate-200 mt-6">
@@ -394,13 +442,23 @@ export default function PatientRecord() {
           </div>
           <form onSubmit={handleUpdatePatient} className="space-y-6">
             <div className="grid gap-6 sm:grid-cols-2 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-              <Input label="Patient Name *" name="name" value={patientForm.name} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="bg-white" />
+              <Input label="Patient Name *" name="name" value={patientForm.name} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="bg-white" required />
               <div className="space-y-1.5 focus-within:text-primary-600"><label className="text-sm font-semibold text-slate-700 leading-none">Patient UID <span className="opacity-50">(Auto)</span></label><input type="text" value={patientForm.cardNumber} disabled className="w-full rounded-xl border border-slate-200 p-3 bg-slate-100 text-slate-500 text-sm font-mono h-[46px]" /></div>
-              <Input label="Age *" name="age" type="number" min="0" value={patientForm.age} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="bg-white" />
+              <Input label="Age *" name="age" type="number" min="0" value={patientForm.age} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="bg-white" required />
               <div className="space-y-1.5 focus-within:text-primary-600"><label className="text-sm font-semibold text-slate-700 leading-none">Sex</label><select name="gender" value={patientForm.gender} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm h-[46px] capitalize"><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></div>
-              <Input label="Phone Number" name="phone" value={patientForm.phone} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="bg-white" />
+              <Input label="Phone Number *" name="phone" value={patientForm.phone} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="bg-white" required />
               <Input label="Email Address" name="email" type="email" value={patientForm.email} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="bg-white" />
-              <div className="sm:col-span-2 space-y-1.5"><label className="text-sm font-semibold text-slate-700 leading-none">Home Address</label><textarea name="address" value={patientForm.address} onChange={handlePatientFormChange} disabled={patientSaveLoading} rows="2" className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none" /></div>
+              <div className="sm:col-span-2 space-y-1.5"><label className="text-sm font-semibold text-slate-700 leading-none">Home Address *</label><textarea name="address" value={patientForm.address} onChange={handlePatientFormChange} disabled={patientSaveLoading} rows="2" className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none" required /></div>
+              
+              <div className="sm:col-span-2 border-t border-slate-200 pt-4 mt-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-4">Next of Kin / Emergency Contact</h4>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <Input label="Next of Kin Name" name="nextOfKinName" value={patientForm.nextOfKinName} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="bg-white" />
+                  <Input label="Relationship" name="nextOfKinRelationship" value={patientForm.nextOfKinRelationship} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="bg-white" />
+                  <Input label="Contact Number" name="nextOfKinPhone" value={patientForm.nextOfKinPhone} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="bg-white" />
+                  <div className="sm:col-span-2 space-y-1.5"><label className="text-sm font-semibold text-slate-700 leading-none">Address</label><textarea name="nextOfKinAddress" value={patientForm.nextOfKinAddress} onChange={handlePatientFormChange} disabled={patientSaveLoading} rows="2" className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm resize-none" /></div>
+                </div>
+              </div>
             </div>
             <div className="flex gap-4 pt-4 border-t border-slate-100">
               <Button type="button" variant="ghost" onClick={() => { clearPatientFormDraft(); clearShowEditPatientModalDraft(); setShowEditPatientModal(false); }} disabled={patientSaveLoading} className="flex-1">Cancel</Button>
