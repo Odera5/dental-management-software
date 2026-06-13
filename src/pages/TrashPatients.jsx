@@ -12,6 +12,14 @@ export default function TrashPatients() {
   const [toast, setToast] = useState({ message: "", type: "", show: false });
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 450);
+    return () => clearTimeout(handler);
+  }, [search]);
   const [confirmConfig, setConfirmConfig] = useState(null);
   const [totalPages, setTotalPages] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
@@ -31,7 +39,7 @@ export default function TrashPatients() {
         params: {
           page: currentPage,
           limit: perPage,
-          search: search.trim() || undefined,
+          search: debouncedSearch.trim() || undefined,
         },
       });
       const pageData = Array.isArray(res.data?.data)
@@ -51,7 +59,7 @@ export default function TrashPatients() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, perPage, search]);
+  }, [currentPage, perPage, debouncedSearch]);
 
   useEffect(() => {
     fetchPatients();
@@ -59,7 +67,7 @@ export default function TrashPatients() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [debouncedSearch]);
 
   // =========================
   // TOAST

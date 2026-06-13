@@ -297,20 +297,70 @@ function RecordItem({
                           : "Adult Dentition"}
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {toothFindings.map((finding) => (
-                      <div
-                        key={finding.condition}
-                        className="bg-white border border-blue-200 rounded-lg p-2 text-sm"
-                      >
-                        <span className="font-bold text-blue-800 mr-2">
-                          {finding.label}:
-                        </span>
-                        <span className="text-slate-700 font-mono">
-                          {finding.teeth.map((t) => t.notation).join(", ")}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="flex flex-wrap gap-2 w-full">
+                    {toothFindings.map((finding) => {
+                      if (finding.condition === "present") {
+                        const quads = { UR: [], UL: [], LL: [], LR: [] };
+                        finding.teeth.forEach((t) => {
+                          const quad = t.notation.slice(0, 2);
+                          if (quads[quad]) quads[quad].push(t);
+                        });
+
+                        const quadRows = ["UR", "UL", "LR", "LL"]
+                          .map((q) => {
+                            const teethInQuad = quads[q];
+                            if (teethInQuad.length === 0) return null;
+
+                            const adultTeeth = teethInQuad.filter((t) => t.number < 50);
+                            const childTeeth = teethInQuad.filter((t) => t.number >= 50);
+
+                            if (q === "UR" || q === "LR") {
+                              adultTeeth.sort((a, b) => b.number - a.number);
+                              childTeeth.sort((a, b) => b.number - a.number);
+                            } else {
+                              adultTeeth.sort((a, b) => a.number - b.number);
+                              childTeeth.sort((a, b) => a.number - b.number);
+                            }
+
+                            const sortedTeeth = [...adultTeeth, ...childTeeth];
+                            const labels = sortedTeeth.map((t) => t.label).join(", ");
+                            return `${q} ${labels}`;
+                          })
+                          .filter(Boolean);
+
+                        if (quadRows.length === 0) return null;
+
+                        return (
+                          <div
+                            key={finding.condition}
+                            className="bg-white border border-blue-200 rounded-xl p-3.5 text-sm w-full"
+                          >
+                            <div className="font-bold text-blue-800 mb-2 border-b border-blue-100 pb-1 uppercase tracking-wider text-xs">
+                              {finding.label}
+                            </div>
+                            <div className="font-mono text-slate-700 space-y-1">
+                              {quadRows.map((row, idx) => (
+                                <div key={idx}>{row}</div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={finding.condition}
+                          className="bg-white border border-blue-200 rounded-lg p-2 text-sm"
+                        >
+                          <span className="font-bold text-blue-800 mr-2">
+                            {finding.label}:
+                          </span>
+                          <span className="text-slate-700 font-mono">
+                            {finding.teeth.map((t) => t.notation).join(", ")}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

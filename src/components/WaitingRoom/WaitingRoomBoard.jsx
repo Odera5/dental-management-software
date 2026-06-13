@@ -64,6 +64,14 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
     priority,
   } = draft;
 
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 450);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   const updateDraft = (patch) =>
     setDraft((current) => ({ ...current, ...patch }));
 
@@ -107,7 +115,7 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
       }
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.append("status", statusFilter);
-      if (searchQuery) params.append("search", searchQuery);
+      if (debouncedSearchQuery) params.append("search", debouncedSearchQuery);
       const response = await api.get(`/waiting-room?${params}`);
       setEntries(response.data || []);
     } catch (error) {
@@ -117,7 +125,7 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
         setLoading(false);
       }
     }
-  }, [searchQuery, statusFilter]);
+  }, [debouncedSearchQuery, statusFilter]);
 
   useEffect(() => {
     fetchQueue();

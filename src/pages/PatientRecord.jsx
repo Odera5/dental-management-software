@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Plus, UserCog, ArrowLeft, Activity, User, Phone, MapPin, Hash } from "lucide-react";
 import api from "../services/api";
 import Toast from "../components/Toast";
@@ -73,6 +73,14 @@ export default function PatientRecord() {
     false,
   );
   const [expandedRecordId, setExpandedRecordId] = useState(null);
+  const [searchParams] = useSearchParams();
+  const recordIdParam = searchParams.get("recordId");
+
+  useEffect(() => {
+    if (recordIdParam) {
+      setExpandedRecordId(recordIdParam);
+    }
+  }, [recordIdParam]);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [addLoading, setAddLoading] = useState(false);
   const [patientSaveLoading, setPatientSaveLoading] = useState(false);
@@ -123,7 +131,9 @@ export default function PatientRecord() {
   useEffect(() => {
     const fetchPatient = async () => {
       try {
-        setLoading(true);
+        if (!patient) {
+          setLoading(true);
+        }
         const params = new URLSearchParams({
           trash: String(isTrashView),
           page: String(currentPage),

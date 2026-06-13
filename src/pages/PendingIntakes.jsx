@@ -7,6 +7,7 @@ import Toast from "../components/Toast";
 import api from "../services/api";
 import { hasActiveProAccess, hasEnterpriseAccess } from "../utils/clinicAccess";
 import { getStoredUserObject } from "../utils/authStorage";
+import { patchDashboardSummaryCache, getDashboardSummary } from "../services/dashboardSummary";
 
 export default function PendingIntakes() {
   const storedUser = getStoredUserObject() || {};
@@ -241,6 +242,18 @@ export default function PendingIntakes() {
       });
       showToast(`${intake.name} has been approved and registered!`, "success");
 
+      patchDashboardSummaryCache((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          intakes: {
+            ...current.intakes,
+            pending: Math.max(0, (current.intakes?.pending || 0) - 1),
+          },
+        };
+      });
+      getDashboardSummary({ forceRefresh: true }).catch(console.error);
+
       if (intakes.length === 1 && page > 1) {
         setPage(page - 1);
       } else {
@@ -259,6 +272,18 @@ export default function PendingIntakes() {
       await api.delete(`/pending-intakes/${intake.id}`);
       setIntakes(intakes.filter(i => i.id !== intake.id));
       showToast("Intake request declined", "success");
+
+      patchDashboardSummaryCache((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          intakes: {
+            ...current.intakes,
+            pending: Math.max(0, (current.intakes?.pending || 0) - 1),
+          },
+        };
+      });
+      getDashboardSummary({ forceRefresh: true }).catch(console.error);
 
       if (intakes.length === 1 && page > 1) {
         setPage(page - 1);

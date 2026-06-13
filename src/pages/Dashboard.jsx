@@ -90,7 +90,13 @@ export default function Dashboard() {
   const showTrash = location.search.includes("tab=trash");
   const clinicPlan = storedUser?.clinic?.plan || "PRO";
   const proAccessActive = hasActiveProAccess(storedUser?.clinic);
-  const deferredSearchQuery = useDeferredValue(searchQuery.trim());
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery.trim());
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, 450);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   const showToast = (message, type = "success") => setToast({ message, type });
 
@@ -194,7 +200,7 @@ export default function Dashboard() {
         params: {
           page: currentPage,
           limit: PATIENTS_PER_PAGE,
-          search: deferredSearchQuery || undefined,
+          search: debouncedSearchQuery || undefined,
           sortBy: sortConfig.key || undefined,
           sortDirection: sortConfig.key ? sortConfig.direction : "desc",
           global: globalSearch || undefined,
@@ -218,7 +224,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, deferredSearchQuery, sortConfig.direction, sortConfig.key, globalSearch]);
+  }, [currentPage, debouncedSearchQuery, sortConfig.direction, sortConfig.key, globalSearch]);
 
   const fetchTrash = useCallback(async () => {
     if (user.role !== "admin") return;
@@ -228,7 +234,7 @@ export default function Dashboard() {
         params: {
           page: currentPage,
           limit: PATIENTS_PER_PAGE,
-          search: deferredSearchQuery || undefined,
+          search: debouncedSearchQuery || undefined,
           sortBy: sortConfig.key || undefined,
           sortDirection: sortConfig.key ? sortConfig.direction : "desc",
         },
@@ -253,7 +259,7 @@ export default function Dashboard() {
     }
   }, [
     currentPage,
-    deferredSearchQuery,
+    debouncedSearchQuery,
     sortConfig.direction,
     sortConfig.key,
     user.role,

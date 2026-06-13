@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { CreditCard, FileText, DollarSign, AlertCircle, Plus, Search, ChevronDown, CheckCircle, Printer, ArrowLeft, Activity } from "lucide-react";
 import api from "../../services/api";
@@ -67,7 +68,29 @@ function SummaryRow({ label, value, strong = false }) {
   );
 }
 
-function InvoiceViewer({ invoice, onClose }) {
+function InvoiceViewer({ invoice: rawInvoice, actionParam, onClose }) {
+  const invoice = React.useMemo(() => {
+    if (actionParam === "invoice.create") {
+      return {
+        ...rawInvoice,
+        status: "draft",
+        amountPaid: 0,
+        balance: rawInvoice.total,
+        payments: [],
+      };
+    }
+    if (actionParam === "invoice.issue") {
+      return {
+        ...rawInvoice,
+        status: "issued",
+        amountPaid: 0,
+        balance: rawInvoice.total,
+        payments: [],
+      };
+    }
+    return rawInvoice;
+  }, [rawInvoice, actionParam]);
+
   const storedUser = getStoredUserObject();
   const clinic = storedUser?.clinic || {};
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -88,6 +111,22 @@ function InvoiceViewer({ invoice, onClose }) {
 
   return (
     <div className="mx-auto max-w-5xl rounded-2xl bg-white shadow-xl overflow-hidden mb-8 border border-slate-200 print:shadow-none print:border-0 print:m-0 print:p-0">
+      {actionParam && (
+        <div className="bg-blue-50 border-b border-blue-200 px-8 py-3 flex items-center gap-2.5 text-blue-800 text-sm print:hidden">
+          <AlertCircle size={18} className="text-blue-500 shrink-0" />
+          <span>
+            <strong>Historical Event Log View:</strong> Showing invoice state at the time of{" "}
+            <span className="font-semibold underline">
+              {actionParam === "invoice.create" ? "Invoice Creation" : actionParam === "invoice.issue" ? "Invoice Issuance" : "Payment Recording"}
+            </span>.
+            {actionParam !== "invoice.payment.recorded" && rawInvoice.status !== invoice.status && (
+              <span className="ml-1 text-blue-700 font-medium">
+                (Note: Current live status of this invoice is <span className="uppercase">{rawInvoice.status}</span>).
+              </span>
+            )}
+          </span>
+        </div>
+      )}
       <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between print:hidden">
          <button onClick={onClose} className="flex items-center text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"><ArrowLeft size={16} className="mr-2" /> Back to Billing</button>
          <button onClick={() => window.print()} className="flex items-center text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors"><Printer size={16} className="mr-2" /> Print</button>
@@ -222,6 +261,25 @@ export default function InvoiceList({ patientId = null }) {
   );
   const { showForm, filterStatus, searchQuery, selectedPatientId } = uiState;
   const [viewingInvoice, setViewingInvoice] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const invoiceIdParam = searchParams.get("invoiceId");
+  const actionParam = searchParams.get("action");
+
+  useEffect(() => {
+    if (invoiceIdParam) {
+      const fetchInvoiceForViewing = async () => {
+        try {
+          const response = await api.get(`/invoices/${invoiceIdParam}`);
+          if (response.data) {
+            setViewingInvoice(response.data);
+          }
+        } catch (error) {
+          console.error("Error loading invoice from URL parameter:", error);
+        }
+      };
+      fetchInvoiceForViewing();
+    }
+  }, [invoiceIdParam]);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [report, setReport] = useState(null);
   const [invoicePatients, setInvoicePatients] = useState([]);
@@ -325,7 +383,21 @@ export default function InvoiceList({ patientId = null }) {
   }, [report]);
 
   if (showForm) return <InvoiceForm patientId={selectedPatientId || patientId} draftStorageKey={`primuxcare:draft:invoice-form:${selectedPatientId || patientId || "new"}`} onSuccess={handleFormSuccess} onCancel={() => clearUiState()} />;
-  if (viewingInvoice) return <InvoiceViewer invoice={viewingInvoice} onClose={() => { setViewingInvoice(null); fetchInvoices(); fetchReport(); }} />;
+  if (viewingInvoice) return (
+    <InvoiceViewer
+      invoice={viewingInvoice}
+      actionParam={actionParam}
+      onClose={() => {
+        setViewingInvoice(null);
+        const nextParams = new URLSearchParams(searchParams);
+        if (nextParams.has("invoiceId")) nextParams.delete("invoiceId");
+        if (nextParams.has("action")) nextParams.delete("action");
+        setSearchParams(nextParams);
+        fetchInvoices();
+        fetchReport();
+      }}
+    />
+  );
 
   return (
     <div className="space-y-6">

@@ -19,6 +19,39 @@ import {
 import api from "../services/api";
 import Toast from "../components/Toast";
 
+// Helper to map resourceType to frontend page route
+const getResourceRoute = (log) => {
+  if (!log) return null;
+  const type = log.resourceType?.toLowerCase();
+  if (type === "waiting_room") return "/waiting-room";
+  if (type === "invoice") return `/billing?invoiceId=${log.resourceId}&action=${log.action}`;
+  if (type === "record") return `/patients/${log.patientId}/records?recordId=${log.resourceId}`;
+  if (type === "appointment") return "/appointments";
+  if (type === "branch") return "/branches";
+  if (type === "clinic_settings" || type === "clinic") return "/clinic-settings";
+  if (type === "patient") return `/patients/${log.resourceId || log.patientId}/records`;
+  if (type === "user" || type === "staff") return "/signup";
+  if (type === "intake" || type === "pending_intake") return "/pending-intakes";
+  if (type === "billing") return "/billing";
+  return null;
+};
+
+// Helper to get friendly redirect button label based on resourceType
+const getResourceButtonLabel = (log) => {
+  if (!log) return "Go to Record";
+  const type = log.resourceType?.toLowerCase();
+  if (type === "waiting_room") return "Go to Waiting Room";
+  if (type === "invoice") return "Go to Billing";
+  if (type === "record") return "Go to Record";
+  if (type === "appointment") return "Go to Appointments";
+  if (type === "branch") return "Go to Branches";
+  if (type === "clinic_settings" || type === "clinic") return "Go to Settings";
+  if (type === "user" || type === "staff") return "Go to Staff Management";
+  if (type === "intake" || type === "pending_intake") return "Go to Intakes";
+  if (type === "billing") return "Go to Billing";
+  return "Go to Page";
+};
+
 // Helper to format actions into friendly readable labels
 const formatActionLabel = (action) => {
   if (!action) return "";
@@ -66,6 +99,19 @@ const getRoleBadgeStyle = (role) => {
   }
 };
 
+// Helper to normalize IP addresses (e.g. ::1 -> 127.0.0.1, ::ffff:127.0.0.1 -> 127.0.0.1)
+const formatIpAddress = (ip) => {
+  if (!ip) return "";
+  let cleanIp = ip.trim();
+  if (cleanIp.startsWith("::ffff:")) {
+    cleanIp = cleanIp.substring(7);
+  }
+  if (cleanIp === "::1") {
+    cleanIp = "127.0.0.1";
+  }
+  return cleanIp;
+};
+
 export default function AuditLogs() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -78,6 +124,14 @@ export default function AuditLogs() {
 
   // Active filters state
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 450);
+    return () => clearTimeout(handler);
+  }, [search]);
   const [actionFilter, setActionFilter] = useState("");
   const [resourceFilter, setResourceFilter] = useState("");
   const [actorFilter, setActorFilter] = useState("");
@@ -107,7 +161,7 @@ export default function AuditLogs() {
         params: {
           page: currentPage,
           limit,
-          search: search.trim() || undefined,
+          search: debouncedSearch.trim() || undefined,
           action: actionFilter || undefined,
           resourceType: resourceFilter || undefined,
           actorId: actorFilter || undefined,
@@ -132,7 +186,7 @@ export default function AuditLogs() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, limit, search, actionFilter, resourceFilter, actorFilter, startDate, endDate]);
+  }, [currentPage, limit, debouncedSearch, actionFilter, resourceFilter, actorFilter, startDate, endDate]);
 
   useEffect(() => {
     fetchAuditLogs();
@@ -145,10 +199,11 @@ export default function AuditLogs() {
 
   useEffect(() => {
     handleFilterChange();
-  }, [search, actionFilter, resourceFilter, actorFilter, startDate, endDate]);
+  }, [debouncedSearch, actionFilter, resourceFilter, actorFilter, startDate, endDate]);
 
   const clearFilters = () => {
     setSearch("");
+    setDebouncedSearch("");
     setActionFilter("");
     setResourceFilter("");
     setActorFilter("");
@@ -363,7 +418,9 @@ export default function AuditLogs() {
                               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider ${getRoleBadgeStyle(log.actor.role)}`}>
                                 {log.actor.role}
                               </span>
-                              <span className="text-[10px] text-slate-400 font-semibold uppercase">{log.ipAddress}</span>
+                              {log.ipAddress && formatIpAddress(log.ipAddress) !== "127.0.0.1" && (
+                                <span className="text-[10px] text-slate-400 font-semibold uppercase">{formatIpAddress(log.ipAddress)}</span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -386,16 +443,32 @@ export default function AuditLogs() {
                     <td className="p-4">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1">
-                          <span className="font-semibold text-slate-800 capitalize">
-                            {log.resourceType.replace("_", " ")}
-                          </span>
-                          <span className="text-slate-400 text-xs font-mono">
-                            (#{log.resourceId})
-                          </span>
+                          {getResourceRoute(log) ? (
+                            <Link
+                              to={getResourceRoute(log)}
+                              className="inline-flex items-center gap-1 hover:underline font-semibold text-primary-600 hover:text-primary-700"
+                            >
+                              <span className="capitalize">
+                                {log.resourceType.replace("_", " ")}
+                              </span>
+                              <span className="text-slate-400 text-xs font-mono">
+                                (#{log.resourceId})
+                              </span>
+                            </Link>
+                          ) : (
+                            <>
+                              <span className="font-semibold text-slate-800 capitalize">
+                                {log.resourceType.replace("_", " ")}
+                              </span>
+                              <span className="text-slate-400 text-xs font-mono">
+                                (#{log.resourceId})
+                              </span>
+                            </>
+                          )}
                         </div>
                         {log.patient && (
                           <Link
-                            to={`/patients/${log.patientId}/records`}
+                            to={getResourceRoute(log) || `/patients/${log.patientId}/records`}
                             className="text-xs font-medium text-primary-600 hover:text-primary-700 inline-flex items-center gap-1 mt-1 hover:underline"
                           >
                             <CornerDownRight size={12} className="text-slate-400" />
@@ -527,7 +600,7 @@ export default function AuditLogs() {
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                     <div>
                       <span className="text-slate-400 font-medium block">Action Event Code:</span>
-                      <span className="font-bold text-slate-800 text-sm">{selectedLog.action}</span>
+                      <span className="font-bold text-slate-800 text-sm capitalize">{formatActionLabel(selectedLog.action)}</span>
                     </div>
                     <div>
                       <span className="text-slate-400 font-medium block">Resource Category:</span>
@@ -541,7 +614,7 @@ export default function AuditLogs() {
                     </div>
                     <div className="mt-2">
                       <span className="text-slate-400 font-medium block">Source IP Address:</span>
-                      <span className="font-mono text-slate-600">{selectedLog.ipAddress || "Unknown"}</span>
+                      <span className="font-mono text-slate-600">{formatIpAddress(selectedLog.ipAddress) || "Unknown"}</span>
                     </div>
                   </div>
 
@@ -553,11 +626,11 @@ export default function AuditLogs() {
                         <span className="text-slate-400 ml-1">({selectedLog.patient.cardNumber})</span>
                       </div>
                       <Link
-                        to={`/patients/${selectedLog.patientId}/records`}
+                        to={getResourceRoute(selectedLog) || `/patients/${selectedLog.patientId}/records`}
                         onClick={() => setSelectedLog(null)}
                         className="px-3 py-1.5 bg-primary-50 text-primary-700 hover:bg-primary-100 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors border border-primary-100"
                       >
-                        Go to Record
+                        {getResourceButtonLabel(selectedLog)}
                         <ArrowRight size={12} />
                       </Link>
                     </div>
@@ -570,8 +643,13 @@ export default function AuditLogs() {
                     Event Log Metadata Context
                   </h4>
                   {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 ? (
-                    <div className="rounded-xl border border-slate-200 bg-slate-900 p-4 overflow-x-auto shadow-inner text-slate-300 font-mono text-xs">
-                      <pre>{JSON.stringify(selectedLog.metadata, null, 2)}</pre>
+                    <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden shadow-sm divide-y divide-slate-100">
+                      {Object.entries(selectedLog.metadata).map(([key, val]) => (
+                        <div key={key} className="p-3 text-xs flex justify-between items-center hover:bg-slate-50/50 transition-colors">
+                          <span className="font-semibold text-slate-500 font-mono">{key}</span>
+                          <span className="font-mono text-slate-800 font-medium">{String(val)}</span>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-center text-slate-400 text-xs flex items-center justify-center gap-2">
@@ -582,15 +660,7 @@ export default function AuditLogs() {
                 </div>
               </div>
 
-              {/* Modal Footer */}
-              <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
-                <button
-                  onClick={() => setSelectedLog(null)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
-                >
-                  Close Inspector
-                </button>
-              </div>
+
             </motion.div>
           </div>
         )}

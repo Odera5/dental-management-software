@@ -21,10 +21,33 @@ export default function SearchFilterSort({
     endDate = "",
   } = activeFilters;
 
+  // Local state for responsive typing
+  const [localSearchText, setLocalSearchText] = React.useState(searchText);
+
   useEffect(() => {
     if (!externalFilters) return;
     setStoredFilters(externalFilters);
   }, [externalFilters, setStoredFilters]);
+
+  // Keep local search query in sync if the external searchText gets updated or reset
+  useEffect(() => {
+    setLocalSearchText(searchText);
+  }, [searchText]);
+
+  // Debounce API calls/updates when typing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (localSearchText !== searchText) {
+        const nextFilters = { ...activeFilters, searchText: localSearchText };
+        setStoredFilters(nextFilters);
+        onChange?.(nextFilters);
+      }
+    }, 450); // 450ms debounce delay
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [localSearchText]);
 
   const updateFilters = (patch) => {
     const nextFilters = { ...activeFilters, ...patch };
@@ -40,8 +63,8 @@ export default function SearchFilterSort({
           <input
             type="text"
             placeholder="Search by complaint, diagnosis or history..."
-            value={searchText}
-            onChange={(e) => updateFilters({ searchText: e.target.value })}
+            value={localSearchText}
+            onChange={(e) => setLocalSearchText(e.target.value)}
             className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 bg-slate-50 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-colors"
           />
         </div>
