@@ -38,7 +38,7 @@ export default function PendingIntakes() {
   const hasProAccess = hasActiveProAccess(intakeAccess?.clinic || storedUser?.clinic || {});
   const enterpriseAccess = hasEnterpriseAccess(intakeAccess?.clinic || storedUser?.clinic || {});
   const intakeLink = intakeAccess?.intakePublicToken
-    ? `${window.location.origin}/intake/${intakeAccess.clinicId}?access=${encodeURIComponent(intakeAccess.intakePublicToken)}&branchId=${encodeURIComponent(intakeAccess.branch?.id || "")}`
+    ? `${window.location.origin}/intake/${intakeAccess.clinicId}?access=${encodeURIComponent(intakeAccess.intakePublicToken)}${enterpriseAccess ? `&branchId=${encodeURIComponent(intakeAccess.branch?.id || "")}` : ""}`
     : "";
 
   const syncApprovalDrafts = (items) => {
@@ -136,7 +136,7 @@ export default function PendingIntakes() {
       });
     } catch (error) {
       showToast(
-        error.response?.data?.message || "Failed to load branch intake settings",
+        error.response?.data?.message || (hasEnterpriseAccess(storedUser?.clinic || {}) ? "Failed to load branch intake settings" : "Failed to load patient intake settings"),
         "error",
       );
     }
@@ -188,7 +188,7 @@ export default function PendingIntakes() {
       );
     } catch (error) {
       showToast(
-        error.response?.data?.message || "Failed to update branch intake access",
+        error.response?.data?.message || (enterpriseAccess ? "Failed to update branch intake access" : "Failed to update patient intake access"),
         "error",
       );
     } finally {
@@ -209,7 +209,7 @@ export default function PendingIntakes() {
       showToast(response.data?.message || "Patient intake link regenerated", "success");
     } catch (error) {
       showToast(
-        error.response?.data?.message || "Failed to regenerate branch intake link",
+        error.response?.data?.message || (enterpriseAccess ? "Failed to regenerate branch intake link" : "Failed to regenerate patient intake link"),
         "error",
       );
     } finally {
@@ -226,7 +226,7 @@ export default function PendingIntakes() {
     try {
       await navigator.clipboard.writeText(intakeLink);
       setLinkCopied(true);
-      showToast("Branch intake link copied to clipboard", "success");
+      showToast(enterpriseAccess ? "Branch intake link copied to clipboard" : "Patient intake link copied to clipboard", "success");
       setTimeout(() => setLinkCopied(false), 3000);
     } catch {
       showToast("Failed to copy intake link", "error");
@@ -409,16 +409,22 @@ export default function PendingIntakes() {
 
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
             <div className="truncate font-mono">
-              {intakeLink || "Enable intake for this branch to generate a secure share link."}
+              {intakeLink || (enterpriseAccess ? "Enable intake for this branch to generate a secure share link." : "Enable intake for your clinic to generate a secure share link.")}
             </div>
           </div>
 
           <p className="mt-3 text-xs leading-5 text-slate-400">
-            Doctors, nurses, and branch managers can enable or disable intake for the current branch. Only admins and branch managers can regenerate the secure link because regeneration revokes the old one immediately.
+            {enterpriseAccess 
+              ? "Doctors, nurses, and branch managers can enable or disable intake for the current branch. Only admins and branch managers can regenerate the secure link because regeneration revokes the old one immediately."
+              : "Doctors, nurses, and clinic managers can enable or disable intake for the clinic. Only admins and clinic managers can regenerate the secure link because regeneration revokes the old one immediately."
+            }
           </p>
           {!hasProAccess && (
             <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
-              Active Pro or Enterprise access is required before branch intake links can be used.
+              {enterpriseAccess 
+                ? "Active Enterprise access is required before branch intake links can be used." 
+                : "Active Pro access is required before patient intake links can be used."
+              }
             </p>
           )}
         </div>
