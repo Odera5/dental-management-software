@@ -74,9 +74,9 @@ function NavItem({
         size={20}
         className={active && !danger ? "text-primary-600" : ""}
       />
-      {label}
+      <span className="truncate text-left flex-1">{label}</span>
       {badge !== undefined && badge > 0 && (
-        <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center min-w-[20px] shadow-sm">
+        <span className="ml-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center min-w-[20px] shadow-sm shrink-0">
           {badge > 99 ? "99+" : badge}
         </span>
       )}
