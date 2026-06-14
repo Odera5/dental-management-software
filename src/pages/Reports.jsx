@@ -15,8 +15,92 @@ export default function Reports() {
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  
+  // Set default preset to last-6-months, which pre-populates dates
+  const [preset, setPreset] = useState("last-6-months");
+  
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 5);
+    d.setDate(1);
+    return d.toISOString().split("T")[0];
+  });
+  
+  const [endDate, setEndDate] = useState(() => {
+    return new Date().toISOString().split("T")[0];
+  });
+
+  const handlePresetChange = (selectedPreset) => {
+    setPreset(selectedPreset);
+    if (selectedPreset === "custom") {
+      return;
+    }
+
+    const today = new Date();
+    let start = "";
+    let end = today.toISOString().split("T")[0];
+
+    if (selectedPreset === "last-6-months") {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 5);
+      d.setDate(1);
+      start = d.toISOString().split("T")[0];
+    } else if (selectedPreset === "last-12-months") {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 11);
+      d.setDate(1);
+      start = d.toISOString().split("T")[0];
+    } else if (selectedPreset === "this-year") {
+      const d = new Date(today.getFullYear(), 0, 1);
+      start = d.toISOString().split("T")[0];
+    } else if (selectedPreset === "last-year") {
+      const dStart = new Date(today.getFullYear() - 1, 0, 1);
+      const dEnd = new Date(today.getFullYear() - 1, 11, 31);
+      start = dStart.toISOString().split("T")[0];
+      end = dEnd.toISOString().split("T")[0];
+    }
+
+    setStartDate(start);
+    setEndDate(end);
+  };
+
+  const handleStartDateChange = (val) => {
+    setStartDate(val);
+    setPreset("custom");
+  };
+
+  const handleEndDateChange = (val) => {
+    setEndDate(val);
+    setPreset("custom");
+  };
+
+  const handleClearFilters = () => {
+    setStartDate("");
+    setEndDate("");
+    setPreset("custom");
+  };
+
+  const getChartTitle = () => {
+    if (preset === "last-6-months") return "Revenue Trends (Last 6 Months)";
+    if (preset === "last-12-months") return "Revenue Trends (Last 12 Months)";
+    if (preset === "this-year") return "Revenue Trends (This Year)";
+    if (preset === "last-year") return "Revenue Trends (Last Year)";
+    
+    if (startDate && endDate) {
+      const startLabel = new Date(startDate).toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+      const endLabel = new Date(endDate).toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+      return `Revenue Trends (${startLabel} - ${endLabel})`;
+    }
+    if (startDate) {
+      const startLabel = new Date(startDate).toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+      return `Revenue Trends (Since ${startLabel})`;
+    }
+    if (endDate) {
+      const endLabel = new Date(endDate).toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+      return `Revenue Trends (Up to ${endLabel})`;
+    }
+    return "Revenue Trends";
+  };
 
   const fetchAnalytics = async () => {
     try {
@@ -101,18 +185,46 @@ export default function Reports() {
 
     return (
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
-           <div className="flex-1 space-y-1.5">
-              <label className="text-sm font-semibold text-slate-700">Start Date</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-500 outline-none" />
+        <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 items-end">
+           <div className="w-full md:w-64 space-y-1.5">
+              <label className="text-sm font-semibold text-slate-700">Reporting Period</label>
+              <select 
+                value={preset} 
+                onChange={(e) => handlePresetChange(e.target.value)} 
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-500 outline-none font-semibold text-slate-700"
+              >
+                <option value="last-6-months">Last 6 Months</option>
+                <option value="last-12-months">Last 12 Months</option>
+                <option value="this-year">This Year</option>
+                <option value="last-year">Last Year</option>
+                <option value="custom">Custom Range</option>
+              </select>
            </div>
-           <div className="flex-1 space-y-1.5">
-              <label className="text-sm font-semibold text-slate-700">End Date</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-500 outline-none" />
-           </div>
-           <div className="flex items-end">
-              <Button onClick={() => { setStartDate(""); setEndDate(""); }} variant="outline" className="h-9 px-4">Clear Filters</Button>
-           </div>
+           
+           {preset === "custom" ? (
+             <>
+               <div className="flex-1 w-full space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700">Start Date</label>
+                  <input type="date" value={startDate} onChange={(e) => handleStartDateChange(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-500 outline-none font-medium text-slate-800" />
+               </div>
+               <div className="flex-1 w-full space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700">End Date</label>
+                  <input type="date" value={endDate} onChange={(e) => handleEndDateChange(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-500 outline-none font-medium text-slate-800" />
+               </div>
+               <div className="w-full md:w-auto">
+                  <Button onClick={handleClearFilters} variant="outline" className="w-full md:w-auto h-9 px-4 font-semibold text-slate-600">Clear Filters</Button>
+               </div>
+             </>
+           ) : (
+             <div className="flex-1 pb-2 text-xs font-semibold text-slate-500 flex items-center gap-2">
+               <span>Selected Period:</span>
+               <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
+                 {startDate ? new Date(startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Beginning'} 
+                 {' – '} 
+                 {endDate ? new Date(endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Present'}
+               </span>
+             </div>
+           )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -120,7 +232,7 @@ export default function Reports() {
              <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
                 <CardTitle className="flex items-center gap-2 text-slate-800">
                   <TrendingUp className="text-primary-500" size={20} />
-                  Revenue Trends (Last 6 Months)
+                  {getChartTitle()}
                 </CardTitle>
              </CardHeader>
              <CardContent className="p-6">
@@ -129,22 +241,27 @@ export default function Reports() {
                   <div className="text-3xl font-extrabold text-slate-900 mt-1">₦{totalRevenue.toLocaleString()}</div>
                 </div>
                 
-                <div className="flex items-end gap-3 h-64 mt-8 pb-6 border-b border-slate-100">
-                   {data.revenueByMonth.map((monthData, idx) => {
-                     const heightPercentage = Math.max((monthData.revenue / maxRevenue) * 100, 2); // Min 2% height for visibility
-                     return (
-                       <div key={idx} className="flex-1 flex flex-col justify-end items-center group relative">
-                          <div className="absolute -top-10 bg-slate-900 text-white text-xs font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg">
-                             ₦{monthData.revenue.toLocaleString()}
+                <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-thin">
+                   <div 
+                     className="flex items-end gap-3 h-64 mt-8 pb-6 border-b border-slate-100"
+                     style={{ minWidth: `${Math.max(data.revenueByMonth.length * 60, 400)}px` }}
+                   >
+                      {data.revenueByMonth.map((monthData, idx) => {
+                        const heightPercentage = Math.max((monthData.revenue / maxRevenue) * 100, 2); // Min 2% height for visibility
+                        return (
+                          <div key={idx} className="flex-1 flex flex-col justify-end items-center group relative">
+                             <div className="absolute -top-10 bg-slate-900 text-white text-xs font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg">
+                                ₦{monthData.revenue.toLocaleString()}
+                             </div>
+                             <div 
+                               className="w-full max-w-[48px] bg-gradient-to-t from-primary-600 to-primary-400 rounded-t-md transition-all duration-500 ease-out group-hover:from-primary-500 group-hover:to-primary-300 shadow-sm"
+                               style={{ height: `${heightPercentage}%` }}
+                             ></div>
+                             <span className="text-xs font-semibold text-slate-500 mt-3 whitespace-nowrap">{monthData.month}</span>
                           </div>
-                          <div 
-                            className="w-full max-w-[48px] bg-gradient-to-t from-primary-600 to-primary-400 rounded-t-md transition-all duration-500 ease-out group-hover:from-primary-500 group-hover:to-primary-300 shadow-sm"
-                            style={{ height: `${heightPercentage}%` }}
-                          ></div>
-                          <span className="text-xs font-semibold text-slate-500 mt-3">{monthData.month}</span>
-                       </div>
-                     )
-                   })}
+                        )
+                      })}
+                   </div>
                 </div>
              </CardContent>
            </Card>
