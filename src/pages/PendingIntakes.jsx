@@ -109,7 +109,7 @@ export default function PendingIntakes() {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
       setPage(1);
-    }, 500);
+    }, 700);
     return () => clearTimeout(timer);
   }, [search]);
 
@@ -150,6 +150,18 @@ export default function PendingIntakes() {
       setTotalPages(res.data.totalPages || 1);
       setTotalCount(res.data.totalCount || 0);
       syncApprovalDrafts(res.data.intakes || []);
+      if (!debouncedSearch) {
+        patchDashboardSummaryCache((current) => {
+          const base = current || { intakes: {}, appointments: {}, waitingRoom: {} };
+          return {
+            ...base,
+            intakes: {
+              ...base.intakes,
+              pending: res.data.totalCount || 0,
+            },
+          };
+        });
+      }
     } catch (error) {
       console.error("Failed to fetch pending intakes", error);
     } finally {

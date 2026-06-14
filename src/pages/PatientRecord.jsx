@@ -436,7 +436,7 @@ export default function PatientRecord() {
       )}
 
       {showAddModal && (
-        <Modal onClose={() => { clearShowAddModalDraft(); setShowAddModal(false); }}>
+        <Modal maxWidth="max-w-6xl" onClose={() => { clearShowAddModalDraft(); setShowAddModal(false); }}>
           <div className="mb-6 border-b border-slate-100 pb-4">
             <h2 className="text-2xl font-bold text-slate-900">New Clinical Record</h2>
             <p className="text-slate-500 text-sm mt-1">Add history, examinations, dental charting and treatment plan.</p>

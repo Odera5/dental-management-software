@@ -103,7 +103,7 @@ export default function PatientPicker({
           setLoading(false);
         }
       }
-    }, 200);
+    }, 700);
 
     return () => {
       cancelled = true;

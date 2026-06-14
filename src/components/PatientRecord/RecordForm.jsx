@@ -330,7 +330,7 @@ function ToothChart({ teeth, onToothClick, dentition }) {
   };
 
   const renderRow = (left, right) => (
-    <div className="flex justify-center md:justify-between items-center w-full max-w-2xl mx-auto flex-wrap md:flex-nowrap gap-4 md:gap-8 mb-2">
+    <div className="flex justify-center md:justify-between items-center w-full max-w-4xl mx-auto flex-wrap md:flex-nowrap gap-4 md:gap-8 mb-2">
       <div className="flex gap-1.5 flex-1 justify-center md:justify-end border-b-2 border-slate-300 pb-2 md:border-b-0 md:pb-0 md:border-r-2 md:pr-4">
         {left.map((t) => {
           const resolvedConditions = Array.isArray(t.conditions)
@@ -390,7 +390,7 @@ function ToothChart({ teeth, onToothClick, dentition }) {
 
   return (
     <div className="space-y-4 py-6 bg-slate-50 rounded-2xl border border-slate-200 shadow-inner">
-      <div className="flex justify-between w-full max-w-2xl mx-auto px-4">
+      <div className="flex justify-between w-full max-w-4xl mx-auto px-4">
         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-white px-2 py-0.5 rounded border border-slate-200">
           Patient's Right (UR/LR)
         </span>
@@ -405,7 +405,7 @@ function ToothChart({ teeth, onToothClick, dentition }) {
       </div>
       {renderRow(quadrants.UR, quadrants.UL)}
 
-      <div className="w-full max-w-2xl mx-auto border-t-2 border-slate-300 border-dashed my-4"></div>
+      <div className="w-full max-w-4xl mx-auto border-t-2 border-slate-300 border-dashed my-4"></div>
 
       {renderRow(quadrants.LR, quadrants.LL)}
       <div className="text-center mt-2">

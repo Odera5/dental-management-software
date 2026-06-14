@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { X } from "lucide-react";
 
-export default function Modal({ children, onClose }) {
+export default function Modal({ children, onClose, maxWidth = "max-w-4xl" }) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = "auto"; };
@@ -11,7 +11,7 @@ export default function Modal({ children, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 sm:p-6" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-y-auto flex flex-col"
+        className={`relative bg-white w-full ${maxWidth} max-h-[90vh] rounded-2xl shadow-2xl overflow-y-auto flex flex-col`}
       >
         <button
           onClick={onClose}

@@ -129,7 +129,7 @@ export default function AuditLogs() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
-    }, 450);
+    }, 700);
     return () => clearTimeout(handler);
   }, [search]);
   const [actionFilter, setActionFilter] = useState("");

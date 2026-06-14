@@ -546,7 +546,7 @@ function RecordItem({
         })()}
 
       {isEditing && canManageRecords && (
-        <Modal onClose={cancelEditing}>
+        <Modal maxWidth="max-w-6xl" onClose={cancelEditing}>
           <div className="mb-6 border-b border-slate-100 pb-4">
             <h2 className="text-2xl font-bold text-slate-900">
               Edit Clinical Record

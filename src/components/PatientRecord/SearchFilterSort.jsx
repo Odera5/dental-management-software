@@ -42,7 +42,7 @@ export default function SearchFilterSort({
         setStoredFilters(nextFilters);
         onChange?.(nextFilters);
       }
-    }, 450); // 450ms debounce delay
+    }, 700); // 700ms debounce delay
 
     return () => {
       clearTimeout(handler);

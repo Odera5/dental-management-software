@@ -17,7 +17,7 @@ export default function TrashPatients() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
-    }, 450);
+    }, 700);
     return () => clearTimeout(handler);
   }, [search]);
   const [confirmConfig, setConfirmConfig] = useState(null);

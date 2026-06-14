@@ -94,7 +94,7 @@ export default function Dashboard() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery.trim());
-    }, 450);
+    }, 700);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
@@ -305,7 +305,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     setDirectoryState((current) => ({ ...current, currentPage: 1 }));
-  }, [searchQuery, setDirectoryState, showTrash, sortConfig]);
+  }, [debouncedSearchQuery, setDirectoryState, showTrash, sortConfig]);
   useEffect(() => {
     if (currentPage > totalPages) {
       setDirectoryState((current) => ({ ...current, currentPage: totalPages }));

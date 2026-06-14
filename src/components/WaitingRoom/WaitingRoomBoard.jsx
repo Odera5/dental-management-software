@@ -12,6 +12,7 @@ import ConfirmModal from "../ui/ConfirmModal";
 import usePersistentState from "../../hooks/usePersistentState";
 import { getPatientPickerOptions } from "../../services/patientDirectory";
 import { getStoredUserObject } from "../../utils/authStorage";
+import { patchDashboardSummaryCache } from "../../services/dashboardSummary";
 
 const STATUS_LABELS = { waiting: "Waiting", called: "Called", in_consultation: "In Consultation", completed: "Completed" };
 const NEXT_ACTION = { waiting: "called", called: "in_consultation", in_consultation: "completed" };
@@ -68,7 +69,7 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
-    }, 450);
+    }, 700);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
@@ -117,7 +118,29 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
       if (statusFilter !== "all") params.append("status", statusFilter);
       if (debouncedSearchQuery) params.append("search", debouncedSearchQuery);
       const response = await api.get(`/waiting-room?${params}`);
-      setEntries(response.data || []);
+      const allEntries = response.data || [];
+      setEntries(allEntries);
+
+      if (statusFilter === "all" && !debouncedSearchQuery) {
+        const activeCount = allEntries.filter(
+          (entry) => entry.status === "waiting" || entry.status === "called" || entry.status === "in_consultation"
+        ).length;
+        patchDashboardSummaryCache((current) => {
+          const base = current || { intakes: {}, appointments: {}, waitingRoom: {} };
+          return {
+            ...base,
+            waitingRoom: {
+              ...base.waitingRoom,
+              active: activeCount,
+              waiting: allEntries.filter((entry) => entry.status === "waiting").length,
+              called: allEntries.filter((entry) => entry.status === "called").length,
+              in_consultation: allEntries.filter((entry) => entry.status === "in_consultation").length,
+              completed: allEntries.filter((entry) => entry.status === "completed").length,
+              total: allEntries.length,
+            },
+          };
+        });
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -160,7 +183,7 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
 
     const timeoutId = setTimeout(() => {
       fetchPatients();
-    }, 200);
+    }, 700);
 
     return () => clearTimeout(timeoutId);
   }, [fetchPatients, patientPickerOpen, patientSearchQuery]);
