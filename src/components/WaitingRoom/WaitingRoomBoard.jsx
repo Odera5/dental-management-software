@@ -32,7 +32,7 @@ const METRIC_COLORS = {
   completed: "bg-slate-600 text-white shadow-slate-500/20"
 };
 
-export default function WaitingRoomBoard({ newPatient = null, preselectPatientId = "" }) {
+export default function WaitingRoomBoard({ newPatient = null, preselectPatientId = "", onNewPatientQueued }) {
   const navigate = useNavigate();
   const storedUser = getStoredUserObject() || {};
   const isFrontDesk = storedUser.role === "nurse";
@@ -195,6 +195,9 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
     try {
       await api.post("/waiting-room", { patientId: selectedPatient, notes, priority });
       clearDraft();
+      if (selectedPatient && getEntityId(newPatient) === selectedPatient) {
+        onNewPatientQueued?.();
+      }
       showToast("Patient added to waiting room", "success");
       fetchQueue();
     } catch (error) {
