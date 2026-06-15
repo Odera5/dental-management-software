@@ -190,12 +190,12 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
 
   const showToast = (message, type = "success") => setToast({ show: true, message, type });
 
-  const handleAddToWaitingRoom = async () => {
-    if (!selectedPatient) return showToast("Select a patient to add", "error");
+  const addPatientToWaitingRoom = async (patientId) => {
+    if (!patientId) return showToast("Select a patient to add", "error");
     try {
-      await api.post("/waiting-room", { patientId: selectedPatient, notes, priority });
+      await api.post("/waiting-room", { patientId, notes, priority });
       clearDraft();
-      if (selectedPatient && getEntityId(newPatient) === selectedPatient) {
+      if (getEntityId(newPatient) === patientId) {
         onNewPatientQueued?.();
       }
       showToast("Patient added to waiting room", "success");
@@ -204,6 +204,11 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
       showToast(error.response?.data?.message || "Failed to add patient", "error");
     }
   };
+
+  const handleAddToWaitingRoom = () => addPatientToWaitingRoom(selectedPatient);
+
+  const handleAddNewPatientToWaitingRoom = () =>
+    addPatientToWaitingRoom(getEntityId(newPatient));
 
   const handleOpenRecord = (patientId) => {
     if (!patientId) return;
@@ -285,11 +290,9 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
             <Button variant="outline" onClick={() => navigate("/dashboard")} className="w-full sm:w-auto shadow-sm">
               <ArrowLeft size={16} className="mr-2" /> Back
             </Button>
-            {!isFrontDesk && (
-              <Button variant="outline" onClick={() => handleOpenRecord(getEntityId(newPatient))} className="bg-white hover:bg-slate-100">
-                Open Patient Record
-              </Button>
-            )}
+            <Button onClick={handleAddNewPatientToWaitingRoom} className="w-full sm:w-auto shadow-sm">
+              <UserPlus size={16} className="mr-2" /> Add to Waiting Room
+            </Button>
           </div>
         </div>
       )}
