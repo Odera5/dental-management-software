@@ -27,7 +27,8 @@ export default function PatientRecord() {
   const canEditPatient =
     storedUser.role === "admin" ||
     storedUser.role === "branch_manager" ||
-    storedUser.role === "doctor";
+    storedUser.role === "doctor" ||
+    storedUser.role === "nurse";
   const canManageRecords =
     storedUser.role === "admin" ||
     storedUser.role === "branch_manager" ||
