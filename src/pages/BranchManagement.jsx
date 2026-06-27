@@ -22,6 +22,7 @@ import ConfirmModal from "../components/ui/ConfirmModal";
 import { COUNTRIES } from "../constants/countries";
 import { hasEnterpriseAccess } from "../utils/clinicAccess";
 import { getStoredUserObject } from "../utils/authStorage";
+import { notifyBranchListChanged } from "../utils/branchStorage";
 
 const initialForm = {
   name: "",
@@ -289,10 +290,12 @@ export default function BranchManagement() {
             branch.id === editingBranch.id ? response.data?.branch || branch : branch,
           ),
         );
+        notifyBranchListChanged({ branch: response.data?.branch || null, action: "updated" });
         setToast({ message: "Branch updated successfully.", type: "success" });
       } else {
         const response = await api.post("/branches", payload);
         setBranches((current) => [...current, response.data?.branch].filter(Boolean));
+        notifyBranchListChanged({ branch: response.data?.branch || null, action: "created" });
         setToast({ message: "Branch created successfully.", type: "success" });
       }
 
@@ -319,6 +322,7 @@ export default function BranchManagement() {
           item.id === branch.id ? response.data?.branch || item : item,
         ),
       );
+      notifyBranchListChanged({ branch: response.data?.branch || null, action: response.data?.branch?.isActive ? "activated" : "deactivated" });
       setToast({
         message:
           response.data?.message ||
@@ -526,3 +530,7 @@ export default function BranchManagement() {
     </motion.div>
   );
 }
+
+
+
+

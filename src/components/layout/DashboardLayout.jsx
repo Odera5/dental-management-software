@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -18,6 +18,7 @@ import {
   Inbox,
   Building2,
   ChevronDown,
+  Check,
   History,
 } from "lucide-react";
 import api, { logoutCurrentUser } from "../../services/api";
@@ -30,6 +31,7 @@ import Button from "../ui/Button";
 import primuxFavicon from "../../assets/primux-logo.png";
 import { getStoredUserObject, updateStoredUser } from "../../utils/authStorage";
 import {
+  BRANCHES_UPDATED_EVENT,
   getActiveBranchId,
   getAvailableBranches,
   setActiveBranch,
@@ -136,6 +138,8 @@ export default function DashboardLayout() {
   const [availableBranches, setAvailableBranches] = useState(() =>
     getAvailableBranches(),
   );
+  const [branchMenuOpen, setBranchMenuOpen] = useState(false);
+  const branchMenuRef = useRef(null);
 
   const storedUser = getStoredUserObject() || {};
   const user = {
@@ -249,6 +253,27 @@ export default function DashboardLayout() {
   }, []);
 
   useEffect(() => {
+    if (!branchMenuOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (branchMenuRef.current?.contains(event.target)) return;
+      setBranchMenuOpen(false);
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") setBranchMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [branchMenuOpen]);
+
+  useEffect(() => {
     let isMounted = true;
 
     const syncClinicState = async () => {
@@ -291,7 +316,7 @@ export default function DashboardLayout() {
     return () => {
       isMounted = false;
     };
-  }, [navigate, user.role]);
+  }, [isAdmin, navigate]);
 
   useEffect(() => {
     let isMounted = true;
@@ -327,16 +352,21 @@ export default function DashboardLayout() {
     };
 
     loadBranches();
+    window.addEventListener(BRANCHES_UPDATED_EVENT, loadBranches);
 
     return () => {
       isMounted = false;
+      window.removeEventListener(BRANCHES_UPDATED_EVENT, loadBranches);
     };
   }, []);
 
   const handleBranchChange = async (nextBranchId) => {
+    if (!isAdmin) return;
+
     const nextBranch = availableBranches.find((branch) => branch.id === nextBranchId);
     if (!nextBranch) return;
 
+    setBranchMenuOpen(false);
     setBranchState(nextBranch);
     setActiveBranch(nextBranch);
     updateStoredUser({
@@ -368,7 +398,8 @@ export default function DashboardLayout() {
     setMobileMenuOpen(false);
   };
 
-  const canSwitchBranches = enterpriseAccess && availableBranches.length > 1;
+  const canDisplayActiveBranch = enterpriseAccess && activeBranch;
+  const canSwitchBranches = canDisplayActiveBranch && isAdmin && availableBranches.length > 0;
 
   // Determine header title based on pathname
   let headerTitle = "Overview";
@@ -613,21 +644,99 @@ export default function DashboardLayout() {
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            {availableBranches.length > 0 && canSwitchBranches && (
-              <div className="hidden md:flex items-center gap-2 rounded-full border border-surface-200 bg-white px-4 py-2 shadow-sm hover:border-primary-300 transition-colors focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-100 relative group cursor-pointer">
-                <Building2 size={16} className="text-primary-500 shrink-0" />
-                <select
-                  value={activeBranch?.id || ""}
-                  onChange={(event) => handleBranchChange(event.target.value)}
-                  className="bg-transparent text-sm font-medium text-slate-700 outline-none appearance-none pr-6 cursor-pointer"
-                >
-                  {availableBranches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.city || branch.name}{branch.area ? ` - ${branch.area}` : ""}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="text-slate-400 absolute right-3.5 pointer-events-none group-hover:text-primary-500 transition-colors" />
+            {canDisplayActiveBranch && (
+              <div ref={branchMenuRef} className="relative hidden md:block">
+                {canSwitchBranches ? (
+                  <button
+                    type="button"
+                    onClick={() => setBranchMenuOpen((open) => !open)}
+                    className={`group flex min-w-[220px] max-w-[320px] items-center gap-3 rounded-2xl border bg-white px-3.5 py-2.5 text-left shadow-sm transition-all duration-200 ${
+                      branchMenuOpen
+                        ? "border-primary-300 ring-4 ring-primary-100"
+                        : "border-surface-200 hover:border-primary-200 hover:shadow-md"
+                    }`}
+                    aria-haspopup="listbox"
+                    aria-expanded={branchMenuOpen}
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600 transition-colors group-hover:bg-primary-100">
+                      <Building2 size={17} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                        Active Branch
+                      </span>
+                      <span className="block truncate text-sm font-semibold text-slate-800">
+                        {activeBranch?.city || activeBranch?.name || "Select branch"}{activeBranch?.area ? ` - ${activeBranch.area}` : ""}
+                      </span>
+                    </span>
+                    <ChevronDown
+                      size={16}
+                      className={`shrink-0 text-slate-400 transition-transform duration-200 group-hover:text-primary-500 ${branchMenuOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                ) : (
+                  <div className="flex min-w-[220px] max-w-[320px] cursor-default items-center gap-3 rounded-2xl border border-surface-200 bg-white px-3.5 py-2.5 text-left shadow-sm">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+                      <Building2 size={17} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                        Active Branch
+                      </span>
+                      <span className="block truncate text-sm font-semibold text-slate-800">
+                        {activeBranch?.city || activeBranch?.name || "Select branch"}{activeBranch?.area ? ` - ${activeBranch.area}` : ""}
+                      </span>
+                    </span>
+                  </div>
+                )}
+
+                <AnimatePresence>
+                  {canSwitchBranches && branchMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                      transition={{ duration: 0.16, ease: "easeOut" }}
+                      className="absolute right-0 top-[calc(100%+0.65rem)] z-50 w-80 overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-2xl shadow-slate-200/70 ring-1 ring-slate-900/5"
+                      role="listbox"
+                    >
+                      <div className="border-b border-slate-100 bg-slate-50/80 px-4 py-3">
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Switch Branch</p>
+                        <p className="mt-1 text-sm font-medium text-slate-700">Choose where you are working from.</p>
+                      </div>
+                      <div className="max-h-72 overflow-y-auto p-2">
+                        {availableBranches.map((branch) => {
+                          const isSelected = branch.id === activeBranch?.id;
+                          const branchLabel = `${branch.city || branch.name}${branch.area ? ` - ${branch.area}` : ""}`;
+
+                          return (
+                            <button
+                              key={branch.id}
+                              type="button"
+                              onClick={() => handleBranchChange(branch.id)}
+                              className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors ${
+                                isSelected
+                                  ? "bg-primary-50 text-primary-800"
+                                  : "text-slate-700 hover:bg-slate-50"
+                              }`}
+                              role="option"
+                              aria-selected={isSelected}
+                            >
+                              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isSelected ? "bg-primary-100 text-primary-700" : "bg-slate-100 text-slate-500"}`}>
+                                <Building2 size={16} />
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-sm font-bold">{branchLabel}</span>
+                                <span className="block truncate text-xs text-slate-500">{branch.name}</span>
+                              </span>
+                              {isSelected && <Check size={17} className="shrink-0 text-primary-600" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
             <div className="flex items-center gap-2 pl-4 text-sm font-medium text-slate-600 bg-white border border-surface-200 px-4 py-2 rounded-full shadow-sm">
@@ -740,3 +849,9 @@ export default function DashboardLayout() {
     </div>
   );
 }
+
+
+
+
+
+

@@ -1,6 +1,7 @@
 import { getStoredUserObject, updateStoredUser } from "./authStorage";
 
 const BRANCH_STORAGE_KEY = "primuxcare:active-branch-id";
+export const BRANCHES_UPDATED_EVENT = "primuxcare:branches-updated";
 
 const getStorageCandidates = () =>
   [window.localStorage, window.sessionStorage].filter(Boolean);
@@ -39,6 +40,12 @@ export function setActiveBranch(branch) {
   });
 }
 
+export function notifyBranchListChanged(detail = {}) {
+  if (typeof window === "undefined") return;
+
+  window.dispatchEvent(new CustomEvent(BRANCHES_UPDATED_EVENT, { detail }));
+}
+
 export function clearActiveBranch() {
   if (typeof window === "undefined") return;
 
@@ -46,3 +53,5 @@ export function clearActiveBranch() {
     storage.removeItem(BRANCH_STORAGE_KEY);
   });
 }
+
+
