@@ -337,7 +337,7 @@ export default function PatientRecord() {
   if (!patient) return <div className="p-8 text-center text-rose-500 font-medium"><p>Patient not found or you don't have access.</p></div>;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 max-w-7xl mx-auto pb-12">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="patient-record-page space-y-6 max-w-7xl mx-auto pb-12">
       <div className="flex flex-col bg-white p-6 rounded-2xl shadow-sm border border-surface-200">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>

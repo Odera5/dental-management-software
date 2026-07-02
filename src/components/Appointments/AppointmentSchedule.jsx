@@ -151,6 +151,15 @@ export default function AppointmentSchedule({ patientId = null }) {
       setAppointments((current) =>
         current.filter((appointment) => getEntityId(appointment) !== id),
       );
+      setPagination((current) => {
+        const nextTotal = Math.max(0, current.total - 1);
+        const nextTotalPages = Math.max(1, Math.ceil(nextTotal / APPOINTMENTS_PER_PAGE));
+        return {
+          ...current,
+          total: nextTotal,
+          totalPages: nextTotalPages,
+        };
+      });
       adjustAppointmentSummary({
         scheduledDelta: -1,
         todayDelta: deletedAppointment && isTodayAppointment(deletedAppointment.appointmentDate) ? -1 : 0,
@@ -179,6 +188,15 @@ export default function AppointmentSchedule({ patientId = null }) {
       );
       await api.put(`/appointments/${id}`, { status: "completed" });
       setAppointments((current) => current.filter((appointment) => getEntityId(appointment) !== id));
+      setPagination((current) => {
+        const nextTotal = Math.max(0, current.total - 1);
+        const nextTotalPages = Math.max(1, Math.ceil(nextTotal / APPOINTMENTS_PER_PAGE));
+        return {
+          ...current,
+          total: nextTotal,
+          totalPages: nextTotalPages,
+        };
+      });
       adjustAppointmentSummary({
         scheduledDelta: -1,
         todayDelta: completedAppointment && isTodayAppointment(completedAppointment.appointmentDate) ? -1 : 0,
@@ -360,7 +378,7 @@ export default function AppointmentSchedule({ patientId = null }) {
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <AnimatePresence>
               {appointments.map((apt) => (
                 <div key={getEntityId(apt)}>
@@ -369,7 +387,7 @@ export default function AppointmentSchedule({ patientId = null }) {
                     <CardContent className="p-5 pl-7 pt-5 flex flex-col h-full gap-4">
                     <div className="flex justify-between items-start gap-2">
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-bold text-slate-900 text-lg leading-tight truncate">
+                        <h3 className="font-bold text-slate-900 text-lg leading-tight break-words">
                           {apt.patientId?.name || "Unknown Patient"}
                         </h3>
                         <p className="text-xs font-semibold text-primary-600 mt-1 uppercase tracking-wider">{getTypeLabel(apt.appointmentType)}</p>
@@ -432,15 +450,15 @@ export default function AppointmentSchedule({ patientId = null }) {
                     <div className="flex items-center gap-2 pt-4 mt-2 border-t border-slate-100 lg:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       {canModifyAppointment(apt.status) ? (
                         <>
-                          <Button variant="ghost" size="sm" onClick={() => { setEditingAppointment(apt); setUiState((current) => ({ ...current, showForm: true, editingAppointmentId: getEntityId(apt) })); }} className="flex-1 text-slate-600 hover:text-blue-600 px-0">
+                          <Button variant="ghost" size="sm" onClick={() => { setEditingAppointment(apt); setUiState((current) => ({ ...current, showForm: true, editingAppointmentId: getEntityId(apt) })); }} className="flex-1 text-slate-600 hover:text-blue-600 px-2">
                             <Edit2 size={16} />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDelete(getEntityId(apt))} className="flex-1 text-slate-600 hover:text-red-600 hover:bg-red-50 px-0">
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(getEntityId(apt))} className="flex-1 text-slate-600 hover:text-red-600 hover:bg-red-50 px-2">
                             <Trash2 size={16} />
                           </Button>
                           {canCompleteAppointment && (
-                            <Button variant="ghost" size="sm" onClick={() => handleComplete(getEntityId(apt))} className="flex-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-700 px-0">
-                              <CheckCircle size={16} className="mr-1 sm:mr-0 xl:mr-1" /> <span className="hidden xl:inline">Complete</span>
+                            <Button variant="ghost" size="sm" onClick={() => handleComplete(getEntityId(apt))} className="flex-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-700 px-3">
+                              <CheckCircle size={16} className="mr-1.5" /> <span className="hidden sm:inline">Complete</span>
                             </Button>
                           )}
                         </>

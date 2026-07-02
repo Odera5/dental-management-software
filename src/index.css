@@ -32,6 +32,10 @@
   }
 }
 
+html {
+  font-size: 17px;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--color-surface-50);
@@ -64,4 +68,154 @@ input[type="reset"],
 [disabled],
 [aria-disabled="true"] {
   cursor: not-allowed !important;
+}
+
+@media print {
+  /* Reset HTML and Body for natural print flow */
+  html, body {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background-color: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Completely collapse and remove non-print dashboard components from the layout */
+  aside,
+  header,
+  .print\:hidden,
+  button,
+  .toast {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Reset layout wrapper heights and overflows so the content paginates naturally */
+  #root,
+  div.flex,
+  main,
+  div.flex-1,
+  div.overflow-y-auto {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Format print-container to take up full page width cleanly */
+  .print-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background-color: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Force vertical single-column layout on print page widths */
+  .print-grid-1 {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+  }
+
+  /* High contrast/ink saving style for billed-to cards */
+  .print-card-reset {
+    background-color: #fff !important;
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 12px !important;
+    padding: 16px !important;
+    box-shadow: none !important;
+    min-width: 0 !important; /* Allow it to shrink if needed */
+  }
+
+  .print-card-reset p,
+  .print-card-reset span {
+    color: #000 !important;
+  }
+}
+
+/* --- Global Selective Font Scaling (+2px) --- */
+
+/* 1. Sidebar Nav and Profile Font Bump */
+aside {
+  font-size: 16px;
+}
+aside button.text-sm,
+aside .text-sm,
+aside span.text-sm,
+aside a.text-sm {
+  font-size: 16px !important; /* Bump standard text-sm (14px) -> 16px */
+}
+aside .text-xs,
+aside span.text-xs,
+aside p.text-xs {
+  font-size: 14px !important; /* Bump minor text-xs (12px) -> 14px */
+}
+
+/* 2. Patient Directory Table (Dashboard) Font Bump */
+.patient-directory-table th,
+.patient-directory-table td,
+.patient-directory-table button {
+  font-size: 16px !important; /* Bump standard text-sm (14px) -> 16px */
+}
+.patient-directory-table .text-xs,
+.patient-directory-table span.text-xs {
+  font-size: 14px !important; /* Bump minor text-xs (12px) -> 14px */
+}
+
+/* 3. Patient Record Page Details Font Bump */
+.patient-record-page th,
+.patient-record-page td,
+.patient-record-page span,
+.patient-record-page p,
+.patient-record-page div,
+.patient-record-page button {
+  font-size: 16px !important; /* Bump standard text-sm (14px) -> 16px */
+}
+.patient-record-page .text-xs,
+.patient-record-page span.text-xs,
+.patient-record-page p.text-xs {
+  font-size: 14px !important; /* Bump minor text-xs (12px) -> 14px */
+}
+.patient-record-page h2.text-2xl,
+.patient-record-page h2.text-3xl {
+  font-size: 28px !important; /* Proportional header scaling */
+}
+
+/* 4. Invoice Viewer (Billing Details & Printable view) Font Bump */
+.print-container {
+  font-size: 18px !important; /* base size increase to 18px */
+}
+.print-container th,
+.print-container td,
+.print-container p,
+.print-container span {
+  font-size: 16px !important; /* Bump standard text-sm (14px) -> 16px */
+}
+.print-container .text-xs {
+  font-size: 14px !important; /* Bump minor text-xs (12px) -> 14px */
+}
+.print-container h2.text-4xl {
+  font-size: 40px !important; /* Proportional large header scaling */
+}
+.print-container p.text-2xl {
+  font-size: 26px !important; /* Proportional card header scaling */
 }

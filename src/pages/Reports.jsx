@@ -7,6 +7,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card"
 import Button from "../components/ui/Button";
 import { hasActiveProAccess } from "../utils/clinicAccess";
 import { getStoredUserObject } from "../utils/authStorage";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+
+const CustomTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-900 text-white p-3 rounded-xl shadow-xl border border-slate-800 text-xs font-bold">
+        <p className="text-slate-400 mb-0.5">{payload[0].payload.month}</p>
+        <p className="text-sm text-teal-400">₦{payload[0].value.toLocaleString()}</p>
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function Reports() {
   const navigate = useNavigate();
@@ -40,7 +53,46 @@ export default function Reports() {
     let start = "";
     let end = today.toISOString().split("T")[0];
 
-    if (selectedPreset === "last-6-months") {
+    if (selectedPreset === "today") {
+      start = today.toISOString().split("T")[0];
+      end = start;
+    } else if (selectedPreset === "yesterday") {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      start = d.toISOString().split("T")[0];
+      end = start;
+    } else if (selectedPreset === "this-week") {
+      const d = new Date();
+      const dayOfWeek = d.getDay();
+      const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      d.setDate(d.getDate() - distanceToMonday);
+      start = d.toISOString().split("T")[0];
+      end = today.toISOString().split("T")[0];
+    } else if (selectedPreset === "last-week") {
+      const dStart = new Date();
+      const dayOfWeek = dStart.getDay();
+      const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      dStart.setDate(dStart.getDate() - distanceToMonday - 7);
+      start = dStart.toISOString().split("T")[0];
+      
+      const dEnd = new Date(dStart);
+      dEnd.setDate(dEnd.getDate() + 6);
+      end = dEnd.toISOString().split("T")[0];
+    } else if (selectedPreset === "this-month") {
+      const d = new Date();
+      d.setDate(1);
+      start = d.toISOString().split("T")[0];
+      end = today.toISOString().split("T")[0];
+    } else if (selectedPreset === "last-month") {
+      const dStart = new Date();
+      dStart.setMonth(dStart.getMonth() - 1);
+      dStart.setDate(1);
+      start = dStart.toISOString().split("T")[0];
+      
+      const dEnd = new Date();
+      dEnd.setDate(0);
+      end = dEnd.toISOString().split("T")[0];
+    } else if (selectedPreset === "last-6-months") {
       const d = new Date();
       d.setMonth(d.getMonth() - 5);
       d.setDate(1);
@@ -81,6 +133,12 @@ export default function Reports() {
   };
 
   const getChartTitle = () => {
+    if (preset === "today") return "Revenue Trends (Today)";
+    if (preset === "yesterday") return "Revenue Trends (Yesterday)";
+    if (preset === "this-week") return "Revenue Trends (This Week)";
+    if (preset === "last-week") return "Revenue Trends (Last Week)";
+    if (preset === "this-month") return "Revenue Trends (This Month)";
+    if (preset === "last-month") return "Revenue Trends (Last Month)";
     if (preset === "last-6-months") return "Revenue Trends (Last 6 Months)";
     if (preset === "last-12-months") return "Revenue Trends (Last 12 Months)";
     if (preset === "this-year") return "Revenue Trends (This Year)";
@@ -172,7 +230,6 @@ export default function Reports() {
     }
 
     // ACTUAL PRO CONTENT
-    const maxRevenue = Math.max(...data.revenueByMonth.map(m => m.revenue), 1000);
     const totalRevenue = data.revenueByMonth.reduce((acc, curr) => acc + curr.revenue, 0);
     
     // Status color mapping
@@ -193,6 +250,12 @@ export default function Reports() {
                 onChange={(e) => handlePresetChange(e.target.value)} 
                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-500 outline-none font-semibold text-slate-700"
               >
+                 <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="this-week">This Week</option>
+                <option value="last-week">Last Week</option>
+                <option value="this-month">This Month</option>
+                <option value="last-month">Last Month</option>
                 <option value="last-6-months">Last 6 Months</option>
                 <option value="last-12-months">Last 12 Months</option>
                 <option value="this-year">This Year</option>
@@ -241,28 +304,49 @@ export default function Reports() {
                   <div className="text-3xl font-extrabold text-slate-900 mt-1">₦{totalRevenue.toLocaleString()}</div>
                 </div>
                 
-                <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-thin">
-                   <div 
-                     className="flex items-end gap-3 h-64 mt-8 pb-6 border-b border-slate-100"
-                     style={{ minWidth: `${Math.max(data.revenueByMonth.length * 60, 400)}px` }}
-                   >
-                      {data.revenueByMonth.map((monthData, idx) => {
-                        const heightPercentage = Math.max((monthData.revenue / maxRevenue) * 100, 2); // Min 2% height for visibility
-                        return (
-                          <div key={idx} className="flex-1 flex flex-col justify-end items-center group relative">
-                             <div className="absolute -top-10 bg-slate-900 text-white text-xs font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg">
-                                ₦{monthData.revenue.toLocaleString()}
-                             </div>
-                             <div 
-                               className="w-full max-w-[48px] bg-gradient-to-t from-primary-600 to-primary-400 rounded-t-md transition-all duration-500 ease-out group-hover:from-primary-500 group-hover:to-primary-300 shadow-sm"
-                               style={{ height: `${heightPercentage}%` }}
-                             ></div>
-                             <span className="text-xs font-semibold text-slate-500 mt-3 whitespace-nowrap">{monthData.month}</span>
-                          </div>
-                        )
-                      })}
-                   </div>
-                </div>
+                <div className="h-72 w-full mt-6">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={data.revenueByMonth}
+                        margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
+                      >
+                        <defs>
+                          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.2}/>
+                            <stop offset="95%" stopColor="#14b8a6" stopOpacity={0.0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                        <XAxis 
+                          dataKey="month" 
+                          stroke="#94a3b8" 
+                          fontSize={11} 
+                          fontWeight="semibold"
+                          tickLine={false} 
+                          axisLine={false} 
+                          dy={10}
+                        />
+                        <YAxis 
+                          stroke="#94a3b8" 
+                          fontSize={11} 
+                          fontWeight="semibold"
+                          tickLine={false} 
+                          axisLine={false} 
+                          tickFormatter={(value) => `₦${value >= 1000000 ? (value / 1000000) + 'M' : value >= 1000 ? (value / 1000) + 'k' : value}`}
+                          dx={-5}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Area 
+                          type="monotone" 
+                          dataKey="revenue" 
+                          stroke="#0d9488" 
+                          strokeWidth={3} 
+                          fillOpacity={1} 
+                          fill="url(#colorRevenue)" 
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                 </div>
              </CardContent>
            </Card>
 

@@ -92,6 +92,20 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
     });
   };
 
+  const getMinDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    const todayStr = `${year}-${month}-${day}`;
+
+    if (appointment && appointment.appointmentDate) {
+      const apptDateStr = appointment.appointmentDate.split("T")[0];
+      return apptDateStr < todayStr ? apptDateStr : todayStr;
+    }
+    return todayStr;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -159,7 +173,7 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
 
         <CardContent className="p-8">
           <form onSubmit={handleSubmit} className="space-y-8">
-            {!patientId && (
+            {!patientId && !appointment && (
               <div className="space-y-3">
                 <label className="text-sm font-semibold text-slate-700">Patient Type</label>
                 <div className="flex gap-3 bg-surface-50 p-2 rounded-2xl w-fit border border-surface-200">
@@ -174,7 +188,7 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
-              {patientMode === "existing" || patientId ? (
+              {patientMode === "existing" || patientId || appointment ? (
                 <PatientPicker
                   label="Patient"
                   value={formData.patientId}
@@ -207,7 +221,7 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              <Input label="Appointment Date *" name="appointmentDate" type="date" icon={Calendar} value={formData.appointmentDate} onChange={handleChange} required />
+              <Input label="Appointment Date *" name="appointmentDate" type="date" icon={Calendar} value={formData.appointmentDate} onChange={handleChange} min={getMinDate()} required />
               
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-700">Time Slot *</label>

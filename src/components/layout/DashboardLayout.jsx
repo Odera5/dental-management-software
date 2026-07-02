@@ -20,6 +20,8 @@ import {
   ChevronDown,
   Check,
   History,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import api, { logoutCurrentUser } from "../../services/api";
 import {
@@ -119,7 +121,27 @@ export default function DashboardLayout() {
   const location = useLocation();
   const cachedSummary = readDashboardSummaryCache().data;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sidebar_collapsed");
+      return saved ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("sidebar_collapsed", JSON.stringify(next));
+      } catch (e) {
+        console.error("Failed to save sidebar collapsed state", e);
+      }
+      return next;
+    });
+  };
   const [appointmentCount, setAppointmentCount] = useState(
     cachedSummary?.appointments?.scheduled || 0,
   );
@@ -428,7 +450,7 @@ export default function DashboardLayout() {
   if (location.search.includes("tab=trash")) headerTitle = "Trash Management";
 
   return (
-    <div className="flex h-screen bg-surface-50 font-sans overflow-hidden">
+    <div className="flex h-screen bg-surface-50 font-sans overflow-hidden print:h-auto print:overflow-visible">
       <AnimatePresence>
         {mobileMenuOpen && (
           <MotionDiv
@@ -442,197 +464,211 @@ export default function DashboardLayout() {
       </AnimatePresence>
 
       <MotionAside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-surface-200 flex flex-col transition-transform duration-300 lg:translate-x-0 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:relative lg:flex"} print:hidden`}
+        className={`fixed inset-y-0 left-0 z-50 bg-white flex flex-col print:hidden
+          ${mobileMenuOpen ? "translate-x-0 w-64 border-r border-surface-200" : "-translate-x-full lg:translate-x-0 lg:relative lg:flex"}
+          transition-all duration-300 ease-in-out
+          ${isSidebarCollapsed ? "lg:w-0 lg:opacity-0 lg:border-r-0 lg:pointer-events-none lg:overflow-hidden" : "lg:w-64 lg:opacity-100 lg:border-r lg:border-surface-200"}
+        `}
       >
-        <div className="flex items-center justify-between p-6 h-20 border-b border-surface-100 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl  p-1 ">
-              <img
-                src={primuxFavicon}
-                alt="PrimuxCare logo"
-                className="h-full w-full object-contain"
-              />
-            </div>
-            <div>
-              <span className="font-bold text-slate-900 tracking-tight block leading-4">
-                PrimuxCare
-              </span>
-              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest flex items-center gap-1 mt-0.5">
-                {user.clinicName}
-                {enterpriseAccess && <Crown size={12} className="text-amber-500 shrink-0" />}
-              </span>
-              {enterpriseAccess && activeBranch && (
-                <span className="text-[10px] text-primary-600 font-semibold uppercase tracking-widest block mt-1">
-                  {activeBranch.city || activeBranch.name}{activeBranch.area ? ` - ${activeBranch.area}` : ""}
+        <div className="w-64 h-full flex flex-col shrink-0">
+          <div className="flex items-center justify-between p-6 h-20 border-b border-surface-100 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl  p-1 ">
+                <img
+                  src={primuxFavicon}
+                  alt="PrimuxCare logo"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+              <div>
+                <span className="font-bold text-slate-900 tracking-tight block leading-4">
+                  PrimuxCare
                 </span>
-              )}
-            </div>
-          </div>
-          <button
-            className="lg:hidden text-slate-500"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          <div>
-            <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              Main Menu
-            </p>
-            {!showRestrictedAdminShell && (
-              <NavItem
-                icon={Home}
-                label="Dashboard"
-                path="/dashboard"
-                location={location}
-                onNavigate={handleNavClick}
-              />
-            )}
-            {!showRestrictedAdminShell && canViewRecords && (
-              <>
-                <NavItem
-                  icon={UserPlus}
-                  label="Register Patient"
-                  path="/register-patient"
-                  location={location}
-                  onNavigate={handleNavClick}
-                />
-                <NavItem
-                  icon={Inbox}
-                  label="Pending Intakes"
-                  path="/pending-intakes"
-                  badge={pendingIntakesCount}
-                  location={location}
-                  onNavigate={handleNavClick}
-                />
-                <NavItem
-                  icon={Calendar}
-                  label="Appointments"
-                  path="/appointments"
-                  badge={appointmentCount}
-                  location={location}
-                  onNavigate={handleNavClick}
-                />
-                <NavItem
-                  icon={Clock}
-                  label="Waiting Room"
-                  path="/waiting-room"
-                  badge={waitingCount}
-                  location={location}
-                  onNavigate={handleNavClick}
-                />
-                <NavItem
-                  icon={CreditCard}
-                  label="Billing"
-                  path="/billing"
-                  location={location}
-                  onNavigate={handleNavClick}
-                />
-                {(isAdmin || isBranchManager) && (
-                  <NavItem
-                    icon={BarChart3}
-                    label="Reports"
-                    path="/reports"
-                    location={location}
-                    onNavigate={handleNavClick}
-                  />
+                <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest flex items-center gap-1 mt-0.5">
+                  {user.clinicName}
+                  {enterpriseAccess && <Crown size={12} className="text-amber-500 shrink-0" />}
+                </span>
+                {enterpriseAccess && activeBranch && (
+                  <span className="text-[10px] text-primary-600 font-semibold uppercase tracking-widest block mt-1">
+                    {activeBranch.city || activeBranch.name}{activeBranch.area ? ` - ${activeBranch.area}` : ""}
+                  </span>
                 )}
-              </>
-            )}
+              </div>
+            </div>
+            <button
+              className="lg:hidden text-slate-500"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <X size={24} />
+            </button>
           </div>
 
-          {(isAdmin || isBranchManager) && !showRestrictedAdminShell && (
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
             <div>
               <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                Administration
+                Main Menu
               </p>
-              <NavItem
-                icon={Users}
-                label="Manage Staff"
-                path="/signup"
-                location={location}
-                onNavigate={handleNavClick}
-              />
-              {isAdmin && (
+              {!showRestrictedAdminShell && (
+                <NavItem
+                  icon={Home}
+                  label="Dashboard"
+                  path="/dashboard"
+                  location={location}
+                  onNavigate={handleNavClick}
+                />
+              )}
+              {!showRestrictedAdminShell && canViewRecords && (
                 <>
                   <NavItem
-                    icon={Settings}
-                    label="Clinic Settings"
-                    path="/clinic-settings"
+                    icon={UserPlus}
+                    label="Register Patient"
+                    path="/register-patient"
                     location={location}
                     onNavigate={handleNavClick}
                   />
                   <NavItem
-                    icon={History}
-                    label="Activity Logs"
-                    path="/audit-logs"
+                    icon={Inbox}
+                    label="Pending Intakes"
+                    path="/pending-intakes"
+                    badge={pendingIntakesCount}
                     location={location}
                     onNavigate={handleNavClick}
                   />
-                  {enterpriseAccess && (
+                  <NavItem
+                    icon={Calendar}
+                    label="Appointments"
+                    path="/appointments"
+                    badge={appointmentCount}
+                    location={location}
+                    onNavigate={handleNavClick}
+                  />
+                  <NavItem
+                    icon={Clock}
+                    label="Waiting Room"
+                    path="/waiting-room"
+                    badge={waitingCount}
+                    location={location}
+                    onNavigate={handleNavClick}
+                  />
+                  <NavItem
+                    icon={CreditCard}
+                    label="Billing"
+                    path="/billing"
+                    location={location}
+                    onNavigate={handleNavClick}
+                  />
+                  {(isAdmin || isBranchManager) && (
                     <NavItem
-                      icon={Building2}
-                      label="Manage Branches"
-                      path="/branches"
+                      icon={BarChart3}
+                      label="Reports"
+                      path="/reports"
                       location={location}
                       onNavigate={handleNavClick}
                     />
                   )}
-                  <NavItem
-                    icon={Trash2}
-                    label="Trash"
-                    path="/dashboard?tab=trash"
-                    location={location}
-                    onNavigate={handleNavClick}
-                  />
                 </>
               )}
             </div>
-          )}
 
-          {isAdmin && (
-            <div>
-              <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                {showRestrictedAdminShell ? "Renewal" : "Clinic Plan"}
-              </p>
-              <NavItem
-                icon={Crown}
-                label={showRestrictedAdminShell ? "Renew Subscription" : "Upgrade Plan"}
-                path="/upgrade"
-                location={location}
-                onNavigate={handleNavClick}
-              />
-            </div>
-          )}
-        </div>
+            {(isAdmin || isBranchManager) && !showRestrictedAdminShell && (
+              <div>
+                <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  Administration
+                </p>
+                <NavItem
+                  icon={Users}
+                  label="Manage Staff"
+                  path="/signup"
+                  location={location}
+                  onNavigate={handleNavClick}
+                />
+                {isAdmin && (
+                  <>
+                    <NavItem
+                      icon={Settings}
+                      label="Clinic Settings"
+                      path="/clinic-settings"
+                      location={location}
+                      onNavigate={handleNavClick}
+                    />
+                    <NavItem
+                      icon={History}
+                      label="Activity Logs"
+                      path="/audit-logs"
+                      location={location}
+                      onNavigate={handleNavClick}
+                    />
+                    {enterpriseAccess && (
+                      <NavItem
+                        icon={Building2}
+                        label="Manage Branches"
+                        path="/branches"
+                        location={location}
+                        onNavigate={handleNavClick}
+                      />
+                    )}
+                    <NavItem
+                      icon={Trash2}
+                      label="Trash"
+                      path="/dashboard?tab=trash"
+                      location={location}
+                      onNavigate={handleNavClick}
+                    />
+                  </>
+                )}
+              </div>
+            )}
 
-        <div className="p-4 border-t border-surface-100 bg-surface-50 shrink-0">
-          <div className="flex items-center gap-3 px-4 py-2 mb-2">
-            <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold border border-primary-200">
-              {user.name.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1 truncate">
-              <p className="text-sm font-semibold text-slate-900 truncate">
-                {user.name}
-              </p>
-              <p className="text-xs text-slate-500 capitalize">{user.displayRole === "nurse" && !storedUser.customRoleTitle ? "Nurse / Desk" : user.displayRole === "branch_manager" && !storedUser.customRoleTitle ? "Branch Manager" : user.displayRole}</p>
-            </div>
+            {isAdmin && (
+              <div>
+                <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  {showRestrictedAdminShell ? "Renewal" : "Clinic Plan"}
+                </p>
+                <NavItem
+                  icon={Crown}
+                  label={showRestrictedAdminShell ? "Renew Subscription" : "Upgrade Plan"}
+                  path="/upgrade"
+                  location={location}
+                  onNavigate={handleNavClick}
+                />
+              </div>
+            )}
           </div>
-          <Button
-            variant="ghost"
-            className="w-full justify-start pl-4 text-slate-600 hover:text-red-600 hover:bg-red-50"
-            onClick={handleLogout}
-          >
-            <LogOut size={18} className="mr-3" /> Sign Out
-          </Button>
+
+          <div className="p-4 border-t border-surface-100 bg-surface-50 shrink-0">
+            <div className="flex items-center gap-3 px-4 py-2 mb-2">
+              <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold border border-primary-200">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 truncate">
+                <p className="text-sm font-semibold text-slate-900 truncate">
+                  {user.name}
+                </p>
+                <p className="text-xs text-slate-500 capitalize">{user.displayRole === "nurse" && !storedUser.customRoleTitle ? "Nurse / Desk" : user.displayRole === "branch_manager" && !storedUser.customRoleTitle ? "Branch Manager" : user.displayRole}</p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              className="w-full justify-start pl-4 text-slate-600 hover:text-red-600 hover:bg-red-50"
+              onClick={handleLogout}
+            >
+              <LogOut size={18} className="mr-3" /> Sign Out
+            </Button>
+          </div>
         </div>
       </MotionAside>
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden bg-surface-50/50 print:bg-white print:h-auto print:overflow-visible">
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-surface-200 flex items-center justify-between px-6 z-10 shrink-0 shadow-sm print:hidden">
           <div className="flex items-center gap-4">
+            <button
+              className="hidden lg:flex p-2 rounded-lg bg-white border border-surface-200 text-slate-600 hover:bg-surface-50 hover:text-primary-600 transition-colors"
+              onClick={toggleSidebar}
+              title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {isSidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+            </button>
             <button
               className="p-2 rounded-lg bg-white border border-surface-200 text-slate-600 lg:hidden hover:bg-surface-50"
               onClick={() => setMobileMenuOpen(true)}

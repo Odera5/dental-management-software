@@ -517,13 +517,13 @@ export default function Dashboard() {
           <div className="mx-4 mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 text-amber-800 text-sm">
             <AlertCircle size={18} className="shrink-0 mt-0.5 text-amber-600" />
             <div>
-              <span className="font-semibold">Notice:</span> Records moved to the Trash will stay here for 3 minutes from the day they were deleted. After 3 minutes, they will be automatically and permanently deleted forever.
+              <span className="font-semibold">Notice:</span> Records moved to the Trash will stay here for 6 months from the day they were deleted. After 6 months, they will be automatically and permanently deleted forever.
             </div>
           </div>
         )}
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600 whitespace-nowrap">
+          <table className="patient-directory-table w-full text-left text-sm text-slate-600 whitespace-nowrap">
             <thead className="bg-slate-50 text-slate-500 border-b border-surface-200">
               <tr>
                 <th className="px-6 py-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => requestSort("name")}>
@@ -533,7 +533,7 @@ export default function Dashboard() {
                   Age
                 </th>
                 <th className="px-6 py-4 font-semibold">Card Number</th>
-                <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                <th className="px-6 py-4 font-semibold text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-100 bg-white">
@@ -576,8 +576,8 @@ export default function Dashboard() {
                       </td>
                       <td className="px-6 py-4">{p.age}</td>
                       <td className="px-6 py-4"><span className="font-mono text-slate-500 bg-slate-100 px-2 py-1 rounded">{p.cardNumber || "--"}</span></td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center gap-2">
                           {!showTrash && canViewRecords && (
                             <Button variant="outline" size="sm" onClick={() => navigate(`/patients/${patientId}/records`)}>
                               Records

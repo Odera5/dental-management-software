@@ -110,7 +110,7 @@ function InvoiceViewer({ invoice: rawInvoice, actionParam, onClose }) {
   };
 
   return (
-    <div className="mx-auto max-w-5xl rounded-2xl bg-white shadow-xl overflow-hidden mb-8 border border-slate-200 print:shadow-none print:border-0 print:m-0 print:p-0">
+    <div className="print-container mx-auto max-w-5xl rounded-2xl bg-white shadow-xl overflow-hidden mb-8 border border-slate-200 print:shadow-none print:border-0 print:m-0 print:p-0">
       {actionParam && (
         <div className="bg-blue-50 border-b border-blue-200 px-8 py-3 flex items-center gap-2.5 text-blue-800 text-sm print:hidden">
           <AlertCircle size={18} className="text-blue-500 shrink-0" />
@@ -145,7 +145,7 @@ function InvoiceViewer({ invoice: rawInvoice, actionParam, onClose }) {
               {invoice.dueDate && <p>Due: <span className="font-semibold text-slate-900">{new Date(invoice.dueDate).toLocaleDateString()}</span></p>}
             </div>
           </div>
-          <div className="bg-slate-900 rounded-2xl p-6 text-white min-w-[300px]" style={clinic.brandColor ? { backgroundColor: clinic.brandColor } : {}}>
+          <div className="print-card-reset bg-slate-900 rounded-2xl p-6 text-white min-w-[300px]" style={clinic.brandColor ? { backgroundColor: clinic.brandColor } : {}}>
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Billed To</p>
             <p className="text-2xl font-bold mb-1">{invoice.patientId?.name || "Unknown patient"}</p>
             <p className="text-sm text-slate-300 font-mono mb-2">{invoice.patientId?.phone || "No phone"}</p>
@@ -153,7 +153,7 @@ function InvoiceViewer({ invoice: rawInvoice, actionParam, onClose }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-8">
+        <div className="print-grid-1 grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-8">
           <div>
             <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center"><FileText size={18} className="mr-2" style={{ color: clinic.brandColor || 'currentColor' }} /> Items & Charges</h3>
             <div className="rounded-xl border border-slate-200 overflow-hidden">
