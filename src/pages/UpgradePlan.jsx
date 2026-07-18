@@ -249,12 +249,20 @@ export default function UpgradePlan() {
 
       <div className="text-center mb-12">
         <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
-          {paidSubscriptionActive ? "Manage Your Subscription" : "Unlock Full Access"}
+          {paidSubscriptionActive
+            ? "Manage Your Subscription"
+            : !proAccessActive
+              ? (clinic.paystackSubscriptionStatus ? "Subscription Expired" : "Trial Ended")
+              : "Unlock Full Access"}
         </h1>
         <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-          {paidSubscriptionActive 
+          {paidSubscriptionActive
             ? `You are currently subscribed to the ${currentPlanLabel} plan. You have full access to unlimited patients, automated reminders, and advanced analytics.`
-            : "Start with a 14-day free trial, then continue with a paid subscription for unlimited patients, automated reminders, and advanced analytics."}
+            : !proAccessActive
+              ? (clinic.paystackSubscriptionStatus
+                ? "Your paid subscription has expired. Renew your plan to unlock and restore full clinic operations."
+                : "Your 14-day free trial has ended. Select a paid plan to restore full clinic operations.")
+              : "Start with a 14-day free trial, then continue with a paid subscription for unlimited patients, automated reminders, and advanced analytics."}
         </p>
         {trialing && (
           <p className="mt-4 text-sm inline-flex items-center gap-2 font-medium text-primary-700 bg-primary-50 px-4 py-1.5 rounded-full border border-primary-100 shadow-sm">

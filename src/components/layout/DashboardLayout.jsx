@@ -796,7 +796,7 @@ export default function DashboardLayout() {
             >
               <span className="flex items-center gap-2">
                 <Crown size={18} />
-                Your paid plan access has expired. Billing is available, but clinic operations are now locked until renewal.
+                Your paid plan access has expired. Patient invoicing is available, but clinic operations are now locked until renewal.
               </span>
               {location.pathname !== "/upgrade" && (
                 <button
