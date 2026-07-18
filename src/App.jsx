@@ -11,30 +11,48 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { readLastVisitedRoute } from "./utils/persistence";
 import { getStoredUser } from "./utils/authStorage";
 
-const Login = lazy(() => import("./pages/Login"));
-const RegisterClinic = lazy(() => import("./pages/RegisterClinic"));
-const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
-const Signup = lazy(() => import("./pages/Signup"));
-const ClinicSettings = lazy(() => import("./pages/ClinicSettings"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const RegisterPatient = lazy(() => import("./pages/RegisterPatient"));
-const PatientRecord = lazy(() => import("./pages/PatientRecord"));
-const Appointments = lazy(() => import("./pages/Appointments"));
-const Billing = lazy(() => import("./pages/Billing"));
-const WaitingRoom = lazy(() => import("./pages/WaitingRoom"));
-const Support = lazy(() => import("./pages/Support"));
-const UpgradePlan = lazy(() => import("./pages/UpgradePlan"));
-const BranchManagement = lazy(() => import("./pages/BranchManagement"));
-const Reports = lazy(() => import("./pages/Reports"));
-const PendingIntakes = lazy(() => import("./pages/PendingIntakes"));
-const PatientIntakeForm = lazy(() => import("./pages/PatientIntakeForm"));
-const PaystackCallback = lazy(() => import("./pages/PaystackCallback"));
-const Waitlist = lazy(() => import("./pages/Waitlist"));
-const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const AppointmentResponse = lazy(() => import("./pages/AppointmentResponse"));
-const DashboardLayout = lazy(() => import("./components/layout/DashboardLayout"));
-const AuditLogs = lazy(() => import("./pages/AuditLogs"));
+const lazyWithRetry = (componentImport) => {
+  return lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error) {
+      console.error("Failed to load chunk, retrying by reloading the page:", error);
+      const reloadKey = "primuxcare:chunk-reload-timestamp";
+      const lastReload = sessionStorage.getItem(reloadKey);
+      const now = Date.now();
+      if (!lastReload || now - Number(lastReload) > 15000) {
+        sessionStorage.setItem(reloadKey, String(now));
+        window.location.reload();
+      }
+      throw error;
+    }
+  });
+};
+
+const Login = lazyWithRetry(() => import("./pages/Login"));
+const RegisterClinic = lazyWithRetry(() => import("./pages/RegisterClinic"));
+const VerifyEmail = lazyWithRetry(() => import("./pages/VerifyEmail"));
+const Signup = lazyWithRetry(() => import("./pages/Signup"));
+const ClinicSettings = lazyWithRetry(() => import("./pages/ClinicSettings"));
+const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
+const RegisterPatient = lazyWithRetry(() => import("./pages/RegisterPatient"));
+const PatientRecord = lazyWithRetry(() => import("./pages/PatientRecord"));
+const Appointments = lazyWithRetry(() => import("./pages/Appointments"));
+const Billing = lazyWithRetry(() => import("./pages/Billing"));
+const WaitingRoom = lazyWithRetry(() => import("./pages/WaitingRoom"));
+const Support = lazyWithRetry(() => import("./pages/Support"));
+const UpgradePlan = lazyWithRetry(() => import("./pages/UpgradePlan"));
+const BranchManagement = lazyWithRetry(() => import("./pages/BranchManagement"));
+const Reports = lazyWithRetry(() => import("./pages/Reports"));
+const PendingIntakes = lazyWithRetry(() => import("./pages/PendingIntakes"));
+const PatientIntakeForm = lazyWithRetry(() => import("./pages/PatientIntakeForm"));
+const PaystackCallback = lazyWithRetry(() => import("./pages/PaystackCallback"));
+const Waitlist = lazyWithRetry(() => import("./pages/Waitlist"));
+const ForgotPassword = lazyWithRetry(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
+const AppointmentResponse = lazyWithRetry(() => import("./pages/AppointmentResponse"));
+const DashboardLayout = lazyWithRetry(() => import("./components/layout/DashboardLayout"));
+const AuditLogs = lazyWithRetry(() => import("./pages/AuditLogs"));
 
 function RouteLoader() {
   return (
