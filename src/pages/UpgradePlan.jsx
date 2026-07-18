@@ -307,9 +307,15 @@ export default function UpgradePlan() {
         <div className="bg-gradient-to-b from-slate-50 via-white to-slate-100 rounded-3xl p-8 md:p-7 border border-slate-200 shadow-xl flex flex-col relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
           {isPro && (
             <div className="absolute top-5 right-5 z-10">
-              <span className="bg-primary-500 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
-                {paidSubscriptionActive ? "Current Plan" : "Current Trial"}
-              </span>
+              {proAccessActive ? (
+                <span className="bg-primary-500 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
+                  {paidSubscriptionActive ? "Current Plan" : "Current Trial"}
+                </span>
+              ) : (
+                <span className="bg-rose-600 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
+                  {clinic.paystackSubscriptionStatus ? "Expired Plan" : "Expired Trial"}
+                </span>
+              )}
             </div>
           )}
           <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
@@ -347,22 +353,33 @@ export default function UpgradePlan() {
               </Button>
             </div>
           ) : (
-            <Button
-              className="w-full py-4 text-base font-bold bg-primary-500 hover:bg-primary-400 text-white shadow-[0_0_20px_rgba(14,165,233,0.3)] border-transparent mb-6"
-              onClick={handleProUpgradeClick}
-              isLoading={checkoutLoading}
-            >
-              {isEnterprise
-                ? "Switch to Professional"
-                : "Unlock Professional Access"}
-            </Button>
+            <>
+              {isPro && !proAccessActive && (
+                <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  Your Professional subscription has expired. Clinic operations are locked until renewal.
+                </div>
+              )}
+              <Button
+                className="w-full py-4 text-base font-bold bg-primary-500 hover:bg-primary-400 text-white shadow-[0_0_20px_rgba(14,165,233,0.3)] border-transparent mb-6"
+                onClick={handleProUpgradeClick}
+                isLoading={checkoutLoading}
+              >
+                {isPro && !proAccessActive
+                  ? "Renew Professional Subscription"
+                  : isEnterprise
+                    ? "Switch to Professional"
+                    : "Unlock Professional Access"}
+              </Button>
+            </>
           )}
 
           <div className="mb-5 flex justify-center items-center">
             <p className="text-slate-600 text-xs font-medium bg-white px-4 py-2 rounded-xl border border-slate-200 text-center leading-relaxed">
               {paidSubscriptionActive
                 ? "Your subscription is currently active with secure recurring billing in NGN."
-                : "New clinics begin with a 14-day trial, then continue with secure recurring billing in NGN."}
+                : isPro && !proAccessActive
+                  ? "Your Professional subscription has expired. Renew to restore full clinic access."
+                  : "New clinics begin with a 14-day trial, then continue with secure recurring billing in NGN."}
             </p>
           </div>
 
@@ -398,9 +415,15 @@ export default function UpgradePlan() {
           <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 rounded-3xl p-8 md:p-7 border border-slate-800 shadow-xl flex flex-col h-full relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
             {isEnterprise && (
               <div className="absolute top-5 right-5 z-10">
-                <span className="bg-primary-500 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
-                  {paidSubscriptionActive ? "Current Plan" : "Current Trial"}
-                </span>
+                {enterpriseAccess ? (
+                  <span className="bg-primary-500 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
+                    {paidSubscriptionActive ? "Current Plan" : "Current Trial"}
+                  </span>
+                ) : (
+                  <span className="bg-rose-600 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
+                    {clinic.paystackSubscriptionStatus ? "Expired Plan" : "Expired Trial"}
+                  </span>
+                )}
               </div>
             )}
             <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
@@ -449,17 +472,26 @@ export default function UpgradePlan() {
               </Button>
             </div>
           ) : (
-            <Button
-              variant="outline"
-              className="mb-6 w-full border-white/20 bg-white/10 text-white hover:bg-white/15"
-              onClick={handleEnterpriseUpgradeClick}
-              isLoading={enterpriseCheckoutLoading}
-            >
-              {paidSubscriptionActive && !isEnterprise
-                ? "Upgrade to Enterprise"
-                : "Get Enterprise Features"}
-              <ArrowRight size={16} className="ml-2" />
-            </Button>
+            <>
+              {isEnterprise && !enterpriseAccess && (
+                <div className="mb-3 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-200">
+                  Your Enterprise subscription has expired. Clinic operations are locked until renewal.
+                </div>
+              )}
+              <Button
+                variant="outline"
+                className="mb-6 w-full border-white/20 bg-white/10 text-white hover:bg-white/15"
+                onClick={handleEnterpriseUpgradeClick}
+                isLoading={enterpriseCheckoutLoading}
+              >
+                {isEnterprise && !enterpriseAccess
+                  ? "Renew Enterprise Subscription"
+                  : paidSubscriptionActive && !isEnterprise
+                    ? "Upgrade to Enterprise"
+                    : "Get Enterprise Features"}
+                <ArrowRight size={16} className="ml-2" />
+              </Button>
+            </>
           )}
 
           <div className="space-y-4 flex-1">
