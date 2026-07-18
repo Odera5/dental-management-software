@@ -5,14 +5,24 @@ const ACTIVE_PAYSTACK_SUBSCRIPTION_STATUSES = [
   "non-renewing",
 ];
 
-export const hasActivePaidSubscription = (clinic) =>
-  ACTIVE_PAYSTACK_SUBSCRIPTION_STATUSES.includes(
+export const hasActivePaidSubscription = (clinic) => {
+  const hasStatus = ACTIVE_PAYSTACK_SUBSCRIPTION_STATUSES.includes(
     String(
       clinic?.paystackSubscriptionStatus ||
         clinic?.paystack_status ||
         "",
     ).toLowerCase(),
   );
+  if (!hasStatus) return false;
+
+  if (clinic?.subscriptionEnds) {
+    const subscriptionEnd = new Date(clinic.subscriptionEnds);
+    if (!Number.isNaN(subscriptionEnd.getTime())) {
+      return subscriptionEnd >= new Date();
+    }
+  }
+  return true;
+};
 
 export const hasFutureSubscriptionWindow = (clinic) => {
   if (!clinic?.subscriptionEnds) {

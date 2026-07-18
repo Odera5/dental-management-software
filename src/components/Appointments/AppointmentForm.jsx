@@ -53,8 +53,36 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
     try {
       setSlotLoading(true);
       const response = await api.get(`/appointments/available-slots?date=${formData.appointmentDate}&duration=${formData.duration}${appointment ? `&appointmentId=${getEntityId(appointment)}` : ""}`);
-      setAvailableSlots(response.data.availableSlots);
-      setFormData((prev) => ({ ...prev, timeSlot: response.data.availableSlots.includes(prev.timeSlot) ? prev.timeSlot : "" }));
+      let slots = response.data.availableSlots || [];
+      
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      const todayStr = `${year}-${month}-${day}`;
+
+      if (formData.appointmentDate === todayStr) {
+        const currentHours = today.getHours();
+        const currentMinutes = today.getMinutes();
+        const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+
+        slots = slots.filter((slot) => {
+          if (
+            appointment &&
+            appointment.appointmentDate &&
+            formData.appointmentDate === appointment.appointmentDate.split("T")[0] &&
+            slot === appointment.timeSlot
+          ) {
+            return true;
+          }
+          const [slotHours, slotMinutes] = slot.split(":").map(Number);
+          const slotTimeInMinutes = slotHours * 60 + slotMinutes;
+          return slotTimeInMinutes > currentTimeInMinutes;
+        });
+      }
+
+      setAvailableSlots(slots);
+      setFormData((prev) => ({ ...prev, timeSlot: slots.includes(prev.timeSlot) ? prev.timeSlot : "" }));
     } catch (error) {
       console.error("Failed to fetch slots:", error);
       setAvailableSlots([]);

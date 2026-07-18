@@ -270,8 +270,7 @@ export default function UpgradePlan() {
         )}
         {!proAccessActive && !paidSubscriptionActive && (
           <p className="mt-4 text-sm inline-flex items-center gap-2 font-medium text-rose-700 bg-rose-50 px-4 py-1.5 rounded-full border border-rose-100 shadow-sm">
-            <Crown size={16} /> Your trial has ended. Subscribe to continue
-            using the platform.
+            <Crown size={16} /> {clinic.paystackSubscriptionStatus ? "Your subscription has expired. Please renew to continue using the platform." : "Your trial has ended. Subscribe to continue using the platform."}
           </p>
         )}
       </div>

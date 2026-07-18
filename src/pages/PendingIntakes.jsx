@@ -71,7 +71,25 @@ export default function PendingIntakes() {
       const response = await api.get(
         `/appointments/available-slots?date=${encodeURIComponent(date)}&duration=30`,
       );
-      const nextSlots = response.data?.availableSlots || [];
+      let nextSlots = response.data?.availableSlots || [];
+
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      const todayStr = `${year}-${month}-${day}`;
+
+      if (date === todayStr) {
+        const currentHours = today.getHours();
+        const currentMinutes = today.getMinutes();
+        const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+
+        nextSlots = nextSlots.filter((slot) => {
+          const [slotHours, slotMinutes] = slot.split(":").map(Number);
+          const slotTimeInMinutes = slotHours * 60 + slotMinutes;
+          return slotTimeInMinutes > currentTimeInMinutes;
+        });
+      }
 
       setAvailableSlotsByIntake((current) => ({
         ...current,

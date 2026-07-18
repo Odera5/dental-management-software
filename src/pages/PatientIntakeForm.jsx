@@ -102,7 +102,26 @@ export default function PatientIntakeForm() {
         const res = await api.get(
           `/intake/${clinicId}/available-slots?date=${form.preferredDate}&duration=30&access=${encodeURIComponent(accessToken)}${requestedBranchId ? `&branchId=${encodeURIComponent(requestedBranchId)}` : ""}`,
         );
-        const nextSlots = res.data?.availableSlots || [];
+        let nextSlots = res.data?.availableSlots || [];
+
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+        const day = String(today.getDate()).padStart(2, "0");
+        const todayStr = `${year}-${month}-${day}`;
+
+        if (form.preferredDate === todayStr) {
+          const currentHours = today.getHours();
+          const currentMinutes = today.getMinutes();
+          const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+
+          nextSlots = nextSlots.filter((slot) => {
+            const [slotHours, slotMinutes] = slot.split(":").map(Number);
+            const slotTimeInMinutes = slotHours * 60 + slotMinutes;
+            return slotTimeInMinutes > currentTimeInMinutes;
+          });
+        }
+
         setAvailableSlots(nextSlots);
         setForm((current) => ({
           ...current,

@@ -134,6 +134,11 @@ input[type="reset"],
     gap: 1.5rem !important;
   }
 
+  /* Restore flex layouts inside printed receipt so that SummaryRows align label on left and value on right */
+  .print-container .flex {
+    display: flex !important;
+  }
+
   /* High contrast/ink saving style for billed-to cards */
   .print-card-reset {
     background-color: #fff !important;
