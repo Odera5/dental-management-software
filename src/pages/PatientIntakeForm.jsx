@@ -187,6 +187,14 @@ export default function PatientIntakeForm() {
     });
   };
 
+  const getMinDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   const nextStep = () => {
     if (currentStep < totalSteps) setCurrentStep(currentStep + 1);
   };
@@ -401,7 +409,7 @@ export default function PatientIntakeForm() {
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                               <div className="space-y-1.5">
                                  <label className="text-sm font-semibold text-slate-700 flex items-center gap-2"><Calendar size={16} /> Preferred Date</label>
-                                 <input type="date" name="preferredDate" value={form.preferredDate} onChange={handleChange} className="w-full h-14 rounded-xl border border-slate-200 px-4 bg-white text-slate-900 text-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow" />
+                                 <input type="date" name="preferredDate" value={form.preferredDate} onChange={handleChange} min={getMinDate()} className="w-full h-14 rounded-xl border border-slate-200 px-4 bg-white text-slate-900 text-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow" />
                               </div>
                               <div className="space-y-1.5">
                                  <label className="text-sm font-semibold text-slate-700 flex items-center gap-2"><Clock size={16} /> Preferred Time</label>
