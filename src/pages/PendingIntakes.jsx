@@ -497,16 +497,16 @@ export default function PendingIntakes() {
                 </div>
 
                 <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                   <div className="space-y-3">
-                      <div className="flex items-start gap-2 text-slate-600">
+                   <div className="space-y-3 min-w-0">
+                      <div className="flex items-start gap-2 text-slate-600 min-w-0">
                         <Phone size={16} className="mt-0.5 shrink-0 text-slate-400" />
-                        <span className="break-words">{intake.phone || "Not provided"}</span>
+                        <span className="break-all">{intake.phone || "Not provided"}</span>
                       </div>
-                      <div className="flex items-start gap-2 text-slate-600">
+                      <div className="flex items-start gap-2 text-slate-600 min-w-0">
                         <Mail size={16} className="mt-0.5 shrink-0 text-slate-400" />
-                        <span className="break-words">{intake.email || "Not provided"}</span>
+                        <span className="break-all">{intake.email || "Not provided"}</span>
                       </div>
-                      <div className="flex items-start gap-2 text-slate-600">
+                      <div className="flex items-start gap-2 text-slate-600 min-w-0">
                         <MapPin size={16} className="mt-0.5 shrink-0 text-slate-400" />
                         <span className="break-words">{intake.address || "Not provided"}</span>
                       </div>

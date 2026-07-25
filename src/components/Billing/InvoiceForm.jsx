@@ -94,7 +94,7 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel, dra
                   required
                 />
               </div>
-              <Input label="Due Date" name="dueDate" type="date" icon={Calendar} value={formData.dueDate} onChange={handleFormChange} />
+              <Input label="Due Date" name="dueDate" type="date" icon={Calendar} value={formData.dueDate} onChange={handleFormChange} min={new Date().toISOString().split("T")[0]} />
             </div>
 
             <div>

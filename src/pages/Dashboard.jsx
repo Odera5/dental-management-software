@@ -448,8 +448,8 @@ export default function Dashboard() {
               <div className="flex justify-between items-center mt-2">
                 <div>
                   <p className="text-sm font-medium text-slate-500">Monthly Revenue</p>
-                  <h3 className="text-3xl font-bold text-slate-900 mt-2 tracking-tight">
-                    <span className="text-lg text-slate-400 font-medium align-top mr-1">₦</span>
+                  <h3 className="text-2xl lg:text-[28px] font-bold text-slate-900 mt-2 tracking-tight whitespace-nowrap">
+                    <span className="text-base text-slate-400 font-medium align-top mr-1">₦</span>
                     {monthlyRevenue.toLocaleString()}
                   </h3>
                 </div>

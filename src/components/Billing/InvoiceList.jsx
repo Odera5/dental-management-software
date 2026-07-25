@@ -12,6 +12,7 @@ import { Card, CardContent } from "../ui/Card";
 import usePersistentState from "../../hooks/usePersistentState";
 import { resolveAssetUrl } from "../../utils/assetUrl";
 import { getStoredUserObject } from "../../utils/authStorage";
+import ConfirmModal from "../ui/ConfirmModal";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 2 }).format(Number(value) || 0);
@@ -53,7 +54,7 @@ function StatCard({ label, value, tone, icon: Icon }) {
       </div>
       <CardContent className="p-5 pt-6 relative z-10 text-white flex flex-col justify-start h-full min-h-[120px]">
         <p className="text-xs font-semibold uppercase tracking-widest opacity-80">{label}</p>
-        <p className="mt-2 text-3xl font-bold tracking-tight">{value}</p>
+        <p className="mt-2 text-2xl lg:text-[28px] font-bold tracking-tight whitespace-nowrap truncate">{value}</p>
       </CardContent>
     </Card>
   );
@@ -99,6 +100,25 @@ function InvoiceViewer({ invoice: rawInvoice, actionParam, onClose }) {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  const handleCancelInvoice = async () => {
+    setCancelLoading(true);
+    try {
+      await api.delete(`/invoices/${getEntityId(invoice)}`);
+      setToast({ show: true, message: "Invoice cancelled successfully", type: "success" });
+      setTimeout(() => {
+        setConfirmCancelOpen(false);
+        onClose();
+      }, 1200);
+    } catch (error) {
+      setToast({ show: true, message: error.response?.data?.message || "Failed to cancel invoice", type: "error" });
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
   const handleRecordPayment = async () => {
     if (!paymentAmount || parseFloat(paymentAmount) <= 0) return setToast({ show: true, message: "Enter valid payment amount", type: "error" });
     setLoading(true);
@@ -121,7 +141,7 @@ function InvoiceViewer({ invoice: rawInvoice, actionParam, onClose }) {
             </span>.
             {actionParam !== "invoice.payment.recorded" && rawInvoice.status !== invoice.status && (
               <span className="ml-1 text-blue-700 font-medium">
-                (Note: Current live status of this invoice is <span className="uppercase">{rawInvoice.status}</span>).
+                (Note: Current live status of this invoice is <span className="uppercase">{rawInvoice.status === 'overdue' ? 'over due' : rawInvoice.status}</span>).
               </span>
             )}
           </span>
@@ -197,10 +217,20 @@ function InvoiceViewer({ invoice: rawInvoice, actionParam, onClose }) {
             <div className={`rounded-2xl p-6 border flex items-center justify-between ${invoice.status === 'paid' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-white border-slate-200'}`}>
                <div>
                   <p className="text-xs font-semibold uppercase tracking-widest opacity-60 mb-1">Status</p>
-                  <p className="text-2xl font-bold uppercase">{invoice.status}</p>
+                  <p className="text-2xl font-bold uppercase">{invoice.status === 'overdue' ? 'over due' : invoice.status}</p>
                </div>
                {invoice.status === 'paid' && <CheckCircle size={40} className="opacity-50" />}
             </div>
+
+            {invoice.status !== 'cancelled' && invoice.status !== 'paid' && (invoice.amountPaid === 0 || (invoice.payments || []).length === 0) && (
+              <Button
+                variant="outline"
+                className="w-full border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 shadow-sm transition-all"
+                onClick={() => setConfirmCancelOpen(true)}
+              >
+                Cancel Invoice
+              </Button>
+            )}
           </div>
         </div>
 
@@ -242,6 +272,16 @@ function InvoiceViewer({ invoice: rawInvoice, actionParam, onClose }) {
         </div>
       </div>
       {toast.show && <Toast message={toast.message} type={toast.type} duration={3000} onClose={() => setToast({ ...toast, show: false })} />}
+      <ConfirmModal
+        isOpen={confirmCancelOpen}
+        onClose={() => setConfirmCancelOpen(false)}
+        onConfirm={handleCancelInvoice}
+        title="Cancel Invoice"
+        message="Are you sure you want to cancel this invoice? This will set its status to CANCELLED and prevent any future payments."
+        confirmText="Yes, Cancel Invoice"
+        danger
+        confirmLoading={cancelLoading}
+      />
     </div>
   );
 }
@@ -257,9 +297,11 @@ export default function InvoiceList({ patientId = null }) {
       filterStatus: "all",
       searchQuery: "",
       selectedPatientId: patientId || "",
+      startDate: "",
+      endDate: "",
     },
   );
-  const { showForm, filterStatus, searchQuery, selectedPatientId } = uiState;
+  const { showForm, filterStatus, searchQuery, selectedPatientId, startDate, endDate } = uiState;
   const [viewingInvoice, setViewingInvoice] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const invoiceIdParam = searchParams.get("invoiceId");
@@ -297,6 +339,8 @@ export default function InvoiceList({ patientId = null }) {
       if (patientId) params.append("patientId", patientId);
       if (selectedPatientId) params.append("patientId", selectedPatientId);
       if (filterStatus !== "all") params.append("status", filterStatus);
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
       params.append("page", String(pagination.page || 1));
       params.append("limit", String(INVOICES_PER_PAGE));
       const response = await api.get(`/invoices?${params}`);
@@ -313,7 +357,7 @@ export default function InvoiceList({ patientId = null }) {
     } finally {
       setLoading(false);
     }
-  }, [filterStatus, pagination.page, patientId, selectedPatientId]);
+  }, [filterStatus, pagination.page, patientId, selectedPatientId, startDate, endDate]);
 
   const fetchReport = useCallback(async () => {
     try {
@@ -321,7 +365,16 @@ export default function InvoiceList({ patientId = null }) {
       if (patientId) params.append("patientId", patientId);
       if (selectedPatientId) params.append("patientId", selectedPatientId);
 
-      if (!patientId && !selectedPatientId) {
+      if (startDate) {
+        params.append("startDate", new Date(startDate).toISOString());
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        params.append("endDate", end.toISOString());
+      }
+
+      if (!startDate && !endDate && !patientId && !selectedPatientId) {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
@@ -332,7 +385,7 @@ export default function InvoiceList({ patientId = null }) {
       const response = await api.get(`/invoices/report?${params}`);
       setReport(response.data);
     } catch (error) { console.error(error); }
-  }, [patientId, selectedPatientId]);
+  }, [patientId, selectedPatientId, startDate, endDate]);
 
   const fetchInvoicePatients = useCallback(async () => {
     if (patientId) return;
@@ -347,7 +400,7 @@ export default function InvoiceList({ patientId = null }) {
   useEffect(() => { fetchInvoices(); fetchReport(); fetchInvoicePatients(); }, [fetchInvoicePatients, fetchInvoices, fetchReport]);
   useEffect(() => {
     setPagination((current) => ({ ...current, page: 1 }));
-  }, [filterStatus, patientId, selectedPatientId]);
+  }, [filterStatus, patientId, selectedPatientId, startDate, endDate]);
 
   const handleFormSuccess = () => { clearUiState(); setViewingInvoice(null); fetchInvoices(); fetchReport(); };
   const handleIssueInvoice = async (id) => {
@@ -376,7 +429,8 @@ export default function InvoiceList({ patientId = null }) {
 
   const receptionistHighlights = useMemo(() => {
     return {
-      outstandingPatients: report?.outstandingPatients || 0,
+      unpaidPatients: report?.unpaidPatients || 0,
+      incompletePatients: report?.incompletePatients || 0,
       dueToday: report?.dueToday || 0,
       drafts: report?.drafts || 0,
     };
@@ -422,21 +476,45 @@ export default function InvoiceList({ patientId = null }) {
         <div className="w-full lg:w-3/4 space-y-6">
           <Card className="border border-surface-200 shadow-sm">
             <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 mb-6">
-                <div className="md:col-span-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 mb-4">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-500 uppercase tracking-wider">Search</label>
                   <Input value={searchQuery} onChange={(e) => setUiState((current) => ({ ...current, searchQuery: e.target.value }))} placeholder="Search records..." icon={Search} className="bg-slate-50" />
                 </div>
                 <div>
+                   <label className="mb-1.5 block text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</label>
                    <div className="relative">
-                      <select value={filterStatus} onChange={(e) => setUiState((current) => ({ ...current, filterStatus: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-slate-50 text-sm focus:ring-primary-500 shadow-sm appearance-none h-[46px]"><option value="all">All Statuses</option><option value="unpaid">Unpaid</option><option value="draft">Drafts</option><option value="issued">Issued</option><option value="paid">Paid</option><option value="overdue">Overdue</option><option value="cancelled">Cancelled</option></select>
+                      <select value={filterStatus} onChange={(e) => setUiState((current) => ({ ...current, filterStatus: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-slate-50 text-sm focus:ring-primary-500 shadow-sm appearance-none h-[46px]"><option value="all">All Statuses</option><option value="unpaid">Unpaid</option><option value="incomplete">Incomplete</option><option value="draft">Drafts</option><option value="issued">Issued</option><option value="paid">Paid</option><option value="overdue">Over Due</option><option value="cancelled">Cancelled</option></select>
                       <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"><ChevronDown size={16} className="text-slate-400" /></div>
                    </div>
                 </div>
                 <div>
+                   <label className="mb-1.5 block text-xs font-semibold text-slate-500 uppercase tracking-wider">Patient</label>
                    <div className="relative">
                       <select value={selectedPatientId} onChange={(e) => setUiState((current) => ({ ...current, selectedPatientId: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-slate-50 text-sm focus:ring-primary-500 shadow-sm appearance-none h-[46px]"><option value="">All Patients</option>{invoicePatients.map((patient) => (<option key={getEntityId(patient)} value={getEntityId(patient)}>{patient?.name || "Unknown patient"}</option>))}</select>
                       <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"><ChevronDown size={16} className="text-slate-400" /></div>
                    </div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+                <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 font-semibold">From</span>
+                    <Input type="date" value={startDate} onChange={(e) => setUiState((current) => ({ ...current, startDate: e.target.value }))} className="bg-slate-50 !w-[150px] !h-9 text-xs" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 font-semibold">To</span>
+                    <Input type="date" value={endDate} onChange={(e) => setUiState((current) => ({ ...current, endDate: e.target.value }))} className="bg-slate-50 !w-[150px] !h-9 text-xs" />
+                  </div>
+                  {(startDate || endDate) && (
+                    <button
+                      onClick={() => setUiState((current) => ({ ...current, startDate: "", endDate: "" }))}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-700 transition-colors uppercase tracking-wider sm:ml-2"
+                    >
+                      Clear Period
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -469,11 +547,11 @@ export default function InvoiceList({ patientId = null }) {
               ) : (
                 <div className="space-y-4">
                   {filteredInvoices.map((invoice) => (
-                    <div key={getEntityId(invoice)} className="group rounded-2xl border border-slate-200 bg-white p-5 hover:border-primary-300 hover:shadow-md transition-all flex flex-col xl:flex-row gap-5 xl:items-center justify-between">
-                       <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                             <h4 className="font-bold text-slate-900 text-lg">{invoice.invoiceNumber}</h4>
-                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${getStatusColor(invoice.status)}`}>{invoice.status}</span>
+                    <div key={getEntityId(invoice)} className="group rounded-2xl border border-slate-200 bg-white p-5 hover:border-primary-300 hover:shadow-md transition-all flex flex-col lg:flex-row gap-5 lg:items-center justify-between overflow-hidden">
+                       <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                             <h4 className="font-bold text-slate-900 text-sm md:text-base break-all">{invoice.invoiceNumber}</h4>
+                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border shrink-0 ${getStatusColor(invoice.status)}`}>{invoice.status === 'overdue' ? 'over due' : invoice.status}</span>
                           </div>
                           <p className="text-sm font-medium text-slate-700 mb-1">{invoice.patientId?.name || "Unknown patient"}</p>
                           <div className="text-xs text-slate-500 flex flex-wrap gap-x-3 gap-y-1">
@@ -482,16 +560,31 @@ export default function InvoiceList({ patientId = null }) {
                           </div>
                        </div>
 
-                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 xl:w-auto xl:min-w-[300px]">
+                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 lg:w-auto lg:min-w-[300px]">
                           <div><p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total</p><p className="font-semibold text-slate-900">{formatCurrency(invoice.total)}</p></div>
                           <div><p className="text-[10px] uppercase font-bold text-emerald-600 tracking-wider">Paid</p><p className="font-semibold text-emerald-700">{formatCurrency(invoice.amountPaid)}</p></div>
                           <div><p className="text-[10px] uppercase font-bold text-rose-500 tracking-wider">Balance</p><p className="font-semibold text-rose-600">{formatCurrency(invoice.balance)}</p></div>
                        </div>
 
-                       <div className="flex flex-col gap-2 pt-4 border-t border-slate-100 xl:w-auto xl:pt-0 xl:border-t-0 shrink-0 items-end justify-center xl:mr-4">
-                          {invoice.status === "draft" && <Button variant="outline" onClick={() => handleIssueInvoice(getEntityId(invoice))} className="!w-[80px] !text-[11px] !h-7 !px-1 !py-0 !min-h-0 rounded-lg">Issue</Button>}
-                          <Button onClick={() => setViewingInvoice(invoice)} className="shadow flex items-center justify-center !w-[80px] !text-[11px] !h-7 !px-1 !py-0 !min-h-0 rounded-lg">Open Bill</Button>
-                       </div>
+                        <div className="flex flex-row lg:flex-col gap-2 pt-4 border-t border-slate-100 lg:w-auto lg:pt-0 lg:border-t-0 shrink-0 items-center lg:items-end justify-end lg:mr-4">
+                           {invoice.status === "draft" && (
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={() => handleIssueInvoice(getEntityId(invoice))}
+                               className="!w-auto !text-[11px] !h-8 px-3 whitespace-nowrap"
+                             >
+                               Issue
+                             </Button>
+                           )}
+                           <Button
+                             size="sm"
+                             onClick={() => setViewingInvoice(invoice)}
+                             className="!w-auto !text-[11px] !h-8 px-3 whitespace-nowrap shadow-sm"
+                           >
+                             Open Bill
+                           </Button>
+                        </div>
                     </div>
                   ))}
                 </div>
@@ -523,10 +616,14 @@ export default function InvoiceList({ patientId = null }) {
                       <p className="text-slate-600 font-semibold text-sm uppercase tracking-wider">Draft Bills</p>
                       <p className="text-3xl font-bold mt-1 text-slate-900">{receptionistHighlights.drafts}</p>
                    </div>
-                   <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-                      <p className="text-amber-700 font-semibold text-sm uppercase tracking-wider">Unpaid Patients</p>
-                      <p className="text-3xl font-bold mt-1 text-slate-900">{receptionistHighlights.outstandingPatients}</p>
-                   </div>
+                    <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
+                       <p className="text-amber-700 font-semibold text-sm uppercase tracking-wider">Unpaid Patients</p>
+                       <p className="text-3xl font-bold mt-1 text-slate-900">{receptionistHighlights.unpaidPatients}</p>
+                    </div>
+                    <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                       <p className="text-blue-600 font-semibold text-sm uppercase tracking-wider">Incomplete Payments</p>
+                       <p className="text-3xl font-bold mt-1 text-slate-900">{receptionistHighlights.incompletePatients}</p>
+                    </div>
                 </div>
              </CardContent>
           </Card>
