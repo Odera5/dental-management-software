@@ -352,11 +352,10 @@ export default function DashboardLayout() {
         setAvailableBranches(branches);
 
         const requestedBranchId = getActiveBranchId();
-        const nextBranch =
-          branches.find((branch) => branch.id === requestedBranchId) ||
-          branches.find((branch) => branch.isPrimary) ||
-          branches[0] ||
-          null;
+        const primaryBranch = branches.find((branch) => branch.isPrimary) || branches[0] || null;
+        const nextBranch = enterpriseAccess
+          ? (branches.find((branch) => branch.id === requestedBranchId) || primaryBranch)
+          : primaryBranch;
 
         if (nextBranch) {
           setBranchState(nextBranch);
@@ -379,7 +378,7 @@ export default function DashboardLayout() {
       isMounted = false;
       window.removeEventListener(BRANCHES_UPDATED_EVENT, loadBranches);
     };
-  }, []);
+  }, [enterpriseAccess]);
 
   const handleBranchChange = async (nextBranchId) => {
     if (!isAdmin) return;
