@@ -70,7 +70,7 @@ function BranchModal({
                 {editingBranch ? "Edit Branch" : "Add New Branch"}
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Create a branch identity like `Ibadan - Bodija` or `Lagos - Ikeja`.
+                Create a branch identity like `Lagos - Lekki` or `Lagos - Ikeja`.
               </p>
             </div>
             <button
@@ -96,7 +96,7 @@ function BranchModal({
                 onChange={(event) =>
                   setForm((current) => ({ ...current, name: event.target.value }))
                 }
-                placeholder="e.g. Bodija Branch"
+                placeholder="e.g. Lekki Branch"
                 icon={Building2}
                 required
               />
@@ -125,7 +125,7 @@ function BranchModal({
                 onChange={(event) =>
                   setForm((current) => ({ ...current, city: event.target.value }))
                 }
-                placeholder="e.g. Ibadan"
+                placeholder="e.g. Lagos"
                 icon={MapPin}
                 required
               />
@@ -135,7 +135,7 @@ function BranchModal({
                 onChange={(event) =>
                   setForm((current) => ({ ...current, area: event.target.value }))
                 }
-                placeholder="e.g. Bodija"
+                placeholder="e.g. Lekki"
                 icon={MapPin}
                 required
               />
@@ -407,7 +407,7 @@ export default function BranchManagement() {
             Manage Branches
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
-            Create physical locations like `Ibadan - Bodija` and `Ibadan - Sango`
+            Create physical locations like `Lagos - Lekki` and `Lagos - Ikeja`
             under the same clinic account. Duplicate branch identities are blocked automatically.
           </p>
         </div>

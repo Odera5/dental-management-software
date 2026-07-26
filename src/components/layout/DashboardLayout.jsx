@@ -99,7 +99,6 @@ const BRANCH_SWITCH_SAFE_ROUTES = [
   "/signup",
   "/clinic-settings",
   "/branches",
-  "/upgrade",
 ];
 
 function getBranchSwitchDestination(pathname, search = "") {
