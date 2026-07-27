@@ -32,6 +32,8 @@ export default function UpgradePlan() {
   const isPro = currentPlan === "PRO";
   const isEnterprise = currentPlan === "ENTERPRISE";
   const paidSubscriptionActive = hasActivePaidSubscription(clinic);
+  const subscriptionStatus = String(clinic?.paystackSubscriptionStatus || "").toLowerCase();
+  const autoRenewCanceled = subscriptionStatus === "non-renewing";
   const proAccessActive = hasActiveProAccess(clinic);
   const enterpriseAccess = hasEnterpriseAccess(clinic);
   const trialing = isTrialingClinic(clinic);
@@ -257,7 +259,9 @@ export default function UpgradePlan() {
         </h1>
         <p className="text-lg text-slate-500 max-w-2xl mx-auto">
           {paidSubscriptionActive
-            ? `You are currently subscribed to the ${currentPlanLabel} plan. You have full access to unlimited patients, automated reminders, and advanced analytics.`
+            ? autoRenewCanceled
+              ? `Your ${currentPlanLabel} plan is canceled for auto-renewal. You still have full access until the current paid period ends.`
+              : `You are currently subscribed to the ${currentPlanLabel} plan. You have full access to unlimited patients, automated reminders, and advanced analytics.`
             : !proAccessActive
               ? (clinic.paystackSubscriptionStatus
                 ? "Your paid subscription has expired. Renew your plan to unlock and restore full clinic operations."
@@ -271,9 +275,14 @@ export default function UpgradePlan() {
           </p>
         )}
         {paidSubscriptionActive && (
-          <p className="mt-4 text-sm inline-flex items-center gap-2 font-medium text-emerald-700 bg-emerald-50 px-4 py-1.5 rounded-full border border-emerald-100 shadow-sm">
-            <Crown size={16} /> Subscription Active - Next payment:{" "}
-            {formattedNextPaymentDate || formattedRenewalDate}
+          <p className={`mt-4 text-sm inline-flex items-center gap-2 font-medium px-4 py-1.5 rounded-full border shadow-sm ${
+            autoRenewCanceled
+              ? "text-amber-700 bg-amber-50 border-amber-100"
+              : "text-emerald-700 bg-emerald-50 border-emerald-100"
+          }`}>
+            <Crown size={16} /> {autoRenewCanceled
+              ? `Auto-renew canceled - Access until: ${formattedRenewalDate || formattedNextPaymentDate || "current period end"}`
+              : `Subscription Active - Next payment: ${formattedNextPaymentDate || formattedRenewalDate}`}
           </p>
         )}
         {!proAccessActive && !paidSubscriptionActive && (
@@ -351,14 +360,20 @@ export default function UpgradePlan() {
 
           {isPro && paidSubscriptionActive ? (
             <div className="mb-6 space-y-3">
-              <Button
-                variant="outline"
-                className="w-full border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                onClick={handleCancelAutoRenew}
-                isLoading={cancelLoading}
-              >
-                Cancel Professional Subscription
-              </Button>
+              {autoRenewCanceled ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                  Auto-renew is canceled. Professional access remains active until {formattedRenewalDate || "the current paid period ends"}.
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                  onClick={handleCancelAutoRenew}
+                  isLoading={cancelLoading}
+                >
+                  Cancel Professional Subscription
+                </Button>
+              )}
             </div>
           ) : (
             <>
@@ -384,7 +399,9 @@ export default function UpgradePlan() {
           <div className="mb-5 flex justify-center items-center">
             <p className="text-slate-600 text-xs font-medium bg-white px-4 py-2 rounded-xl border border-slate-200 text-center leading-relaxed">
               {paidSubscriptionActive
-                ? "Your subscription is currently active with secure recurring billing in NGN."
+                ? autoRenewCanceled
+                  ? "Auto-renew is off. Your paid access remains active until the current period ends."
+                  : "Your subscription is currently active with secure recurring billing in NGN."
                 : isPro && !proAccessActive
                   ? "Your Professional subscription has expired. Renew to restore full clinic access."
                   : "New clinics begin with a 14-day trial, then continue with secure recurring billing in NGN."}
@@ -467,17 +484,25 @@ export default function UpgradePlan() {
 
           {isEnterprise && paidSubscriptionActive ? (
             <div className="mb-6 space-y-3">
-              <div className="mb-3 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-100">
-                Enterprise access is active on this clinic account. Branch management is unlocked.
+              <div className={`mb-3 rounded-2xl px-4 py-3 text-sm font-medium ${
+                autoRenewCanceled
+                  ? "border border-amber-400/25 bg-amber-500/10 text-amber-100"
+                  : "border border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
+              }`}>
+                {autoRenewCanceled
+                  ? `Auto-renew is canceled. Enterprise access remains active until ${formattedRenewalDate || "the current paid period ends"}.`
+                  : "Enterprise access is active on this clinic account. Branch management is unlocked."}
               </div>
-              <Button
-                variant="outline"
-                className="w-full border-red-400/20 bg-red-500/10 text-red-400 hover:bg-red-500/20"
-                onClick={handleCancelAutoRenew}
-                isLoading={cancelLoading}
-              >
-                Cancel Enterprise Subscription
-              </Button>
+              {!autoRenewCanceled && (
+                <Button
+                  variant="outline"
+                  className="w-full border-red-400/20 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                  onClick={handleCancelAutoRenew}
+                  isLoading={cancelLoading}
+                >
+                  Cancel Enterprise Subscription
+                </Button>
+              )}
             </div>
           ) : (
             <>
