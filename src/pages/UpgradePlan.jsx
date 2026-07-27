@@ -370,7 +370,7 @@ export default function UpgradePlan() {
               {currentPaidPeriodActive ? (
                 <>
                   <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-                    This Professional subscription has been cancelled in Paystack. Access remains active until {formattedRenewalDate || "the current paid period ends"}, then renewal must start a new checkout.
+                    Professional access remains active until {formattedRenewalDate || "the current paid period ends"}. Renew now to keep your subscription active after this date.
                   </div>
                   <Button
                     className="w-full py-4 text-base font-bold bg-primary-500 hover:bg-primary-400 text-white shadow-[0_0_20px_rgba(14,165,233,0.3)] border-transparent"
@@ -383,7 +383,7 @@ export default function UpgradePlan() {
               ) : autoRenewCanceled ? (
                 <>
                   <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-                    Auto-renew is canceled. Professional access remains active until {formattedRenewalDate || "the current paid period ends"}. Renewal starts a new secure checkout.
+                    Professional access remains active until {formattedRenewalDate || "the current paid period ends"}. Renew now to keep your subscription active after this date.
                   </div>
                   <Button
                     className="w-full py-4 text-base font-bold bg-primary-500 hover:bg-primary-400 text-white shadow-[0_0_20px_rgba(14,165,233,0.3)] border-transparent"
@@ -429,7 +429,7 @@ export default function UpgradePlan() {
             <p className="text-slate-600 text-xs font-medium bg-white px-4 py-2 rounded-xl border border-slate-200 text-center leading-relaxed">
               {paidSubscriptionActive
                 ? autoRenewCanceled
-                  ? "Auto-renew is off. Renewing starts a fresh secure checkout."
+                  ? "Renewing starts a secure checkout for your next billing period."
                   : "Your subscription is currently active with secure recurring billing in NGN."
                 : currentPaidPeriodActive
                   ? "This subscription cannot be resumed. Renewing starts a fresh secure checkout."
@@ -521,9 +521,9 @@ export default function UpgradePlan() {
                   : "border border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
               }`}>
                 {currentPaidPeriodActive
-                  ? `This Enterprise subscription has been cancelled in Paystack. Access remains active until ${formattedRenewalDate || "the current paid period ends"}, then renewal must start a new checkout.`
+                  ? `Enterprise access remains active until ${formattedRenewalDate || "the current paid period ends"}. Renew now to keep your subscription active after this date.`
                   : autoRenewCanceled
-                    ? `Auto-renew is canceled. Enterprise access remains active until ${formattedRenewalDate || "the current paid period ends"}. Renewal starts a new secure checkout.`
+                    ? `Enterprise access remains active until ${formattedRenewalDate || "the current paid period ends"}. Renew now to keep your subscription active after this date.`
                   : "Enterprise access is active on this clinic account. Branch management is unlocked."}
               </div>
               {currentPaidPeriodActive ? (
