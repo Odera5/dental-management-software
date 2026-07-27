@@ -19,6 +19,7 @@ export default function UpgradePlan() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [enterpriseCheckoutLoading, setEnterpriseCheckoutLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [resumeLoading, setResumeLoading] = useState(false);
   const [billingInfo, setBillingInfo] = useState(null);
   const [toast, setToast] = useState(null);
   const [confirmConfig, setConfirmConfig] = useState(null);
@@ -158,6 +159,32 @@ export default function UpgradePlan() {
       danger: true,
       onConfirm: executeCancelAutoRenew,
     });
+  };
+
+  const handleResumeAutoRenew = async () => {
+    try {
+      setResumeLoading(true);
+      const response = await api.post("/billing/paystack/resume");
+      const clinic = response.data?.clinic || null;
+      if (clinic) {
+        setBillingInfo(clinic);
+        syncStoredUserClinic(clinic);
+      }
+      setToast({
+        message: response.data?.message || "Auto-renew resumed successfully.",
+        type: "success",
+      });
+    } catch (error) {
+      setToast({
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "We could not resume the subscription.",
+        type: "error",
+      });
+    } finally {
+      setResumeLoading(false);
+    }
   };
 
   const handleEnterpriseUpgradeClick = () => {
@@ -361,9 +388,18 @@ export default function UpgradePlan() {
           {isPro && paidSubscriptionActive ? (
             <div className="mb-6 space-y-3">
               {autoRenewCanceled ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-                  Auto-renew is canceled. Professional access remains active until {formattedRenewalDate || "the current paid period ends"}.
-                </div>
+                <>
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                    Auto-renew is canceled. Professional access remains active until {formattedRenewalDate || "the current paid period ends"}.
+                  </div>
+                  <Button
+                    className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
+                    onClick={handleResumeAutoRenew}
+                    isLoading={resumeLoading}
+                  >
+                    Resume Professional Subscription
+                  </Button>
+                </>
               ) : (
                 <Button
                   variant="outline"
@@ -493,7 +529,15 @@ export default function UpgradePlan() {
                   ? `Auto-renew is canceled. Enterprise access remains active until ${formattedRenewalDate || "the current paid period ends"}.`
                   : "Enterprise access is active on this clinic account. Branch management is unlocked."}
               </div>
-              {!autoRenewCanceled && (
+              {autoRenewCanceled ? (
+                <Button
+                  className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
+                  onClick={handleResumeAutoRenew}
+                  isLoading={resumeLoading}
+                >
+                  Resume Enterprise Subscription
+                </Button>
+              ) : (
                 <Button
                   variant="outline"
                   className="w-full border-red-400/20 bg-red-500/10 text-red-400 hover:bg-red-500/20"
