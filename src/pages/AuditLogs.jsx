@@ -19,10 +19,22 @@ import {
 import api from "../services/api";
 import Toast from "../components/Toast";
 
+const isSubscriptionPlanLog = (log) => {
+  const action = String(log?.action || "").toLowerCase();
+  const type = String(log?.resourceType || "").toLowerCase();
+
+  return (type === "billing" || type === "upgrade_plan") && (action.startsWith("billing.subscription_") || action.startsWith("upgrade_plan.subscription_"));
+};
+
+const getResourceLabel = (log) => {
+  if (isSubscriptionPlanLog(log)) return "upgrade plan";
+  return String(log?.resourceType || "").replace("_", " ");
+};
 // Helper to map resourceType to frontend page route
 const getResourceRoute = (log) => {
   if (!log) return null;
   const type = log.resourceType?.toLowerCase();
+  if (isSubscriptionPlanLog(log)) return "/upgrade";
   if (type === "waiting_room") return "/waiting-room";
   if (type === "invoice") return `/billing?invoiceId=${log.resourceId}&action=${log.action}`;
   if (type === "record") return `/patients/${log.patientId}/records?recordId=${log.resourceId}`;
@@ -41,6 +53,7 @@ const getResourceRoute = (log) => {
 const getResourceButtonLabel = (log) => {
   if (!log) return "Go to Record";
   const type = log.resourceType?.toLowerCase();
+  if (isSubscriptionPlanLog(log)) return "Go to Upgrade Plan";
   if (type === "waiting_room") return "Go to Waiting Room";
   if (type === "invoice") return "Go to Billing";
   if (type === "record") return "Go to Record";
@@ -451,7 +464,7 @@ export default function AuditLogs() {
                               className="inline-flex items-center gap-1 hover:underline font-semibold text-primary-600 hover:text-primary-700"
                             >
                               <span className="capitalize">
-                                {log.resourceType.replace("_", " ")}
+                                {getResourceLabel(log)}
                               </span>
                               <span className="text-slate-400 text-xs font-mono">
                                 (#{log.resourceId})
@@ -460,7 +473,7 @@ export default function AuditLogs() {
                           ) : (
                             <>
                               <span className="font-semibold text-slate-800 capitalize">
-                                {log.resourceType.replace("_", " ")}
+                                {getResourceLabel(log)}
                               </span>
                               <span className="text-slate-400 text-xs font-mono">
                                 (#{log.resourceId})
@@ -606,7 +619,7 @@ export default function AuditLogs() {
                     </div>
                     <div>
                       <span className="text-slate-400 font-medium block">Resource Category:</span>
-                      <span className="font-semibold text-slate-800 capitalize">{selectedLog.resourceType}</span>
+                      <span className="font-semibold text-slate-800 capitalize">{getResourceLabel(selectedLog)}</span>
                     </div>
                     <div className="mt-2">
                       <span className="text-slate-400 font-medium block">Resource Reference ID:</span>
