@@ -9,6 +9,7 @@ import {
   hasActivePaidSubscription,
   hasEnterpriseAccess,
   hasActiveProAccess,
+  hasFutureSubscriptionWindow,
   isTrialingClinic,
   getTrialDaysRemaining,
 } from "../utils/clinicAccess";
@@ -35,8 +36,10 @@ export default function UpgradePlan() {
   const paidSubscriptionActive = hasActivePaidSubscription(clinic);
   const subscriptionStatus = String(clinic?.paystackSubscriptionStatus || "").toLowerCase();
   const autoRenewCanceled = subscriptionStatus === "non-renewing";
+  const subscriptionCannotResume = ["cancelled", "canceled", "completed"].includes(subscriptionStatus);
   const proAccessActive = hasActiveProAccess(clinic);
   const enterpriseAccess = hasEnterpriseAccess(clinic);
+  const currentPaidPeriodActive = hasFutureSubscriptionWindow(clinic) && subscriptionCannotResume;
   const trialing = isTrialingClinic(clinic);
   const remainingTrialDays = getTrialDaysRemaining(clinic);
 
@@ -285,8 +288,10 @@ export default function UpgradePlan() {
               : "Unlock Full Access"}
         </h1>
         <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-          {paidSubscriptionActive
-            ? autoRenewCanceled
+          {currentPaidPeriodActive
+            ? `Your ${currentPlanLabel} plan has been cancelled in Paystack. You still have access until the current paid period ends, but renewal requires a new checkout.`
+            : paidSubscriptionActive
+              ? autoRenewCanceled
               ? `Your ${currentPlanLabel} plan is canceled for auto-renewal. You still have full access until the current paid period ends.`
               : `You are currently subscribed to the ${currentPlanLabel} plan. You have full access to unlimited patients, automated reminders, and advanced analytics.`
             : !proAccessActive
@@ -301,14 +306,16 @@ export default function UpgradePlan() {
             {remainingTrialDays === 1 ? "" : "s"} remaining.
           </p>
         )}
-        {paidSubscriptionActive && (
+        {(paidSubscriptionActive || currentPaidPeriodActive) && (
           <p className={`mt-4 text-sm inline-flex items-center gap-2 font-medium px-4 py-1.5 rounded-full border shadow-sm ${
-            autoRenewCanceled
+            autoRenewCanceled || currentPaidPeriodActive
               ? "text-amber-700 bg-amber-50 border-amber-100"
               : "text-emerald-700 bg-emerald-50 border-emerald-100"
           }`}>
-            <Crown size={16} /> {autoRenewCanceled
-              ? `Auto-renew canceled - Access until: ${formattedRenewalDate || formattedNextPaymentDate || "current period end"}`
+            <Crown size={16} /> {currentPaidPeriodActive
+              ? `Subscription cancelled - Access until: ${formattedRenewalDate || formattedNextPaymentDate || "current period end"}`
+              : autoRenewCanceled
+                ? `Auto-renew canceled - Access until: ${formattedRenewalDate || formattedNextPaymentDate || "current period end"}`
               : `Subscription Active - Next payment: ${formattedNextPaymentDate || formattedRenewalDate}`}
           </p>
         )}
@@ -353,7 +360,7 @@ export default function UpgradePlan() {
             <div className="absolute top-5 right-5 z-10">
               {proAccessActive ? (
                 <span className="bg-primary-500 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
-                  {paidSubscriptionActive ? "Current Plan" : "Current Trial"}
+                  {paidSubscriptionActive || currentPaidPeriodActive ? "Current Plan" : "Current Trial"}
                 </span>
               ) : (
                 <span className="bg-rose-600 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
@@ -385,9 +392,22 @@ export default function UpgradePlan() {
             </span>
           </div>
 
-          {isPro && paidSubscriptionActive ? (
+          {isPro && (paidSubscriptionActive || currentPaidPeriodActive) ? (
             <div className="mb-6 space-y-3">
-              {autoRenewCanceled ? (
+              {currentPaidPeriodActive ? (
+                <>
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                    This Professional subscription has been cancelled in Paystack. Access remains active until {formattedRenewalDate || "the current paid period ends"}, then renewal must start a new checkout.
+                  </div>
+                  <Button
+                    className="w-full py-4 text-base font-bold bg-primary-500 hover:bg-primary-400 text-white shadow-[0_0_20px_rgba(14,165,233,0.3)] border-transparent"
+                    onClick={handleProUpgradeClick}
+                    isLoading={checkoutLoading}
+                  >
+                    Renew Professional Subscription
+                  </Button>
+                </>
+              ) : autoRenewCanceled ? (
                 <>
                   <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
                     Auto-renew is canceled. Professional access remains active until {formattedRenewalDate || "the current paid period ends"}.
@@ -438,6 +458,8 @@ export default function UpgradePlan() {
                 ? autoRenewCanceled
                   ? "Auto-renew is off. Your paid access remains active until the current period ends."
                   : "Your subscription is currently active with secure recurring billing in NGN."
+                : currentPaidPeriodActive
+                  ? "This subscription cannot be resumed. Renewing starts a fresh secure checkout."
                 : isPro && !proAccessActive
                   ? "Your Professional subscription has expired. Renew to restore full clinic access."
                   : "New clinics begin with a 14-day trial, then continue with secure recurring billing in NGN."}
@@ -478,7 +500,7 @@ export default function UpgradePlan() {
               <div className="absolute top-5 right-5 z-10">
                 {enterpriseAccess ? (
                   <span className="bg-primary-500 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
-                    {paidSubscriptionActive ? "Current Plan" : "Current Trial"}
+                    {paidSubscriptionActive || currentPaidPeriodActive ? "Current Plan" : "Current Trial"}
                   </span>
                 ) : (
                   <span className="bg-rose-600 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
@@ -518,18 +540,30 @@ export default function UpgradePlan() {
             Enterprise billing for multi-location clinics and hospital groups.
           </p>
 
-          {isEnterprise && paidSubscriptionActive ? (
+          {isEnterprise && (paidSubscriptionActive || currentPaidPeriodActive) ? (
             <div className="mb-6 space-y-3">
               <div className={`mb-3 rounded-2xl px-4 py-3 text-sm font-medium ${
-                autoRenewCanceled
+                autoRenewCanceled || currentPaidPeriodActive
                   ? "border border-amber-400/25 bg-amber-500/10 text-amber-100"
                   : "border border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
               }`}>
-                {autoRenewCanceled
-                  ? `Auto-renew is canceled. Enterprise access remains active until ${formattedRenewalDate || "the current paid period ends"}.`
+                {currentPaidPeriodActive
+                  ? `This Enterprise subscription has been cancelled in Paystack. Access remains active until ${formattedRenewalDate || "the current paid period ends"}, then renewal must start a new checkout.`
+                  : autoRenewCanceled
+                    ? `Auto-renew is canceled. Enterprise access remains active until ${formattedRenewalDate || "the current paid period ends"}.`
                   : "Enterprise access is active on this clinic account. Branch management is unlocked."}
               </div>
-              {autoRenewCanceled ? (
+              {currentPaidPeriodActive ? (
+                <Button
+                  variant="outline"
+                  className="mb-6 w-full border-white/20 bg-white/10 text-white hover:bg-white/15"
+                  onClick={handleEnterpriseUpgradeClick}
+                  isLoading={enterpriseCheckoutLoading}
+                >
+                  Renew Enterprise Subscription
+                  <ArrowRight size={16} className="ml-2" />
+                </Button>
+              ) : autoRenewCanceled ? (
                 <Button
                   className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
                   onClick={handleResumeAutoRenew}
@@ -631,3 +665,4 @@ function FeatureItem({ children, included, dark, highlight, icon }) {
     </div>
   );
 }
+
