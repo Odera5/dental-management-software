@@ -1,5 +1,5 @@
-const CACHE_NAME = "primuxcare-shell-v2";
-const APP_SHELL = ["/", "/manifest.webmanifest", "/favicon.png", "/pwa-192.png", "/pwa-512.png"];
+const CACHE_NAME = "primuxcare-shell-v3";
+const APP_SHELL = ["/manifest.webmanifest", "/favicon.png", "/pwa-192.png", "/pwa-512.png"];
 const NETWORK_FIRST_PATHS = new Set([
   "/manifest.webmanifest",
   "/favicon.png",
@@ -46,9 +46,12 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (event.request.mode === "navigate") {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match("/")),
-    );
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  if (requestUrl.pathname.startsWith("/assets/")) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
@@ -67,27 +70,5 @@ self.addEventListener("fetch", (event) => {
         })
         .catch(() => caches.match(event.request)),
     );
-    return;
   }
-
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200) {
-          return networkResponse;
-        }
-
-        const clonedResponse = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, clonedResponse);
-        });
-
-        return networkResponse;
-      });
-    }),
-  );
 });

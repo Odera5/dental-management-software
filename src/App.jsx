@@ -11,18 +11,33 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { readLastVisitedRoute } from "./utils/persistence";
 import { getStoredUser } from "./utils/authStorage";
 
+const clearServiceWorkerCaches = async () => {
+  if ("caches" in window) {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+  }
+
+  if ("serviceWorker" in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.update()));
+  }
+};
+
 const lazyWithRetry = (componentImport) => {
   return lazy(async () => {
     try {
       return await componentImport();
     } catch (error) {
-      console.error("Failed to load chunk, retrying by reloading the page:", error);
+      console.error("Failed to load chunk, clearing cached app shell and reloading:", error);
       const reloadKey = "primuxcare:chunk-reload-timestamp";
       const lastReload = sessionStorage.getItem(reloadKey);
       const now = Date.now();
       if (!lastReload || now - Number(lastReload) > 15000) {
         sessionStorage.setItem(reloadKey, String(now));
-        window.location.reload();
+        await clearServiceWorkerCaches().catch(() => {});
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set("app_reload", String(now));
+        window.location.replace(nextUrl.toString());
       }
       throw error;
     }
