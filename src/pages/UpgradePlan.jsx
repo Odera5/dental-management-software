@@ -15,6 +15,8 @@ import {
 } from "../utils/clinicAccess";
 import { getStoredUserObject } from "../utils/authStorage";
 
+const UPGRADE_PLAN_AUDIT_PAYLOAD = { auditSource: "upgrade_plan" };
+
 export default function UpgradePlan() {
   const [isAnnual, setIsAnnual] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -128,7 +130,7 @@ export default function UpgradePlan() {
   const executeCancelAutoRenew = async () => {
     try {
       setCancelLoading(true);
-      const response = await api.post("/billing/paystack/cancel");
+      const response = await api.post("/billing/paystack/cancel", UPGRADE_PLAN_AUDIT_PAYLOAD);
       const clinic = response.data?.clinic || null;
       if (clinic) {
         setBillingInfo(clinic);
@@ -174,7 +176,7 @@ export default function UpgradePlan() {
         onConfirm: async () => {
           try {
             setEnterpriseCheckoutLoading(true);
-            const response = await api.post("/billing/paystack/cancel");
+            const response = await api.post("/billing/paystack/cancel", UPGRADE_PLAN_AUDIT_PAYLOAD);
             const updatedClinic = response.data?.clinic || null;
             if (updatedClinic) {
               setBillingInfo(updatedClinic);
@@ -210,7 +212,7 @@ export default function UpgradePlan() {
         onConfirm: async () => {
           try {
             setCheckoutLoading(true);
-            const response = await api.post("/billing/paystack/cancel");
+            const response = await api.post("/billing/paystack/cancel", UPGRADE_PLAN_AUDIT_PAYLOAD);
             const updatedClinic = response.data?.clinic || null;
             if (updatedClinic) {
               setBillingInfo(updatedClinic);

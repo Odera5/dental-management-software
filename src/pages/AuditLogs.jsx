@@ -33,6 +33,7 @@ const getResourceRoute = (log) => {
   if (type === "user" || type === "staff") return "/signup";
   if (type === "intake" || type === "pending_intake") return "/pending-intakes";
   if (type === "billing") return "/billing";
+  if (type === "upgrade_plan") return "/upgrade";
   return null;
 };
 
@@ -49,6 +50,7 @@ const getResourceButtonLabel = (log) => {
   if (type === "user" || type === "staff") return "Go to Staff Management";
   if (type === "intake" || type === "pending_intake") return "Go to Intakes";
   if (type === "billing") return "Go to Billing";
+  if (type === "upgrade_plan") return "Go to Upgrade Plan";
   return "Go to Page";
 };
 
