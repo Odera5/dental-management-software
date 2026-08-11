@@ -1,7 +1,7 @@
 {
-  "name": "PrimuxCare",
-  "short_name": "PrimuxCare",
-  "description": "PrimuxCare helps clinics manage patient records, appointments, billing, and daily operations in one dashboard.",
+  "name": "CareChrome",
+  "short_name": "CareChrome",
+  "description": "CareChrome helps clinics manage patient records, appointments, billing, and daily operations in one dashboard.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

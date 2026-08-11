@@ -410,7 +410,9 @@ export default function UpgradePlan() {
             <>
               {isPro && !proAccessActive && (
                 <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                  Your Professional subscription has expired. Clinic operations are locked until renewal.
+                  {clinic.paystackSubscriptionStatus
+                    ? "Your Professional subscription has expired. Clinic operations are locked until renewal."
+                    : "Your Professional trial has ended. Subscribe to restore full clinic operations."}
                 </div>
               )}
               <Button
@@ -419,7 +421,7 @@ export default function UpgradePlan() {
                 isLoading={checkoutLoading}
               >
                 {isPro && !proAccessActive
-                  ? "Renew Professional Subscription"
+                  ? (clinic.paystackSubscriptionStatus ? "Renew Professional Subscription" : "Unlock Professional Access")
                   : isEnterprise
                     ? "Switch to Professional"
                     : "Unlock Professional Access"}
@@ -436,7 +438,9 @@ export default function UpgradePlan() {
                 : currentPaidPeriodActive
                   ? "This subscription cannot be resumed. Renewing starts a fresh secure checkout."
                 : isPro && !proAccessActive
-                  ? "Your Professional subscription has expired. Renew to restore full clinic access."
+                  ? (clinic.paystackSubscriptionStatus
+                    ? "Your Professional subscription has expired. Renew to restore full clinic access."
+                    : "Your Professional trial has ended. Subscribe to restore full clinic access.")
                   : "New clinics begin with a 14-day trial, then continue with secure recurring billing in NGN."}
             </p>
           </div>
@@ -563,7 +567,9 @@ export default function UpgradePlan() {
             <>
               {isEnterprise && !enterpriseAccess && (
                 <div className="mb-3 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-200">
-                  Your Enterprise subscription has expired. Clinic operations are locked until renewal.
+                  {clinic.paystackSubscriptionStatus
+                    ? "Your Enterprise subscription has expired. Clinic operations are locked until renewal."
+                    : "Your Enterprise trial has ended. Subscribe to restore full clinic operations."}
                 </div>
               )}
               <Button
@@ -573,7 +579,7 @@ export default function UpgradePlan() {
                 isLoading={enterpriseCheckoutLoading}
               >
                 {isEnterprise && !enterpriseAccess
-                  ? "Renew Enterprise Subscription"
+                  ? (clinic.paystackSubscriptionStatus ? "Renew Enterprise Subscription" : "Get Enterprise Features")
                   : paidSubscriptionActive && !isEnterprise
                     ? "Upgrade to Enterprise"
                     : "Get Enterprise Features"}

@@ -33,9 +33,9 @@ export default function PatientRecord() {
     storedUser.role === "admin" ||
     storedUser.role === "branch_manager" ||
     storedUser.role === "doctor";
-  const patientEditDraftKey = `primuxcare:draft:patient-edit:${id}`;
-  const patientEditModalKey = `primuxcare:draft:patient-edit-modal:${id}`;
-  const recordFiltersStorageKey = `primuxcare:draft:patient-record:filters:${id}`;
+  const patientEditDraftKey = `carechrome:draft:patient-edit:${id}`;
+  const patientEditModalKey = `carechrome:draft:patient-edit-modal:${id}`;
+  const recordFiltersStorageKey = `carechrome:draft:patient-record:filters:${id}`;
   const hasSavedPatientEditDraft = Boolean(readStoredJson(patientEditDraftKey, null));
 
   const [patient, setPatient] = useState(null);
@@ -62,11 +62,11 @@ export default function PatientRecord() {
   );
 
   const [newRecord, setNewRecord, clearNewRecordDraft] = usePersistentState(
-    `primuxcare:draft:patient-record:new:${id}`,
+    `carechrome:draft:patient-record:new:${id}`,
     createEmptyRecord(),
   );
   const [showAddModal, setShowAddModal, clearShowAddModalDraft] = usePersistentState(
-    `primuxcare:draft:patient-record:new-modal:${id}`,
+    `carechrome:draft:patient-record:new-modal:${id}`,
     false,
   );
   const [showEditPatientModal, setShowEditPatientModal, clearShowEditPatientModalDraft] = usePersistentState(

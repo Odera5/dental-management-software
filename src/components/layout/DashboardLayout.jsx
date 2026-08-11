@@ -30,7 +30,7 @@ import {
   subscribeDashboardSummary,
 } from "../../services/dashboardSummary";
 import Button from "../ui/Button";
-import primuxFavicon from "../../assets/primux-logo.png";
+import carechromeLogo from "../../assets/CareChrome-white.png";
 import { getStoredUserObject, updateStoredUser } from "../../utils/authStorage";
 import {
   BRANCHES_UPDATED_EVENT,
@@ -473,14 +473,14 @@ export default function DashboardLayout() {
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl  p-1 ">
                 <img
-                  src={primuxFavicon}
-                  alt="PrimuxCare logo"
+                  src={carechromeLogo}
+                  alt="CareChrome logo"
                   className="h-full w-full object-contain"
                 />
               </div>
               <div>
                 <span className="font-bold text-slate-900 tracking-tight block leading-4">
-                  PrimuxCare
+                  CareChrome
                 </span>
                 <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest flex items-center gap-1 mt-0.5">
                   {user.clinicName}
@@ -794,14 +794,16 @@ export default function DashboardLayout() {
             >
               <span className="flex items-center gap-2">
                 <Crown size={18} />
-                Your paid plan access has expired. Clinic operations are locked until renewal.
+                {clinic?.paystackSubscriptionStatus
+                  ? "Your paid plan access has expired. Clinic operations are locked until renewal."
+                  : "Your 14-day free trial has ended. Select a paid plan to restore full clinic operations."}
               </span>
               {location.pathname !== "/upgrade" && (
                 <button
                   onClick={() => navigate("/upgrade")}
                   className="bg-white/20 hover:bg-white/30 px-4 py-1.5 rounded-full text-xs transition-colors border border-white/30 backdrop-blur-sm shadow-sm"
                 >
-                  Renew Now
+                  {clinic?.paystackSubscriptionStatus ? "Renew Now" : "Upgrade Plan"}
                 </button>
               )}
             </MotionDiv>

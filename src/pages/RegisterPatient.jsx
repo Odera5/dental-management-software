@@ -28,7 +28,7 @@ const emptyPatientForm = {
 
 export default function RegisterPatient() {
   const [form, setForm, clearFormDraft] = usePersistentState(
-    "primuxcare:draft:register-patient",
+    "carechrome:draft:register-patient",
     emptyPatientForm,
   );
   const [loading, setLoading] = useState(false);

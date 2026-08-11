@@ -72,7 +72,7 @@ export default function Dashboard() {
   );
   const [trash, setTrash] = useState([]);
   const [directoryState, setDirectoryState] = usePersistentState(
-    "primuxcare:draft:dashboard-directory",
+    "carechrome:draft:dashboard-directory",
     { searchQuery: "", sortConfig: { key: null, direction: "asc" }, currentPage: 1, globalSearch: false },
   );
   const { searchQuery, sortConfig, currentPage, globalSearch } = directoryState;

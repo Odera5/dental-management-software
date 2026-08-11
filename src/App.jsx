@@ -29,7 +29,7 @@ const lazyWithRetry = (componentImport) => {
       return await componentImport();
     } catch (error) {
       console.error("Failed to load chunk, clearing cached app shell and reloading:", error);
-      const reloadKey = "primuxcare:chunk-reload-timestamp";
+      const reloadKey = "carechrome:chunk-reload-timestamp";
       const lastReload = sessionStorage.getItem(reloadKey);
       const now = Date.now();
       if (!lastReload || now - Number(lastReload) > 15000) {

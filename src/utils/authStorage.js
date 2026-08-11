@@ -2,7 +2,7 @@ const AUTH_KEYS = [
   "user",
   "accessToken",
   "refreshToken",
-  "primuxcare:active-branch-id",
+  "carechrome:active-branch-id",
 ];
 
 function getAvailableStorage(type) {
@@ -11,7 +11,7 @@ function getAvailableStorage(type) {
   const storage = type === "local" ? window.localStorage : window.sessionStorage;
 
   try {
-    const testKey = "__primuxcare_auth_storage_test__";
+    const testKey = "__carechrome_auth_storage_test__";
     storage.setItem(testKey, "1");
     storage.removeItem(testKey);
     return storage;

@@ -89,7 +89,7 @@ export default function AppointmentResponse() {
           </div>
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary-600">
-              PrimuxCare
+              CareChrome
             </p>
             <h1 className="text-2xl font-bold text-slate-900">{meta.title}</h1>
           </div>

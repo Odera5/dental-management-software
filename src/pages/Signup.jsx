@@ -21,7 +21,7 @@ const initialSignupDraft = {
   assignedBranchIds: [],
 };
 
-const supportEmail = "support@primuxcare.com";
+const supportEmail = "support@carechrome.com";
 const whatsappLink = "https://wa.me/2348068073362";
 const ROLE_LABELS = {
   nurse: "Nurse / Front Desk",
@@ -33,7 +33,7 @@ export default function Signup() {
   const MotionDiv = motion.div;
   const MotionTr = motion.tr;
   const [signupDraft, setSignupDraft, clearSignupDraft] = usePersistentState(
-    "primuxcare:draft:signup",
+    "carechrome:draft:signup",
     initialSignupDraft,
   );
   const { name, email, password, role, customRoleTitle } = signupDraft;

@@ -1,7 +1,7 @@
 import { getStoredUserObject, updateStoredUser } from "./authStorage";
 
-const BRANCH_STORAGE_KEY = "primuxcare:active-branch-id";
-export const BRANCHES_UPDATED_EVENT = "primuxcare:branches-updated";
+const BRANCH_STORAGE_KEY = "carechrome:active-branch-id";
+export const BRANCHES_UPDATED_EVENT = "carechrome:branches-updated";
 
 const getStorageCandidates = () =>
   [window.localStorage, window.sessionStorage].filter(Boolean);

@@ -16,7 +16,7 @@ export default function CsvImportModal({ onClose, onSuccess }) {
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", "primuxcare_sample_import.csv");
+    link.setAttribute("download", "carechrome_sample_import.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

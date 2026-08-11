@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 import { Mail, MessageCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import Button from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
-import primuxFavicon from "../assets/NewPrimuxcareFavicon.png";
+import carechromeLogo from "../assets/CareChrome-green.png";
 
-const supportEmail = "support@primuxcare.com";
-const infoEmail = "info@primuxcare.com";
+const supportEmail = "support@carechrome.com";
+const infoEmail = "info@carechrome.com";
 const whatsappNumber = "+2348068073362";
 const whatsappLink = "https://wa.me/2348068073362";
 
@@ -28,8 +28,8 @@ export default function Support() {
         <div className="text-center">
           <div className="flex bg-white/10 backdrop-blur-md h-24 w-24 mx-auto rounded-3xl items-center justify-center mb-6 shadow-xl border border-white/20 p-1">
             <img
-              src={primuxFavicon}
-              alt="PrimuxCare logo"
+              src={carechromeLogo}
+              alt="CareChrome logo"
               className="h-full w-full object-contain"
             />
           </div>
@@ -37,7 +37,7 @@ export default function Support() {
             How can we help?
           </h1>
           <p className="mt-4 text-primary-100 text-lg max-w-lg mx-auto">
-            PrimuxCare is here to ensure your clinic runs seamlessly. Get in
+            CareChrome is here to ensure your clinic runs seamlessly. Get in
             touch with our product support team.
           </p>
         </div>

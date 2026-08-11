@@ -31,7 +31,7 @@ const PRESET_CATEGORIES = Array.from(new Set(DEFAULT_PROCEDURE_PRESETS.map(p => 
 
 export default function ClinicSettings() {
   const navigate = useNavigate();
-  const clinicSettingsDraftKey = "primuxcare:draft:clinic-settings";
+  const clinicSettingsDraftKey = "carechrome:draft:clinic-settings";
   const hasSavedClinicDraft = Boolean(readStoredJson(clinicSettingsDraftKey, null));
   const [form, setForm, clearFormDraft] = usePersistentState(
     clinicSettingsDraftKey,
@@ -777,7 +777,7 @@ export default function ClinicSettings() {
              <Card className="border border-red-200 shadow-sm bg-gradient-to-br from-red-50 to-orange-50">
                 <CardContent className="p-8">
                    <h3 className="font-bold text-red-900 text-lg flex items-center mb-2"><AlertTriangle size={20} className="mr-2" /> Danger Zone</h3>
-                   <p className="text-red-800 text-sm max-w-2xl mb-6">If your clinic no longer uses this software, you can deactivate the account. This will immediately log you out and block all staff access. Deactivated clinics can only be restored through primuxcare support.</p>
+                   <p className="text-red-800 text-sm max-w-2xl mb-6">If your clinic no longer uses this software, you can deactivate the account. This will immediately log you out and block all staff access. Deactivated clinics can only be restored through carechrome support.</p>
                    <Button variant="ghost" onClick={handleDeactivateClinic} disabled={deactivating} className="bg-white/50 border border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm">
                      <Power size={18} className="mr-2" /> {deactivating ? "Deactivating..." : "Deactivate Clinic"}
                    </Button>

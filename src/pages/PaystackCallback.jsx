@@ -62,8 +62,8 @@ export default function PaystackCallback() {
         setMessage(
           response.data?.message ||
             (hasSession
-              ? `Your PrimuxCare ${activatedPlanName} subscription is now active.`
-              : `Your PrimuxCare ${activatedPlanName} payment was confirmed. Sign in to continue.`),
+              ? `Your CareChrome ${activatedPlanName} subscription is now active.`
+              : `Your CareChrome ${activatedPlanName} payment was confirmed. Sign in to continue.`),
         );
 
         window.setTimeout(() => {
@@ -93,7 +93,7 @@ export default function PaystackCallback() {
     <div className="min-h-screen bg-slate-100 px-4 py-10">
       <div className="mx-auto max-w-xl rounded-3xl bg-white p-8 shadow-xl shadow-slate-200">
         <p className="text-sm uppercase tracking-[0.25em] text-teal-700">
-          PrimuxCare Billing
+          CareChrome Billing
         </p>
         <h1 className="mt-4 text-3xl font-semibold text-slate-900">
           Paystack confirmation

@@ -1,4 +1,4 @@
-const CACHE_NAME = "primuxcare-shell-v3";
+const CACHE_NAME = "carechrome-shell-v3";
 const APP_SHELL = ["/manifest.webmanifest", "/favicon.png", "/pwa-192.png", "/pwa-512.png"];
 const NETWORK_FIRST_PATHS = new Set([
   "/manifest.webmanifest",

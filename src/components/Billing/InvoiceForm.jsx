@@ -9,7 +9,7 @@ import { Card, CardContent } from "../ui/Card";
 import usePersistentState from "../../hooks/usePersistentState";
 import PatientPicker from "../ui/PatientPicker";
 
-export default function InvoiceForm({ patientId = null, onSuccess, onCancel, draftStorageKey = "primuxcare:draft:invoice-form:new" }) {
+export default function InvoiceForm({ patientId = null, onSuccess, onCancel, draftStorageKey = "carechrome:draft:invoice-form:new" }) {
   const [formData, setFormData, clearFormDraft] = usePersistentState(
     `${draftStorageKey}:form`,
     {

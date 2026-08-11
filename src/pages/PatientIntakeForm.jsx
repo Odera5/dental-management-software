@@ -6,7 +6,7 @@ import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import api from "../services/api";
 import { resolveAssetUrl } from "../utils/assetUrl";
-import primuxFavicon from "../assets/primux-logo.png";
+import carechromeLogo from "../assets/CareChrome-white.png";
 
 export default function PatientIntakeForm() {
   const { clinicId } = useParams();
@@ -77,14 +77,14 @@ export default function PatientIntakeForm() {
     if (favicon) {
       favicon.setAttribute(
         "href",
-        clinic?.logoUrl ? resolveAssetUrl(clinic.logoUrl) : primuxFavicon,
+        clinic?.logoUrl ? resolveAssetUrl(clinic.logoUrl) : carechromeLogo,
       );
     }
 
     return () => {
       document.title = previousTitle;
       if (favicon) {
-        favicon.setAttribute("href", previousHref || primuxFavicon);
+        favicon.setAttribute("href", previousHref || carechromeLogo);
       }
     };
   }, [clinic?.logoUrl, clinic?.name]);
@@ -301,7 +301,7 @@ export default function PatientIntakeForm() {
          {clinic?.logoUrl ? (
             <motion.img initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} src={resolveAssetUrl(clinic.logoUrl)} alt={clinic.name} className="h-20 w-20 object-contain mb-4 rounded-xl shadow-md bg-white p-2 border border-white" />
          ) : (
-            <motion.img initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} src={primuxFavicon} alt={clinic?.name || "Clinic"} className="h-20 w-20 object-contain mb-4 rounded-xl shadow-md bg-white p-2 border border-white" />
+             <motion.img initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} src={carechromeLogo} alt={clinic?.name || "Clinic"} className="h-20 w-20 object-contain mb-4 rounded-xl shadow-md bg-white p-2 border border-white" />
          )}
          <motion.h1 initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="text-2xl sm:text-3xl font-black text-slate-900 text-center tracking-tight leading-tight">{clinic?.name}</motion.h1>
          <motion.p initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="mt-2 text-sm text-slate-500 uppercase tracking-widest font-semibold flex items-center"><Building size={14} className="mr-1.5" /> Patient Intake</motion.p>

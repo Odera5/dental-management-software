@@ -67,11 +67,11 @@ function RecordItem({
   };
   const recordId = getEntityId(record);
   const [isEditing, setIsEditing, clearEditingFlag] = usePersistentState(
-    `primuxcare:draft:record-edit-open:${recordId}`,
+    `carechrome:draft:record-edit-open:${recordId}`,
     false,
   );
   const [editingRecordData, setEditingRecordData, clearEditingDraft] =
-    usePersistentState(`primuxcare:draft:record-edit:${recordId}`, {
+    usePersistentState(`carechrome:draft:record-edit:${recordId}`, {
       ...createEmptyRecord(),
       ...record,
     });

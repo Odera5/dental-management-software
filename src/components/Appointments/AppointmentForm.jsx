@@ -12,7 +12,7 @@ import PatientPicker from "../ui/PatientPicker";
 import { hasActiveProAccess } from "../../utils/clinicAccess";
 import { getStoredUserObject } from "../../utils/authStorage";
 
-export default function AppointmentForm({ patientId = null, appointment = null, onSuccess, onCancel, draftStorageKey = "primuxcare:draft:appointment-form:new" }) {
+export default function AppointmentForm({ patientId = null, appointment = null, onSuccess, onCancel, draftStorageKey = "carechrome:draft:appointment-form:new" }) {
   const dentistAssignmentEnabled = false;
   const navigate = useNavigate();
   const storedUser = getStoredUserObject() || {};

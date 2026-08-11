@@ -40,7 +40,7 @@ export default function WaitingRoomBoard({ newPatient = null, preselectPatientId
   const [patients, setPatients] = useState([]);
   const [patientsLoading, setPatientsLoading] = useState(false);
   const [draft, setDraft, clearDraft] = usePersistentState(
-    "primuxcare:draft:waiting-room",
+    "carechrome:draft:waiting-room",
     {
       searchQuery: "",
       patientSearchQuery: "",

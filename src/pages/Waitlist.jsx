@@ -27,7 +27,7 @@ const Waitlist = () => {
           frameBorder="0"
           marginHeight="0"
           marginWidth="0"
-          title="Join the PrimuxCare Dental Waitlist"
+          title="Join the CareChrome Dental Waitlist"
         ></iframe>
       </div>
     </div>

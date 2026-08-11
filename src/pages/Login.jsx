@@ -11,20 +11,20 @@ import {
 } from "../utils/persistence";
 import { saveAuthSession } from "../utils/authStorage";
 import usePersistentState from "../hooks/usePersistentState";
-import primuxFavicon from "../assets/NewPrimuxcareFavicon.png";
-
+import carechromeWhite from "../assets/CareChrome-white.png";
+import carechromeGreen from "../assets/CareChrome-green.png";
 export default function Login() {
   const [loginDraft, setLoginDraft, clearLoginDraft] = usePersistentState(
-    "primuxcare:draft:login",
+    "carechrome:draft:login",
     { email: "", rememberMe: false },
   );
   const [password, setPassword] = useState("");
   const [error, setError] = usePersistentState(
-    "primuxcare:draft:login:error",
+    "carechrome:draft:login:error",
     "",
   );
   const [success, setSuccess] = usePersistentState(
-    "primuxcare:draft:login:success",
+    "carechrome:draft:login:success",
     "",
   );
   const [loading, setLoading] = useState(false);
@@ -135,16 +135,16 @@ export default function Login() {
             className="text-center"
           >
             <div className="mb-6 flex justify-center">
-              <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white/10 p-1 backdrop-blur-md">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 p-1 backdrop-blur-md">
                 <img
-                  src={primuxFavicon}
-                  alt="PrimuxCare logo"
+                  src={carechromeGreen}
+                  alt="CareChrome logo"
                   className="h-full w-full object-contain"
                 />
               </div>
             </div>
             <h1 className="mb-4 text-5xl font-semibold tracking-tight">
-              PrimuxCare
+              CareChrome
             </h1>
             <p className="max-w-md text-lg text-primary-50">
               The modern, seamless operating system for forward-thinking
@@ -164,10 +164,10 @@ export default function Login() {
         >
           <div>
             <div className="mb-6 flex justify-center lg:hidden">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-100 p-1">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100 p-1">
                 <img
-                  src={primuxFavicon}
-                  alt="PrimuxCare logo"
+                  src={carechromeGreen}
+                  alt="CareChrome logo"
                   className="h-full w-full object-contain"
                 />
               </div>

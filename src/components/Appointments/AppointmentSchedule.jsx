@@ -33,7 +33,7 @@ export default function AppointmentSchedule({ patientId = null }) {
   });
   const [loading, setLoading] = useState(true);
   const [uiState, setUiState, clearUiState] = usePersistentState(
-    `primuxcare:draft:appointment-schedule:${patientId || "general"}`,
+    `carechrome:draft:appointment-schedule:${patientId || "general"}`,
     { showForm: false, editingAppointmentId: null, selectedDate: "" },
   );
   const { showForm, editingAppointmentId, selectedDate } = uiState;
@@ -335,7 +335,7 @@ export default function AppointmentSchedule({ patientId = null }) {
   const canModifyAppointment = (status) => !["arrived", "completed", "cancelled", "no_show"].includes(status);
 
   if (showForm) {
-    return <AppointmentForm patientId={patientId} appointment={editingAppointment} draftStorageKey={`primuxcare:draft:appointment-form:${editingAppointmentId || patientId || "new"}`} onSuccess={handleFormSuccess} onCancel={() => { clearUiState(); setEditingAppointment(null); }} />;
+    return <AppointmentForm patientId={patientId} appointment={editingAppointment} draftStorageKey={`carechrome:draft:appointment-form:${editingAppointmentId || patientId || "new"}`} onSuccess={handleFormSuccess} onCancel={() => { clearUiState(); setEditingAppointment(null); }} />;
   }
 
   return (

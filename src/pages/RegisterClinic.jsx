@@ -15,7 +15,8 @@ import Input from "../components/ui/Input";
 import Select from "../components/ui/Select";
 import Button from "../components/ui/Button";
 import usePersistentState from "../hooks/usePersistentState";
-import primuxFavicon from "../assets/NewPrimuxcareFavicon.png";
+import carechromeWhite from "../assets/CareChrome-white.png";
+import carechromeGreen from "../assets/CareChrome-green.png";
 import { COUNTRIES } from "../constants/countries";
 
 const initialForm = {
@@ -33,7 +34,7 @@ export default function RegisterClinic() {
   const navigate = useNavigate();
   const MotionDiv = motion.div;
   const [form, setForm, clearFormDraft] = usePersistentState(
-    "primuxcare:draft:register-clinic",
+    "carechrome:draft:register-clinic",
     initialForm,
   );
   const [password, setPassword] = useState("");
@@ -133,10 +134,10 @@ export default function RegisterClinic() {
             transition={{ duration: 0.8 }}
           >
             <div className="mb-6 flex">
-              <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white/10 p-1 backdrop-blur-md">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 p-1 backdrop-blur-md">
                 <img
-                  src={primuxFavicon}
-                  alt="PrimuxCare logo"
+                  src={carechromeGreen}
+                  alt="CareChrome logo"
                   className="h-full w-full object-contain"
                 />
               </div>
@@ -163,10 +164,10 @@ export default function RegisterClinic() {
         >
           <div>
             <div className="mb-6 flex justify-center lg:hidden">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-100 p-1">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100 p-1">
                 <img
-                  src={primuxFavicon}
-                  alt="PrimuxCare logo"
+                  src={carechromeGreen}
+                  alt="CareChrome logo"
                   className="h-full w-full object-contain"
                 />
               </div>

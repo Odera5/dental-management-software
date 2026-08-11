@@ -291,7 +291,7 @@ export default function InvoiceList({ patientId = null }) {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uiState, setUiState, clearUiState] = usePersistentState(
-    `primuxcare:draft:invoice-list:${patientId || "general"}`,
+    `carechrome:draft:invoice-list:${patientId || "general"}`,
     {
       showForm: false,
       filterStatus: "all",
@@ -436,7 +436,7 @@ export default function InvoiceList({ patientId = null }) {
     };
   }, [report]);
 
-  if (showForm) return <InvoiceForm patientId={selectedPatientId || patientId} draftStorageKey={`primuxcare:draft:invoice-form:${selectedPatientId || patientId || "new"}`} onSuccess={handleFormSuccess} onCancel={() => clearUiState()} />;
+  if (showForm) return <InvoiceForm patientId={selectedPatientId || patientId} draftStorageKey={`carechrome:draft:invoice-form:${selectedPatientId || patientId || "new"}`} onSuccess={handleFormSuccess} onCancel={() => clearUiState()} />;
   if (viewingInvoice) return (
     <InvoiceViewer
       invoice={viewingInvoice}

@@ -1,7 +1,7 @@
 import { getStoredUser } from "./authStorage";
 
 const STORAGE_KEYS = {
-  lastVisitedRoute: "primuxcare:last-visited-route",
+  lastVisitedRoute: "carechrome:last-visited-route",
 };
 
 const INVALID_LAST_ROUTE_PREFIXES = [
@@ -21,7 +21,7 @@ const INVALID_LAST_ROUTE_PREFIXES = [
 function canUseStorage(storage) {
   if (!storage) return false;
   try {
-    const testKey = "__primuxcare_storage_test__";
+    const testKey = "__carechrome_storage_test__";
     storage.setItem(testKey, "1");
     storage.removeItem(testKey);
     return true;

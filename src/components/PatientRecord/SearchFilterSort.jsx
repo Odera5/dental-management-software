@@ -5,7 +5,7 @@ import usePersistentState from "../../hooks/usePersistentState";
 export default function SearchFilterSort({
   filters: externalFilters,
   onChange,
-  storageKey = "primuxcare:draft:record-search",
+  storageKey = "carechrome:draft:record-search",
 }) {
   const [storedFilters, setStoredFilters] = usePersistentState(storageKey, {
     searchText: "",
