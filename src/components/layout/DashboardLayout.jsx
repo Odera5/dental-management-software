@@ -23,6 +23,7 @@ import {
   History,
   ChevronLeft,
   ChevronRight,
+  Camera,
 } from "lucide-react";
 import api, { logoutCurrentUser } from "../../services/api";
 import {
@@ -35,6 +36,7 @@ import Input from "../ui/Input";
 import Toast from "../Toast";
 import carechromeLogo from "../../assets/CareChrome-white.png";
 import { getStoredUserObject, updateStoredUser } from "../../utils/authStorage";
+import { resolveAssetUrl } from "../../utils/assetUrl";
 import {
   BRANCHES_UPDATED_EVENT,
   getActiveBranchId,
@@ -168,9 +170,12 @@ export default function DashboardLayout() {
   const storedUser = getStoredUserObject() || {};
   const [currentUserName, setCurrentUserName] = useState("");
   const [currentUserDob, setCurrentUserDob] = useState("");
+  const [currentUserAvatar, setCurrentUserAvatar] = useState("");
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [profileDob, setProfileDob] = useState("");
+  const [profileAvatar, setProfileAvatar] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileToast, setProfileToast] = useState(null);
 
@@ -178,6 +183,7 @@ export default function DashboardLayout() {
     const stored = getStoredUserObject() || {};
     setCurrentUserName(stored.name || stored.email || "User");
     setCurrentUserDob(stored.dateOfBirth || "");
+    setCurrentUserAvatar(stored.avatarUrl || "");
   }, []);
 
   const user = {
@@ -185,6 +191,7 @@ export default function DashboardLayout() {
     role: storedUser.role || "nurse",
     displayRole: storedUser.customRoleTitle || storedUser.role || "nurse",
     clinicName: clinicState?.name || storedUser.clinic?.name || "Clinic",
+    avatarUrl: currentUserAvatar || storedUser.avatarUrl || "",
   };
 
   const clinic = clinicState || storedUser.clinic || {};
@@ -429,8 +436,35 @@ export default function DashboardLayout() {
     const stored = getStoredUserObject() || {};
     setProfileName(stored.name || "");
     setProfileDob(stored.dateOfBirth || "");
+    setProfileAvatar(stored.avatarUrl || "");
     setProfileToast(null);
     setShowProfileModal(true);
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploadingAvatar(true);
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await api.post("/upload/avatar", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setProfileAvatar(response.data.url);
+      setProfileToast({ message: "Profile picture uploaded successfully", type: "success" });
+    } catch (err) {
+      console.error(err);
+      setProfileToast({ message: err.response?.data?.message || "Upload failed", type: "error" });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setProfileAvatar("");
+    setProfileToast({ message: "Profile picture removed", type: "success" });
   };
 
   const handleSaveProfile = async (e) => {
@@ -444,15 +478,18 @@ export default function DashboardLayout() {
       const res = await api.put("/auth/profile", {
         name: profileName.trim(),
         dateOfBirth: profileDob || "",
+        avatarUrl: profileAvatar || "",
       });
 
       updateStoredUser({
         name: res.data.user.name,
         dateOfBirth: res.data.user.dateOfBirth || "",
+        avatarUrl: res.data.user.avatarUrl || "",
       });
 
       setCurrentUserName(res.data.user.name);
       setCurrentUserDob(res.data.user.dateOfBirth || "");
+      setCurrentUserAvatar(res.data.user.avatarUrl || "");
 
       setProfileToast({ message: "Profile updated successfully!", type: "success" });
       setTimeout(() => {
@@ -698,9 +735,13 @@ export default function DashboardLayout() {
               className="flex items-center gap-3 px-4 py-2 mb-2 hover:bg-slate-100 rounded-xl cursor-pointer transition-colors group"
               title="Click to edit profile"
             >
-              <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold border border-primary-200 group-hover:scale-105 transition-transform relative shrink-0">
-                {user.name.charAt(0).toUpperCase()}
-                <div className="absolute -bottom-1 -right-1 bg-white border border-slate-200 rounded-full p-0.5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold border border-primary-200 group-hover:scale-105 transition-transform relative shrink-0 overflow-hidden">
+                {user.avatarUrl ? (
+                  <img src={resolveAssetUrl(user.avatarUrl)} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  user.name.charAt(0).toUpperCase()
+                )}
+                <div className="absolute -bottom-1 -right-1 bg-white border border-slate-200 rounded-full p-0.5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-10">
                   <Settings size={10} className="text-slate-500" />
                 </div>
               </div>
@@ -978,6 +1019,49 @@ export default function DashboardLayout() {
                 </div>
 
                 <form onSubmit={handleSaveProfile} className="space-y-5">
+                  {/* Avatar Upload Container */}
+                  <div className="flex flex-col items-center mb-6">
+                    <div className="relative group">
+                      <div 
+                        onClick={() => !uploadingAvatar && document.getElementById('avatar-upload').click()}
+                        className="h-24 w-24 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 font-bold text-3xl cursor-pointer relative overflow-hidden transition-all duration-200 hover:border-primary-400 hover:shadow-md"
+                      >
+                        {uploadingAvatar ? (
+                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+                        ) : profileAvatar ? (
+                          <img src={resolveAssetUrl(profileAvatar)} alt="Preview" className="w-full h-full object-cover animate-fade-in" />
+                        ) : (
+                          profileName.charAt(0).toUpperCase() || <User size={40} />
+                        )}
+                        
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
+                          <Camera size={20} className="mb-0.5" />
+                          <span className="text-[9px] font-bold uppercase tracking-wider">Change</span>
+                        </div>
+                      </div>
+                      
+                      {profileAvatar && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveAvatar}
+                          className="absolute -top-1 -right-1 bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-full p-1.5 shadow-sm border border-slate-200 transition-all active:scale-95 z-10"
+                          title="Remove profile picture"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                    </div>
+                    <input 
+                      type="file" 
+                      id="avatar-upload" 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={handleAvatarUpload} 
+                      disabled={uploadingAvatar} 
+                    />
+                    <p className="text-[10px] text-slate-400 mt-2 font-medium">JPEG, PNG, or WEBP (Max 10MB)</p>
+                  </div>
+
                   <Input
                     label="Full Name"
                     type="text"
