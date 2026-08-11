@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
+  User,
   Calendar,
   Clock,
   CreditCard,
@@ -30,6 +31,8 @@ import {
   subscribeDashboardSummary,
 } from "../../services/dashboardSummary";
 import Button from "../ui/Button";
+import Input from "../ui/Input";
+import Toast from "../Toast";
 import carechromeLogo from "../../assets/CareChrome-white.png";
 import { getStoredUserObject, updateStoredUser } from "../../utils/authStorage";
 import {
@@ -163,8 +166,22 @@ export default function DashboardLayout() {
   const branchMenuRef = useRef(null);
 
   const storedUser = getStoredUserObject() || {};
+  const [currentUserName, setCurrentUserName] = useState("");
+  const [currentUserDob, setCurrentUserDob] = useState("");
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileDob, setProfileDob] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileToast, setProfileToast] = useState(null);
+
+  useEffect(() => {
+    const stored = getStoredUserObject() || {};
+    setCurrentUserName(stored.name || stored.email || "User");
+    setCurrentUserDob(stored.dateOfBirth || "");
+  }, []);
+
   const user = {
-    name: storedUser.name || storedUser.email || "User",
+    name: currentUserName || storedUser.name || storedUser.email || "User",
     role: storedUser.role || "nurse",
     displayRole: storedUser.customRoleTitle || storedUser.role || "nurse",
     clinicName: clinicState?.name || storedUser.clinic?.name || "Clinic",
@@ -408,6 +425,48 @@ export default function DashboardLayout() {
     window.location.assign(destination);
   };
 
+  const handleOpenProfileModal = () => {
+    const stored = getStoredUserObject() || {};
+    setProfileName(stored.name || "");
+    setProfileDob(stored.dateOfBirth || "");
+    setProfileToast(null);
+    setShowProfileModal(true);
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!profileName.trim()) {
+      setProfileToast({ message: "Name is required", type: "error" });
+      return;
+    }
+    try {
+      setProfileSaving(true);
+      const res = await api.put("/auth/profile", {
+        name: profileName.trim(),
+        dateOfBirth: profileDob || "",
+      });
+
+      updateStoredUser({
+        name: res.data.user.name,
+        dateOfBirth: res.data.user.dateOfBirth || "",
+      });
+
+      setCurrentUserName(res.data.user.name);
+      setCurrentUserDob(res.data.user.dateOfBirth || "");
+
+      setProfileToast({ message: "Profile updated successfully!", type: "success" });
+      setTimeout(() => {
+        setShowProfileModal(false);
+        setProfileToast(null);
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+      setProfileToast({ message: err.response?.data?.message || "Failed to update profile", type: "error" });
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
   const handleLogout = async () => {
     await logoutCurrentUser();
     navigate("/login");
@@ -634,15 +693,22 @@ export default function DashboardLayout() {
           </div>
 
           <div className="p-4 border-t border-surface-100 bg-surface-50 shrink-0">
-            <div className="flex items-center gap-3 px-4 py-2 mb-2">
-              <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold border border-primary-200">
+            <div 
+              onClick={handleOpenProfileModal} 
+              className="flex items-center gap-3 px-4 py-2 mb-2 hover:bg-slate-100 rounded-xl cursor-pointer transition-colors group"
+              title="Click to edit profile"
+            >
+              <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold border border-primary-200 group-hover:scale-105 transition-transform relative shrink-0">
                 {user.name.charAt(0).toUpperCase()}
+                <div className="absolute -bottom-1 -right-1 bg-white border border-slate-200 rounded-full p-0.5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Settings size={10} className="text-slate-500" />
+                </div>
               </div>
               <div className="flex-1 truncate">
-                <p className="text-sm font-semibold text-slate-900 truncate">
+                <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-primary-700 transition-colors">
                   {user.name}
                 </p>
-                <p className="text-xs text-slate-500 capitalize">{user.displayRole === "nurse" && !storedUser.customRoleTitle ? "Nurse / Desk" : user.displayRole === "branch_manager" && !storedUser.customRoleTitle ? "Branch Manager" : user.displayRole}</p>
+                <p className="text-xs text-slate-500 capitalize truncate">{user.displayRole === "nurse" && !storedUser.customRoleTitle ? "Nurse / Desk" : user.displayRole === "branch_manager" && !storedUser.customRoleTitle ? "Branch Manager" : user.displayRole}</p>
               </div>
             </div>
             <Button
@@ -883,6 +949,87 @@ export default function DashboardLayout() {
           <Outlet />
         </div>
       </main>
+
+      <AnimatePresence>
+        {showProfileModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 relative"
+            >
+              {/* Top Gradient Banner */}
+              <div className="h-2 bg-gradient-to-r from-primary-500 via-rose-500 to-amber-500" />
+              
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">Edit Profile</h3>
+                    <p className="text-xs text-slate-500 mt-1">Keep your clinic staff credentials and birthday up to date.</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowProfileModal(false)}
+                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveProfile} className="space-y-5">
+                  <Input
+                    label="Full Name"
+                    type="text"
+                    icon={User}
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    placeholder="Your Full Name"
+                    required
+                  />
+
+                  <Input
+                    label="Date of Birth"
+                    type="date"
+                    icon={Calendar}
+                    value={profileDob}
+                    onChange={(e) => setProfileDob(e.target.value)}
+                    placeholder="YYYY-MM-DD"
+                  />
+
+                  <div className="flex gap-3 pt-4">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="flex-1 border-slate-200" 
+                      onClick={() => setShowProfileModal(false)}
+                      disabled={profileSaving}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      className="flex-1 bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white font-semibold shadow-md"
+                      isLoading={profileSaving}
+                    >
+                      Save Changes
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+
+            {profileToast && (
+              <Toast
+                message={profileToast.message}
+                type={profileToast.type}
+                duration={3000}
+                onClose={() => setProfileToast(null)}
+              />
+            )}
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
