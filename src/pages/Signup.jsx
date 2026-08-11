@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { UserPlus, Users, Mail, Shield, ShieldAlert, Key, Link as LinkIcon, Trash2, Power, CheckCircle2, Search, Calendar } from "lucide-react";
+import { UserPlus, Users, Mail, Shield, ShieldAlert, Key, Link as LinkIcon, Trash2, Power, CheckCircle2, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -19,7 +19,6 @@ const initialSignupDraft = {
   role: "nurse",
   customRoleTitle: "",
   assignedBranchIds: [],
-  dateOfBirth: "",
 };
 
 const supportEmail = "support@carechrome.com";
@@ -122,7 +121,6 @@ export default function Signup() {
         password,
         role,
         customRoleTitle,
-        dateOfBirth: signupDraft.dateOfBirth || "",
         assignedBranchIds: enterpriseAccess ? signupAssignedBranchIds : (branches[0] ? [branches[0].id] : []),
       });
       showToast("Staff account created. The user must verify their email before they can log in.", "success");
@@ -282,15 +280,6 @@ export default function Signup() {
                       <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 font-medium text-xs uppercase tracking-wider">{showPassword ? "Hide" : "Show"}</button>
                    </div>
                 </div>
-
-                <Input
-                  label="Date of Birth (Optional)"
-                  type="date"
-                  value={signupDraft.dateOfBirth || ""}
-                  onChange={(e) => updateSignupDraft({ dateOfBirth: e.target.value })}
-                  icon={Calendar}
-                  className="bg-slate-50"
-                />
 
                 <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">Account Role *</label>

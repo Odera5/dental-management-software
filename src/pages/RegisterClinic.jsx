@@ -9,7 +9,6 @@ import {
   Lock,
   User,
   Globe,
-  Calendar,
 } from "lucide-react";
 import api from "../services/api";
 import Input from "../components/ui/Input";
@@ -29,7 +28,6 @@ const initialForm = {
   clinicAddress: "",
   adminName: "",
   adminEmail: "",
-  adminDateOfBirth: "",
 };
 
 export default function RegisterClinic() {
@@ -289,7 +287,7 @@ export default function RegisterClinic() {
               <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-900">
                 Primary Admin Detail
               </h3>
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 <Input
                   label="Admin Name"
                   name="adminName"
@@ -309,14 +307,6 @@ export default function RegisterClinic() {
                   onChange={handleChange}
                   placeholder="admin@clinic.com"
                   required
-                />
-                <Input
-                  label="Date of Birth"
-                  name="adminDateOfBirth"
-                  type="date"
-                  icon={Calendar}
-                  value={form.adminDateOfBirth || ""}
-                  onChange={handleChange}
                 />
               </div>
               <Input
