@@ -30,6 +30,7 @@ export default function PatientIntakeForm() {
     firstName: "",
     lastName: "",
     otherName: "",
+    dateOfBirth: "",
     age: "",
     gender: "other",
     phone: "",
@@ -171,6 +172,26 @@ export default function PatientIntakeForm() {
     }
   };
 
+  const handleDateOfBirthChange = (e) => {
+    const dobValue = e.target.value;
+    let computedAge = "";
+    if (dobValue) {
+      const birthDate = new Date(dobValue);
+      const today = new Date();
+      let ageDiff = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        ageDiff--;
+      }
+      computedAge = ageDiff >= 0 ? ageDiff.toString() : "";
+    }
+    setForm(f => ({
+      ...f,
+      dateOfBirth: dobValue,
+      age: computedAge,
+    }));
+  };
+
   const formatSelectedDateLabel = (value) => {
     if (!value) return "selected date";
 
@@ -207,7 +228,7 @@ export default function PatientIntakeForm() {
     if (currentStep === 1) {
       const ageNum = parseInt(form.age, 10);
       const isAgeValid = !isNaN(ageNum) && ageNum >= 0 && ageNum <= 120;
-      return form.firstName.trim() !== "" && form.lastName.trim() !== "" && form.age.trim() !== "" && isAgeValid;
+      return form.firstName.trim() !== "" && form.lastName.trim() !== "" && form.dateOfBirth.trim() !== "" && isAgeValid;
     }
     if (currentStep === 2) {
       const isPhoneValid = form.phone.trim() !== "" && !formErrors.phone && /^[0-9+\-() ]*$/.test(form.phone) && !/[a-zA-Z]/.test(form.phone);
@@ -348,7 +369,8 @@ export default function PatientIntakeForm() {
                            <div className="md:col-span-2">
                              <Input label="Other Name" name="otherName" value={form.otherName} onChange={handleChange} placeholder="Optional" className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
                            </div>
-                           <Input label="Age *" name="age" type="number" value={form.age} onChange={handleChange} required placeholder="Years" className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
+                           <Input label="Date of Birth *" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleDateOfBirthChange} required className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
+                           <Input label="Age (Auto-calculated)" name="age" type="number" value={form.age} placeholder="Auto-calculated" disabled={true} required className="bg-slate-50 h-14 rounded-xl border-slate-200 text-lg" />
                            <div className="space-y-1.5">
                               <label className="text-sm font-semibold text-slate-700 block">Gender *</label>
                               <select name="gender" value={form.gender} onChange={handleChange} required className="w-full h-14 rounded-xl border border-slate-200 px-4 bg-slate-50 text-slate-900 text-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow">

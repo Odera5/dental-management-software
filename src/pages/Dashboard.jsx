@@ -87,6 +87,79 @@ export default function Dashboard() {
   const [trashTotal, setTrashTotal] = useState(0);
   const [trashTotalPages, setTrashTotalPages] = useState(1);
 
+  const [showBirthdayModal, setShowBirthdayModal] = useState(false);
+
+  const triggerConfetti = () => {
+    const container = document.createElement("div");
+    container.style.position = "fixed";
+    container.style.top = "0";
+    container.style.left = "0";
+    container.style.width = "100vw";
+    container.style.height = "100vh";
+    container.style.pointerEvents = "none";
+    container.style.zIndex = "99999";
+    document.body.appendChild(container);
+
+    const colors = ["#f43f5e", "#3b82f6", "#10b981", "#eab308", "#a855f7", "#ff7849"];
+    for (let i = 0; i < 150; i++) {
+      const p = document.createElement("div");
+      p.style.position = "absolute";
+      p.style.width = `${Math.random() * 10 + 6}px`;
+      p.style.height = `${Math.random() * 10 + 6}px`;
+      p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      p.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+      
+      p.style.top = `-20px`;
+      p.style.left = `${Math.random() * 100}vw`;
+      
+      const duration = Math.random() * 3 + 2.5;
+      const delay = Math.random() * 1.5;
+      p.style.transition = `transform ${duration}s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${delay}s, opacity ${duration}s ease ${delay}s`;
+      
+      container.appendChild(p);
+
+      setTimeout(() => {
+        p.style.transform = `translate(${Math.random() * 300 - 150}px, 105vh) rotate(${Math.random() * 720}deg)`;
+        p.style.opacity = "0";
+      }, 100);
+    }
+
+    setTimeout(() => {
+      container.remove();
+    }, 7000);
+  };
+
+  useEffect(() => {
+    if (storedUser?.dateOfBirth && storedUser?.name) {
+      const todayObj = new Date();
+      const currentYear = todayObj.getFullYear();
+      const curMonth = String(todayObj.getMonth() + 1).padStart(2, "0");
+      const curDay = String(todayObj.getDate()).padStart(2, "0");
+      
+      const dob = storedUser.dateOfBirth;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
+        const [, birthMonth, birthDay] = dob.split("-");
+        
+        if (birthMonth === curMonth && birthDay === curDay) {
+          const celebrationKey = `carechrome:birthday-celebrated:${storedUser.id}:${currentYear}`;
+          const alreadyCelebrated = localStorage.getItem(celebrationKey);
+          if (!alreadyCelebrated) {
+            setShowBirthdayModal(true);
+            localStorage.setItem(celebrationKey, "true");
+          }
+        }
+      }
+    }
+  }, [storedUser?.dateOfBirth, storedUser?.name, storedUser?.id]);
+
+  useEffect(() => {
+    if (showBirthdayModal) {
+      triggerConfetti();
+      const timer = setTimeout(triggerConfetti, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [showBirthdayModal]);
+
   const showTrash = location.search.includes("tab=trash");
   const clinicPlan = storedUser?.clinic?.plan || "PRO";
   const proAccessActive = hasActiveProAccess(storedUser?.clinic);
@@ -645,6 +718,47 @@ export default function Dashboard() {
         onClose={() => setConfirmConfig(null)} 
         {...confirmConfig} 
       />
+
+      {/* Birthday Celebration Modal */}
+      {showBirthdayModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0, y: 30 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 15 }}
+            transition={{ type: "spring", duration: 0.5 }}
+            className="bg-gradient-to-br from-indigo-900 via-slate-900 to-emerald-950 text-white rounded-[2rem] shadow-2xl max-w-lg w-full overflow-hidden border border-white/10 relative p-8 text-center"
+          >
+            <div className="absolute top-0 left-1/4 w-32 h-32 bg-primary-500/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 right-1/4 w-32 h-32 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col items-center">
+              <span className="text-6xl mb-4 animate-bounce">🎂</span>
+              
+              <h2 className="text-3xl font-black bg-gradient-to-r from-amber-200 via-rose-300 to-primary-300 bg-clip-text text-transparent mb-2">
+                Happy Birthday, {storedUser?.name?.split(" ")[0]}!
+              </h2>
+              
+              <p className="text-slate-300 font-medium text-lg mb-6">
+                From all of us at {storedUser?.clinic?.name || "CareChrome"}, we wish you a beautiful day filled with love, laughter, and happiness!
+              </p>
+
+              <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 w-full mb-8 text-left">
+                <p className="text-slate-200 text-sm leading-relaxed italic">
+                  "Thank you for everything you do to make our clinic a warm, supportive, and wonderful place. We appreciate your dedication and care every single day. Have a fabulous celebration!"
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowBirthdayModal(false)}
+                className="w-full h-14 bg-gradient-to-r from-amber-400 to-rose-500 hover:from-amber-300 hover:to-rose-400 text-slate-950 font-black text-lg rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200"
+              >
+                Thank you! 💖
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 }

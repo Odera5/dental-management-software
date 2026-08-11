@@ -15,6 +15,7 @@ const emptyPatientForm = {
   firstName: "",
   lastName: "",
   otherName: "",
+  dateOfBirth: "",
   age: "",
   email: "",
   gender: "other",
@@ -44,6 +45,26 @@ export default function RegisterPatient() {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  const handleDateOfBirthChange = (e) => {
+    const dobValue = e.target.value;
+    let computedAge = "";
+    if (dobValue) {
+      const birthDate = new Date(dobValue);
+      const today = new Date();
+      let ageDiff = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        ageDiff--;
+      }
+      computedAge = ageDiff >= 0 ? ageDiff.toString() : "";
+    }
+    setForm({
+      ...form,
+      dateOfBirth: dobValue,
+      age: computedAge,
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -60,6 +81,7 @@ export default function RegisterPatient() {
       const payload = {
         name: fullName,
         age: form.age.toString(),
+        dateOfBirth: form.dateOfBirth || "",
         gender: form.gender || "other",
         phone: form.phone?.trim() || "",
         address: form.address?.trim() || "",
@@ -172,14 +194,24 @@ export default function RegisterPatient() {
                 />
                 
                 <Input
-                  label="Age *"
+                  label="Date of Birth *"
+                  name="dateOfBirth"
+                  type="date"
+                  icon={Calendar}
+                  value={form.dateOfBirth || ""}
+                  onChange={handleDateOfBirthChange}
+                  disabled={loading}
+                  required
+                />
+
+                <Input
+                  label="Age (Auto-calculated)"
                   name="age"
                   type="number"
                   icon={Calendar}
                   value={form.age}
-                  onChange={handleChange}
-                  placeholder="e.g. 34"
-                  disabled={loading}
+                  placeholder="Auto-calculated from DOB"
+                  disabled={true}
                   required
                 />
               </div>
