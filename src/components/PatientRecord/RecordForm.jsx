@@ -330,7 +330,7 @@ function ToothChart({ teeth, onToothClick, dentition }) {
   };
 
   const renderRow = (left, right) => (
-    <div className="flex justify-center md:justify-between items-center w-full max-w-4xl mx-auto flex-wrap md:flex-nowrap gap-4 md:gap-8 mb-2">
+    <div className="flex justify-center md:justify-between items-center w-full max-w-3xl mx-auto flex-wrap md:flex-nowrap gap-1 md:gap-8 mb-2 px-2">
       <div className="flex gap-1.5 flex-1 justify-end md:justify-end border-b-2 border-slate-300 pb-2 md:border-b-0 md:pb-0 md:border-r-2 md:pr-4">
         {left.map((t) => {
           const resolvedConditions = Array.isArray(t.conditions)
@@ -350,7 +350,7 @@ function ToothChart({ teeth, onToothClick, dentition }) {
               type="button"
               onClick={() => onToothClick(t.number)}
               style={style}
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg text-sm font-bold flex items-center justify-center cursor-pointer transition-all hover:-translate-y-1 ${className}`}
+              className={`w-8 h-8 sm:w-9 sm:h-9 md:sm:w-10 md:sm:h-10 rounded-lg text-sm font-bold flex items-center justify-center cursor-pointer transition-all hover:-translate-y-1 ${className}`}
               title={`${palmerNotation(t.number)} - ${label}`}
             >
               {toothLabel(t.number, dentition)}
@@ -377,7 +377,7 @@ function ToothChart({ teeth, onToothClick, dentition }) {
               type="button"
               onClick={() => onToothClick(t.number)}
               style={style}
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg text-sm font-bold flex items-center justify-center cursor-pointer transition-all hover:-translate-y-1 ${className}`}
+              className={`w-8 h-8 sm:w-9 sm:h-9 md:sm:w-10 md:sm:h-10 rounded-lg text-sm font-bold flex items-center justify-center cursor-pointer transition-all hover:-translate-y-1 ${className}`}
               title={`${palmerNotation(t.number)} - ${label}`}
             >
               {toothLabel(t.number, dentition)}
