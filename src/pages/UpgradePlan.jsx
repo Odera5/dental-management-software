@@ -170,7 +170,7 @@ export default function UpgradePlan() {
       setConfirmConfig({
         title: "Upgrade to Enterprise",
         message:
-          "You are upgrading your subscription from Professional to Enterprise. To prevent duplicate charges, your current Professional plan will be automatically cancelled, and you will be redirected to Paystack to complete your new checkout. Your current access will remain active until the upgrade is complete.",
+          "You are upgrading your subscription from Professional to Enterprise. To avoid duplicate charges, your active Professional subscription will be automatically cancelled first. You will then be redirected to Paystack to complete checkout for the Enterprise plan. Your clinic access will remain active throughout this process.",
         confirmText: "Confirm & Proceed",
         cancelText: "Cancel",
         onConfirm: async () => {
@@ -205,7 +205,7 @@ export default function UpgradePlan() {
       setConfirmConfig({
         title: "Switch to Professional",
         message:
-          "You are switching your subscription from Enterprise to Professional. To prevent duplicate charges, your current Enterprise plan will be automatically cancelled, and you will be redirected to Paystack to complete your new checkout. Your current access will remain active until the transition is complete.",
+          "You are switching your subscription from Enterprise to Professional. To avoid duplicate charges, your active Enterprise subscription will be automatically cancelled first. You will then be redirected to Paystack to complete checkout for the Professional plan. Your clinic access will remain active throughout this process.",
         confirmText: "Confirm & Proceed",
         cancelText: "Cancel",
         onConfirm: async () => {
