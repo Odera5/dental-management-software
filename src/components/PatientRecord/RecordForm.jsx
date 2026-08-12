@@ -331,7 +331,7 @@ function ToothChart({ teeth, onToothClick, dentition }) {
 
   const renderRow = (left, right) => (
     <div className="flex justify-center md:justify-between items-center w-full max-w-4xl mx-auto flex-wrap md:flex-nowrap gap-4 md:gap-8 mb-2">
-      <div className="flex gap-1.5 flex-1 justify-center md:justify-end border-b-2 border-slate-300 pb-2 md:border-b-0 md:pb-0 md:border-r-2 md:pr-4">
+      <div className="flex gap-1.5 flex-1 justify-end md:justify-end border-b-2 border-slate-300 pb-2 md:border-b-0 md:pb-0 md:border-r-2 md:pr-4">
         {left.map((t) => {
           const resolvedConditions = Array.isArray(t.conditions)
             ? t.conditions
@@ -358,7 +358,7 @@ function ToothChart({ teeth, onToothClick, dentition }) {
           );
         })}
       </div>
-      <div className="flex gap-1.5 flex-1 justify-center md:justify-start border-t-2 border-slate-300 pt-2 md:border-t-0 md:pt-0">
+      <div className="flex gap-1.5 flex-1 justify-start md:justify-start border-t-2 border-slate-300 pt-2 md:border-t-0 md:pt-0">
         {right.map((t) => {
           const resolvedConditions = Array.isArray(t.conditions)
             ? t.conditions
