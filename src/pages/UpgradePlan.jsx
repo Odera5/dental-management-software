@@ -168,11 +168,11 @@ export default function UpgradePlan() {
   const handleEnterpriseUpgradeClick = () => {
     if (paidSubscriptionActive && !isEnterprise) {
       setConfirmConfig({
-        title: "Cancel Existing Plan?",
+        title: "Upgrade to Enterprise",
         message:
-          "You currently have an active Professional plan. To avoid duplicate charges, we highly recommend canceling it before subscribing to Enterprise. Would you like us to automatically cancel your Professional plan for you?",
-        confirmText: "Yes, Cancel & Upgrade",
-        cancelText: "No, Just Upgrade",
+          "You are upgrading your subscription from Professional to Enterprise. To prevent duplicate charges, your current Professional plan will be automatically cancelled, and you will be redirected to Paystack to complete your new checkout. Your current access will remain active until the upgrade is complete.",
+        confirmText: "Confirm & Proceed",
+        cancelText: "Cancel",
         onConfirm: async () => {
           try {
             setEnterpriseCheckoutLoading(true);
@@ -193,7 +193,6 @@ export default function UpgradePlan() {
         },
         onCancelClick: () => {
           setConfirmConfig(null);
-          handleUpgradeClick("ENTERPRISE", isAnnual ? "annually" : "monthly");
         },
       });
     } else {
@@ -204,11 +203,11 @@ export default function UpgradePlan() {
   const handleProUpgradeClick = () => {
     if (paidSubscriptionActive && isEnterprise) {
       setConfirmConfig({
-        title: "Cancel Existing Plan?",
+        title: "Switch to Professional",
         message:
-          "You currently have an active Enterprise plan. To avoid duplicate charges, we highly recommend canceling it before switching to Professional. Would you like us to automatically cancel your Enterprise plan for you?",
-        confirmText: "Yes, Cancel & Switch",
-        cancelText: "No, Just Switch",
+          "You are switching your subscription from Enterprise to Professional. To prevent duplicate charges, your current Enterprise plan will be automatically cancelled, and you will be redirected to Paystack to complete your new checkout. Your current access will remain active until the transition is complete.",
+        confirmText: "Confirm & Proceed",
+        cancelText: "Cancel",
         onConfirm: async () => {
           try {
             setCheckoutLoading(true);
@@ -229,7 +228,6 @@ export default function UpgradePlan() {
         },
         onCancelClick: () => {
           setConfirmConfig(null);
-          handleUpgradeClick("PRO", isAnnual ? "annually" : "monthly");
         },
       });
     } else {
