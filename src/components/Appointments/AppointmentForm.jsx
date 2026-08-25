@@ -324,7 +324,7 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
                     />
                     Enable reminders
                   </label>
-                ) : (
+                ) : storedUser?.role === "admin" ? (
                   <Button
                     type="button"
                     variant="outline"
@@ -334,6 +334,10 @@ export default function AppointmentForm({ patientId = null, appointment = null, 
                   >
                     <Crown size={16} className="mr-2" /> Upgrade to Pro
                   </Button>
+                ) : (
+                  <span className="text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200 py-1.5 px-3 rounded-lg w-full sm:w-auto text-center inline-block">
+                    Pro Plan required. Contact admin to upgrade.
+                  </span>
                 )}
               </div>
             </div>

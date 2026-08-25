@@ -704,10 +704,13 @@ export default function Dashboard() {
             <h3 className="text-xl font-bold text-slate-900 mb-2">Pro Plan Feature</h3>
             <p className="text-slate-500 text-sm mb-6">
               Bulk importing legacy patients and exporting your patient database require active Pro access through your 14-day trial or paid Pro subscription.
+              {user.role !== "admin" && " Please contact your clinic administrator to upgrade."}
             </p>
             <div className="flex w-full gap-3">
-              <Button type="button" variant="outline" className="flex-1 border-slate-200" onClick={() => setShowUpgradeModal(false)}>Close</Button>
-              <Button type="button" className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg font-bold" onClick={() => navigate("/upgrade")}>Upgrade Now</Button>
+              <Button type="button" variant="outline" className={user.role === "admin" ? "flex-1 border-slate-200" : "w-full border-slate-200"} onClick={() => setShowUpgradeModal(false)}>Close</Button>
+              {user.role === "admin" && (
+                <Button type="button" className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg font-bold" onClick={() => navigate("/upgrade")}>Upgrade Now</Button>
+              )}
             </div>
           </div>
         </div>

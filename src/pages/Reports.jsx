@@ -215,14 +215,20 @@ export default function Reports() {
               <p className="text-slate-600 text-lg mb-8 leading-relaxed">
                 Unlock powerful financial charts, appointment trends, and patient demographic breakdowns. Make data-driven decisions to grow your clinic.
               </p>
-              <Button 
-                onClick={() => navigate("/upgrade")} 
-                size="lg" 
-                className="w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 border-none shadow-xl shadow-orange-500/20 text-white font-bold h-14 text-lg rounded-xl flex items-center justify-center gap-3"
-              >
-                <Lock size={20} />
-                Unlock Pro Plan
-              </Button>
+              {storedUser?.role === "admin" ? (
+                <Button 
+                  onClick={() => navigate("/upgrade")} 
+                  size="lg" 
+                  className="w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 border-none shadow-xl shadow-orange-500/20 text-white font-bold h-14 text-lg rounded-xl flex items-center justify-center gap-3"
+                >
+                  <Lock size={20} />
+                  Unlock Pro Plan
+                </Button>
+              ) : (
+                <div className="text-sm font-semibold text-slate-500 bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 text-center">
+                  Advanced Analytics require Pro Plan. Please contact your clinic administrator to upgrade.
+                </div>
+              )}
             </div>
           </div>
         </div>

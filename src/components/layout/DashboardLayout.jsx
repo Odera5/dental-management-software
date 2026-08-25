@@ -178,6 +178,7 @@ export default function DashboardLayout() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileToast, setProfileToast] = useState(null);
+  const [layoutToast, setLayoutToast] = useState(null);
 
   useEffect(() => {
     const stored = getStoredUserObject() || {};
@@ -991,7 +992,16 @@ export default function DashboardLayout() {
                 <div className="flex items-center gap-2">
                   {location.pathname !== "/upgrade" && (
                     <button
-                      onClick={() => navigate("/upgrade")}
+                      onClick={() => {
+                        if (isAdmin) {
+                          navigate("/upgrade");
+                        } else {
+                          setLayoutToast({
+                            message: "Only clinic administrators are authorized to manage subscription and billing.",
+                            type: "error",
+                          });
+                        }
+                      }}
                       className="bg-white/20 hover:bg-white/30 px-4 py-1.5 rounded-full text-xs transition-colors border border-white/30 backdrop-blur-sm shadow-sm focus:outline-none"
                     >
                       Upgrade Now
@@ -1030,7 +1040,16 @@ export default function DashboardLayout() {
               </span>
               {location.pathname !== "/upgrade" && (
                 <button
-                  onClick={() => navigate("/upgrade")}
+                  onClick={() => {
+                    if (isAdmin) {
+                      navigate("/upgrade");
+                    } else {
+                      setLayoutToast({
+                        message: "Only clinic administrators are authorized to manage subscription and billing.",
+                        type: "error",
+                      });
+                    }
+                  }}
                   className="bg-white/20 hover:bg-white/30 px-4 py-1.5 rounded-full text-xs transition-colors border border-white/30 backdrop-blur-sm shadow-sm"
                 >
                   Manage Billing
@@ -1162,6 +1181,15 @@ export default function DashboardLayout() {
                 type={profileToast.type}
                 duration={3000}
                 onClose={() => setProfileToast(null)}
+              />
+            )}
+
+            {layoutToast && (
+              <Toast
+                message={layoutToast.message}
+                type={layoutToast.type}
+                duration={3000}
+                onClose={() => setLayoutToast(null)}
               />
             )}
           </div>

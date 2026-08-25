@@ -1810,23 +1810,26 @@ export default function RecordForm({
               The 1-Click Dental Formulary allows you to instantly insert
               pre-formatted prescription dosages, saving you massive amounts of
               typing. Upgrade to the Pro Plan to unlock this feature.
+              {storedUser?.role !== "admin" && " Please contact your clinic administrator to upgrade."}
             </p>
             <div className="flex w-full gap-3">
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1 border-slate-200"
+                className={storedUser?.role === "admin" ? "flex-1 border-slate-200" : "w-full border-slate-200"}
                 onClick={() => setShowUpgradeModal(false)}
               >
                 Close
               </Button>
-              <Button
-                type="button"
-                className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg font-bold"
-                onClick={() => navigate("/upgrade")}
-              >
-                Upgrade Now
-              </Button>
+              {storedUser?.role === "admin" && (
+                <Button
+                  type="button"
+                  className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg font-bold"
+                  onClick={() => navigate("/upgrade")}
+                >
+                  Upgrade Now
+                </Button>
+              )}
             </div>
           </div>
         </div>
