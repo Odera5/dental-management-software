@@ -58,7 +58,7 @@ export default function PatientRecord() {
   });
   const [patientForm, setPatientForm, clearPatientFormDraft] = usePersistentState(
     patientEditDraftKey,
-    { name: "", cardNumber: "", age: "", gender: "other", phone: "", email: "", address: "", nextOfKinName: "", nextOfKinPhone: "", nextOfKinRelationship: "", nextOfKinAddress: "" },
+    { name: "", cardNumber: "", age: "", dateOfBirth: "", gender: "other", phone: "", email: "", address: "", nextOfKinName: "", nextOfKinPhone: "", nextOfKinRelationship: "", nextOfKinAddress: "" },
   );
 
   const [newRecord, setNewRecord, clearNewRecordDraft] = usePersistentState(
@@ -159,7 +159,7 @@ export default function PatientRecord() {
         if (!hasSavedPatientEditDraft) {
           setPatientForm({
             name: resPatient.data?.name || "", cardNumber: resPatient.data?.cardNumber || "",
-            age: resPatient.data?.age || "", gender: resPatient.data?.gender || "other",
+            age: resPatient.data?.age || "", dateOfBirth: resPatient.data?.dateOfBirth || "", gender: resPatient.data?.gender || "other",
             phone: resPatient.data?.phone || "", email: resPatient.data?.email || "", address: resPatient.data?.address || "",
             nextOfKinName: resPatient.data?.nextOfKinName || "", nextOfKinPhone: resPatient.data?.nextOfKinPhone || "",
             nextOfKinRelationship: resPatient.data?.nextOfKinRelationship || "", nextOfKinAddress: resPatient.data?.nextOfKinAddress || "",
@@ -299,11 +299,32 @@ export default function PatientRecord() {
   };
 
   const handlePatientFormChange = (e) => setPatientForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  
+  const handleDateOfBirthChange = (e) => {
+    const dobValue = e.target.value;
+    let computedAge = "";
+    if (dobValue) {
+      const birthDate = new Date(dobValue);
+      const today = new Date();
+      let ageDiff = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        ageDiff--;
+      }
+      computedAge = ageDiff >= 0 ? ageDiff.toString() : "";
+    }
+    setPatientForm((prev) => ({
+      ...prev,
+      dateOfBirth: dobValue,
+      age: computedAge,
+    }));
+  };
 
   const openEditPatientModal = () => {
     if (!patient) return;
     setPatientForm({
       name: patient.name || "", cardNumber: patient.cardNumber || "", age: patient.age || "",
+      dateOfBirth: patient.dateOfBirth || "",
       gender: patient.gender || "other", phone: patient.phone || "", email: patient.email || "", address: patient.address || "",
       nextOfKinName: patient.nextOfKinName || "", nextOfKinPhone: patient.nextOfKinPhone || "",
       nextOfKinRelationship: patient.nextOfKinRelationship || "", nextOfKinAddress: patient.nextOfKinAddress || "",
@@ -455,7 +476,8 @@ export default function PatientRecord() {
             <div className="grid gap-6 sm:grid-cols-2 bg-slate-50 p-6 rounded-2xl border border-slate-100">
               <Input label="Patient Name *" name="name" value={patientForm.name} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="bg-white" required />
               <div className="space-y-1.5 focus-within:text-primary-600"><label className="text-sm font-semibold text-slate-700 leading-none">Patient UID <span className="opacity-50">(Auto)</span></label><input type="text" value={patientForm.cardNumber} disabled className="w-full rounded-xl border border-slate-200 p-3 bg-slate-100 text-slate-500 text-sm font-mono h-[46px]" /></div>
-              <Input label="Age *" name="age" type="number" min="0" value={patientForm.age} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="bg-white" required />
+              <Input label="Date of Birth *" name="dateOfBirth" type="date" value={patientForm.dateOfBirth || ""} onChange={handleDateOfBirthChange} disabled={patientSaveLoading} className="bg-white" required />
+              <Input label="Age (Auto-calculated)" name="age" type="number" value={patientForm.age} disabled={true} className="bg-slate-100 text-slate-500 h-[46px]" required />
               <div className="space-y-1.5 focus-within:text-primary-600"><label className="text-sm font-semibold text-slate-700 leading-none">Sex</label><select name="gender" value={patientForm.gender} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm h-[46px] capitalize"><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></div>
               <Input label="Phone Number *" name="phone" value={patientForm.phone} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="bg-white" required />
               <Input label="Email Address" name="email" type="email" value={patientForm.email} onChange={handlePatientFormChange} disabled={patientSaveLoading} className="bg-white" />
