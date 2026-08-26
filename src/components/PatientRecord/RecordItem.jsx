@@ -65,6 +65,22 @@ function RecordItem({
       .filter(Boolean)
       .join(", ");
   };
+
+  const formatConsentDateTime = (dateValue) => {
+    if (!dateValue) return "Unknown date/time";
+
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return "Unknown date/time";
+
+    return date.toLocaleString("en-NG", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   const recordId = getEntityId(record);
   const [isEditing, setIsEditing, clearEditingFlag] = usePersistentState(
     `carechrome:draft:record-edit-open:${recordId}`,
@@ -438,7 +454,7 @@ function RecordItem({
                       className={`text-sm ${record.consentObtained ? "text-emerald-700" : "text-slate-500 italic"}`}
                     >
                       {record.consentObtained
-                        ? `Obtained on ${record.consentDate ? new Date(record.consentDate).toLocaleDateString() : "Unknown Date"} by ${record.consentTakenBy || "Unknown"}`
+                        ? `Obtained on ${formatConsentDateTime(record.consentDate)} by ${record.consentTakenBy || "Unknown"}`
                         : "Not documented"}
                     </p>
                     {record.consentNotes && (
