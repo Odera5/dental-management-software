@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Building2,
+  ChevronDown,
   Phone,
   MapPin,
   Mail,
@@ -12,10 +13,8 @@ import {
 } from "lucide-react";
 import api from "../services/api";
 import Input from "../components/ui/Input";
-import Select from "../components/ui/Select";
 import Button from "../components/ui/Button";
 import usePersistentState from "../hooks/usePersistentState";
-import carechromeWhite from "../assets/CareChrome-white.png";
 import carechromeGreen from "../assets/CareChrome-green.png";
 import { COUNTRIES } from "../constants/countries";
 
@@ -29,6 +28,122 @@ const initialForm = {
   adminName: "",
   adminEmail: "",
 };
+
+function CountryFlag({ country, className = "" }) {
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center text-base leading-none ${className}`}
+      aria-hidden="true"
+    >
+      {country?.flag || ""}
+    </span>
+  );
+}
+
+function CountrySelect({ label, name, value, onChange }) {
+  const dropdownRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const selectedCountry = COUNTRIES.find((country) => country.name === value);
+
+  const filteredCountries = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return COUNTRIES;
+
+    return COUNTRIES.filter((country) =>
+      country.name.toLowerCase().includes(normalizedQuery),
+    );
+  }, [query]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectCountry = (country) => {
+    onChange({ target: { name, value: country.name } });
+    setQuery("");
+    setOpen(false);
+  };
+
+  return (
+    <div className="w-full" ref={dropdownRef}>
+      <label className="mb-2 block text-sm font-medium text-slate-700">
+        {label}
+      </label>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          className="flex h-11 w-full items-center rounded-xl border border-surface-200 bg-white px-3 py-2 text-left text-sm text-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+        >
+          <Globe size={18} className="mr-3 shrink-0 text-slate-400" />
+          <span className="flex min-w-0 flex-1 items-center gap-2">
+            {selectedCountry ? (
+              <CountryFlag country={selectedCountry} className="h-4 w-6" />
+            ) : null}
+            <span
+              className={selectedCountry ? "truncate" : "truncate text-slate-400"}
+            >
+              {selectedCountry?.name || "Select a country"}
+            </span>
+          </span>
+          <ChevronDown
+            size={16}
+            className={`ml-3 shrink-0 text-slate-400 transition-transform ${
+              open ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        {open && (
+          <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-surface-200 bg-white shadow-xl">
+            <div className="border-b border-surface-100 p-2">
+              <input
+                type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search countries"
+                className="h-9 w-full rounded-lg border border-surface-200 px-3 text-sm text-slate-800 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+              />
+            </div>
+            <div className="max-h-64 overflow-y-auto py-1" role="listbox">
+              {filteredCountries.map((country) => {
+                const isSelected = country.name === value;
+
+                return (
+                  <button
+                    key={country.name}
+                    type="button"
+                    onClick={() => selectCountry(country)}
+                    className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors ${
+                      isSelected
+                        ? "bg-primary-50 text-primary-700"
+                        : "text-slate-700 hover:bg-slate-50"
+                    }`}
+                    role="option"
+                    aria-selected={isSelected}
+                  >
+                    <CountryFlag country={country} className="h-4 w-6" />
+                    <span className="truncate">{country.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function RegisterClinic() {
   const navigate = useNavigate();
@@ -238,24 +353,12 @@ export default function RegisterClinic() {
                 />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
-                <Select
+                <CountrySelect
                   label="Country *"
                   name="clinicCountry"
-                  icon={Globe}
                   value={form.clinicCountry || ""}
                   onChange={handleChange}
-                  className="bg-white"
-                  required
-                >
-                  <option value="" disabled>
-                    Select a country
-                  </option>
-                  {COUNTRIES.map((country) => (
-                    <option key={country.name} value={country.name}>
-                      {country.flag} {country.name}
-                    </option>
-                  ))}
-                </Select>
+                />
                 <Input
                   label="City *"
                   name="clinicCity"
