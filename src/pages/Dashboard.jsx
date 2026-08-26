@@ -743,7 +743,7 @@ export default function Dashboard() {
               </h2>
               
               <p className="text-slate-300 font-medium text-lg mb-6">
-                From all of us at {storedUser?.clinic?.name || "CareChrome"}, we wish you a beautiful day filled with love, laughter, and happiness!
+                From all of us at CareChrome, we wish you a beautiful day filled with love, laughter, and happiness!
               </p>
 
               <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 w-full mb-8 text-left">
