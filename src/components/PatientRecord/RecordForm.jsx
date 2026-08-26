@@ -442,7 +442,14 @@ export default function RecordForm({
     try {
       const d = new Date(dateString);
       if (isNaN(d.getTime())) return "";
-      return d.toISOString().slice(0, 16);
+      
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const hours = String(d.getHours()).padStart(2, "0");
+      const minutes = String(d.getMinutes()).padStart(2, "0");
+      
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
     } catch {
       return "";
     }
@@ -993,8 +1000,13 @@ export default function RecordForm({
     return groupByQuadrant(affected);
   };
 
-  const handleChange = (e) =>
-    setRecordData({ ...recordData, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setRecordData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   const handleVitalsChange = (e) => {
     const { name, value } = e.target;
@@ -1060,27 +1072,28 @@ export default function RecordForm({
     const isConsentObtained = e.target.name === "consentObtained";
     const checked = e.target.checked;
     
-    let extraFields = {};
-    if (isConsentObtained) {
-      if (checked) {
-        const storedUser = getStoredUserObject() || {};
-        extraFields = {
-          consentDate: new Date().toISOString(),
-          consentTakenBy: storedUser.name || storedUser.email || "",
-        };
-      } else {
-        extraFields = {
-          consentDate: "",
-          consentTakenBy: "",
-          consentNotes: "",
-        };
+    setRecordData((prev) => {
+      let extraFields = {};
+      if (isConsentObtained) {
+        if (checked) {
+          const storedUser = getStoredUserObject() || {};
+          extraFields = {
+            consentDate: new Date().toISOString(),
+            consentTakenBy: storedUser.name || storedUser.email || "User",
+          };
+        } else {
+          extraFields = {
+            consentDate: "",
+            consentTakenBy: "",
+            consentNotes: "",
+          };
+        }
       }
-    }
-
-    setRecordData({
-      ...recordData,
-      [e.target.name]: checked,
-      ...extraFields,
+      return {
+        ...prev,
+        [e.target.name]: checked,
+        ...extraFields,
+      };
     });
   };
 
