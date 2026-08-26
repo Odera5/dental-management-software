@@ -144,7 +144,7 @@ export default function Login() {
               </div>
             </div>
             <h1 className="mb-4 text-5xl font-semibold tracking-tight">
-              CareChrome
+              CareChrome EMR
             </h1>
             <p className="max-w-md text-lg text-primary-50">
               The modern, seamless operating system for forward-thinking
