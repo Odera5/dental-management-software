@@ -1,4 +1,4 @@
-const CACHE_NAME = "carechrome-shell-v5";
+const CACHE_NAME = "carechrome-shell-v6";
 const IS_LOCAL_DEV =
   self.location.hostname === "localhost" ||
   self.location.hostname === "127.0.0.1";
@@ -22,23 +22,18 @@ if (IS_LOCAL_DEV) {
   });
 } else {
 const APP_SHELL = [
-  "/",
-  "/index.html",
   "/manifest.webmanifest",
-  "/version.json",
   "/favicon.png",
   "/pwa-192.png",
   "/pwa-512.png"
 ];
 const NETWORK_FIRST_PATHS = new Set([
-  "/",
-  "/index.html",
   "/manifest.webmanifest",
-  "/version.json",
   "/favicon.png",
   "/pwa-192.png",
   "/pwa-512.png",
 ]);
+const NETWORK_ONLY_PATHS = new Set(["/", "/index.html", "/version.json", "/sw.js"]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -78,25 +73,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Fallback navigate mode to cached root shell offline
+  // Always fetch the app shell from the network so deployments do not serve old UI.
   if (event.request.mode === "navigate") {
-    event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const clonedResponse = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put("/", clonedResponse);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => caches.match("/")),
-    );
+    event.respondWith(fetch(event.request));
     return;
   }
 
   if (requestUrl.pathname.startsWith("/assets/")) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  if (NETWORK_ONLY_PATHS.has(requestUrl.pathname)) {
     event.respondWith(fetch(event.request));
     return;
   }
