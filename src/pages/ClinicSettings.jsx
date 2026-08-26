@@ -573,7 +573,7 @@ export default function ClinicSettings() {
                          >
                            <option value="" disabled>Select a country</option>
                            {COUNTRIES.map(country => (
-                             <option key={country} value={country}>{country}</option>
+                             <option key={country.name} value={country.name}>{country.flag} {country.name}</option>
                            ))}
                          </Select>
                          <Input label="City" name="clinicCity" value={form.clinicCity} onChange={handleChange} icon={MapPin} className="bg-white" />

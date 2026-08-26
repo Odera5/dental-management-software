@@ -251,8 +251,8 @@ export default function RegisterClinic() {
                     Select a country
                   </option>
                   {COUNTRIES.map((country) => (
-                    <option key={country} value={country}>
-                      {country}
+                    <option key={country.name} value={country.name}>
+                      {country.flag} {country.name}
                     </option>
                   ))}
                 </Select>

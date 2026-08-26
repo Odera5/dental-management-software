@@ -24,6 +24,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Camera,
+  Download,
+  WifiOff,
 } from "lucide-react";
 import api, { logoutCurrentUser } from "../../services/api";
 import {
@@ -125,6 +127,45 @@ export default function DashboardLayout() {
   const location = useLocation();
   const cachedSummary = readDashboardSummaryCache().data;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstallable(false);
+    }
+
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      setIsInstallable(false);
+      setDeferredPrompt(null);
+    }
+  };
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     try {
       const saved = localStorage.getItem("sidebar_collapsed");
@@ -781,6 +822,25 @@ export default function DashboardLayout() {
                 />
               </div>
             )}
+
+            {isInstallable && (
+              <div className="mx-2 mt-4 p-4 bg-gradient-to-br from-primary-50 to-teal-50 border border-primary-100 rounded-2xl shadow-sm text-center">
+                <p className="text-xs font-bold text-primary-800 mb-1 flex items-center justify-center gap-1.5">
+                  <Download size={14} className="text-primary-600" />
+                  Install CareChrome
+                </p>
+                <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">
+                  Access the clinic dashboard directly from your desktop or home screen.
+                </p>
+                <Button 
+                  onClick={handleInstallClick} 
+                  size="sm" 
+                  className="w-full text-xs bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  Install App
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="p-4 border-t border-surface-100 bg-surface-50 shrink-0">
@@ -818,6 +878,12 @@ export default function DashboardLayout() {
       </MotionAside>
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden bg-surface-50/50 print:bg-white print:h-auto print:overflow-visible">
+        {!isOnline && (
+          <div className="bg-red-600 text-white text-xs font-semibold py-2.5 px-6 flex items-center justify-center gap-2 shadow-sm animate-pulse z-[20] shrink-0 print:hidden">
+            <WifiOff size={14} />
+            <span>You are currently offline. Running in offline mode; some changes will not sync until connection is restored.</span>
+          </div>
+        )}
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-surface-200 flex items-center justify-between px-6 z-10 shrink-0 shadow-sm print:hidden">
           <div className="flex items-center gap-4">
             <button
