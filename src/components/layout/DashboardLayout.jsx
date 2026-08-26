@@ -52,6 +52,7 @@ import {
   isTrialingClinic,
   getTrialDaysRemaining,
   hasEnterpriseAccess,
+  isCancelledPaidSubscription,
 } from "../../utils/clinicAccess";
 
 function NavItem({
@@ -251,7 +252,7 @@ export default function DashboardLayout() {
   const enterpriseAccess = hasEnterpriseAccess(clinic);
   const trialing = isTrialingClinic(clinic);
   const remainingTrialDays = getTrialDaysRemaining(clinic);
-  const isSubscriptionCancelled = String(clinic?.paystackSubscriptionStatus || "").toLowerCase() === "non-renewing";
+  const isSubscriptionCancelled = isCancelledPaidSubscription(clinic);
   let remainingPaidDays = 0;
 
   if (isPaidTier && subscriptionEnds && paidSubscriptionActive) {

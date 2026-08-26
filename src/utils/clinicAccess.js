@@ -5,6 +5,22 @@ const ACTIVE_PAYSTACK_SUBSCRIPTION_STATUSES = [
   "non-renewing",
 ];
 
+const CANCELLED_PAYSTACK_SUBSCRIPTION_STATUSES = [
+  "non-renewing",
+  "cancelled",
+  "canceled",
+  "completed",
+];
+
+export const isCancelledPaidSubscription = (clinic) =>
+  CANCELLED_PAYSTACK_SUBSCRIPTION_STATUSES.includes(
+    String(
+      clinic?.paystackSubscriptionStatus ||
+        clinic?.paystack_status ||
+        "",
+    ).toLowerCase(),
+  );
+
 export const hasActivePaidSubscription = (clinic) => {
   const hasStatus = ACTIVE_PAYSTACK_SUBSCRIPTION_STATUSES.includes(
     String(
@@ -97,5 +113,4 @@ export const getTrialDaysRemaining = (clinic) => {
     Math.ceil((endDate - nowDate) / (1000 * 60 * 60 * 24)),
   );
 };
-
 

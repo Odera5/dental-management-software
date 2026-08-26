@@ -146,6 +146,7 @@ function FormField({
   unit,
   max,
   error,
+  readOnly = false,
 }) {
   return (
     <div className="space-y-1.5 focus-within:text-primary-600 transition-colors w-full">
@@ -173,6 +174,7 @@ function FormField({
               required={required}
               placeholder={placeholder}
               max={max}
+              readOnly={readOnly}
               className={`w-full rounded-xl border ${error ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-slate-200 focus:ring-primary-500"} p-3 pr-16 bg-white text-sm focus:outline-none focus:ring-2 shadow-sm transition-shadow h-[46px]`}
             />
             <span className="absolute right-4 text-slate-400 text-sm font-medium">
@@ -195,6 +197,7 @@ function FormField({
             required={required}
             placeholder={placeholder}
             max={max}
+            readOnly={readOnly}
             className={`w-full rounded-xl border ${error ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-slate-200 focus:ring-primary-500"} p-3 bg-white text-sm focus:outline-none focus:ring-2 shadow-sm transition-shadow h-[46px]`}
           />
           {error && (
@@ -234,6 +237,18 @@ const CONDITION_COLORS = {
   mobile: "#fb923c", // orange-400
   fractured: "#a855f7", // purple-500
   missing: "#cbd5e1", // slate-300
+};
+
+const getLoggedInClinicianName = () => {
+  const storedUser = getStoredUserObject() || {};
+  const displayName = String(storedUser.name || "").trim();
+  if (displayName) {
+    return storedUser.role === "doctor" && !/^dr\.?\s/i.test(displayName)
+      ? `Dr. ${displayName}`
+      : displayName;
+  }
+
+  return storedUser.email || "Current user";
 };
 
 const getToothStyleAndClass = (conditions = []) => {
@@ -454,6 +469,8 @@ export default function RecordForm({
       return "";
     }
   };
+
+  const getCurrentDateTimeLocal = () => formatDateTimeLocal(new Date());
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
@@ -1074,10 +1091,9 @@ export default function RecordForm({
     setRecordData((prev) => {
       let extraFields = {};
       if (checked) {
-        const storedUser = getStoredUserObject() || {};
         extraFields = {
-          consentDate: new Date().toISOString(),
-          consentTakenBy: storedUser.name || storedUser.email || "User",
+          consentDate: getCurrentDateTimeLocal(),
+          consentTakenBy: getLoggedInClinicianName(),
         };
       } else {
         extraFields = {
@@ -1772,17 +1788,19 @@ export default function RecordForm({
                 name="consentDate"
                 type="datetime-local"
                 value={formatDateTimeLocal(recordData.consentDate)}
-                onChange={handleChange}
+                onChange={() => {}}
                 required={true}
-                max={formatDateTimeLocal(new Date().toISOString())}
+                max={getCurrentDateTimeLocal()}
+                readOnly
               />
               <FormField
-                label="Takes By (Clinician)"
+                label="Taken By (Clinician)"
                 name="consentTakenBy"
                 value={recordData.consentTakenBy || ""}
-                onChange={handleChange}
+                onChange={() => {}}
                 placeholder="Dr. Name"
                 required={true}
+                readOnly
               />
               <div className="md:col-span-2">
                 <FormField
