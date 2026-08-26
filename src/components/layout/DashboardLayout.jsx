@@ -254,9 +254,11 @@ export default function DashboardLayout() {
   if (isPaidTier && subscriptionEnds && paidSubscriptionActive) {
     const end = new Date(subscriptionEnds);
     const now = new Date();
+    const endDate = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
+    const nowDate = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
     const days = Math.max(
       0,
-      Math.ceil((end - now) / (1000 * 60 * 60 * 24)),
+      Math.ceil((endDate - nowDate) / (1000 * 60 * 60 * 24)),
     );
     remainingPaidDays = days;
   }
