@@ -251,6 +251,26 @@ const getLoggedInClinicianName = () => {
   return storedUser.email || "Current user";
 };
 
+const formatDateTimeLocal = (dateValue) => {
+  if (!dateValue) return "";
+  try {
+    const d = new Date(dateValue);
+    if (isNaN(d.getTime())) return "";
+
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  } catch {
+    return "";
+  }
+};
+
+const getCurrentDateTimeLocal = () => formatDateTimeLocal(new Date());
+
 const getToothStyleAndClass = (conditions = []) => {
   if (!conditions || conditions.length === 0) {
     return {
@@ -452,26 +472,6 @@ export default function RecordForm({
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
-  const formatDateTimeLocal = (dateString) => {
-    if (!dateString) return "";
-    try {
-      const d = new Date(dateString);
-      if (isNaN(d.getTime())) return "";
-      
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      const hours = String(d.getHours()).padStart(2, "0");
-      const minutes = String(d.getMinutes()).padStart(2, "0");
-      
-      return `${year}-${month}-${day}T${hours}:${minutes}`;
-    } catch {
-      return "";
-    }
-  };
-
-  const getCurrentDateTimeLocal = () => formatDateTimeLocal(new Date());
-
   const handleFormSubmit = (e) => {
     e.preventDefault();
     if (!recordData.consentObtained) {
@@ -557,6 +557,37 @@ export default function RecordForm({
 
   const storedUser = getStoredUserObject() || {};
   const proAccessActive = hasActiveProAccess(storedUser?.clinic);
+
+  useEffect(() => {
+    if (
+      !recordData.consentObtained ||
+      (recordData.consentDate && recordData.consentTakenBy?.trim())
+    ) {
+      return;
+    }
+
+    setRecordData((prev) => {
+      if (
+        !prev.consentObtained ||
+        (prev.consentDate && prev.consentTakenBy?.trim())
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        consentDate: prev.consentDate || getCurrentDateTimeLocal(),
+        consentTakenBy: prev.consentTakenBy?.trim()
+          ? prev.consentTakenBy
+          : getLoggedInClinicianName(),
+      };
+    });
+  }, [
+    recordData.consentDate,
+    recordData.consentObtained,
+    recordData.consentTakenBy,
+    setRecordData,
+  ]);
 
   const handleFormularySelect = (medValue) => {
     let currentMed = recordData.medication ? recordData.medication.trim() : "";
