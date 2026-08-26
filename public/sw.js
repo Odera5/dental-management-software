@@ -1,4 +1,26 @@
 const CACHE_NAME = "carechrome-shell-v5";
+const IS_LOCAL_DEV =
+  self.location.hostname === "localhost" ||
+  self.location.hostname === "127.0.0.1";
+
+if (IS_LOCAL_DEV) {
+  self.addEventListener("install", (event) => {
+    event.waitUntil(self.skipWaiting());
+  });
+
+  self.addEventListener("activate", (event) => {
+    event.waitUntil(
+      caches
+        .keys()
+        .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+        .then(() => self.registration.unregister())
+        .then(() => self.clients.matchAll({ type: "window" }))
+        .then((clients) => {
+          clients.forEach((client) => client.navigate(client.url));
+        }),
+    );
+  });
+} else {
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -96,3 +118,4 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+}
