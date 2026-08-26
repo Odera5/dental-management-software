@@ -1249,18 +1249,18 @@ export default function DashboardLayout() {
                 onClose={() => setProfileToast(null)}
               />
             )}
-
-            {layoutToast && (
-              <Toast
-                message={layoutToast.message}
-                type={layoutToast.type}
-                duration={3000}
-                onClose={() => setLayoutToast(null)}
-              />
-            )}
           </div>
         )}
       </AnimatePresence>
+
+      {layoutToast && (
+        <Toast
+          message={layoutToast.message}
+          type={layoutToast.type}
+          duration={3000}
+          onClose={() => setLayoutToast(null)}
+        />
+      )}
     </div>
   );
 }
