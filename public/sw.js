@@ -1,8 +1,9 @@
-const CACHE_NAME = "carechrome-shell-v4";
+const CACHE_NAME = "carechrome-shell-v5";
 const APP_SHELL = [
   "/",
   "/index.html",
   "/manifest.webmanifest",
+  "/version.json",
   "/favicon.png",
   "/pwa-192.png",
   "/pwa-512.png"
@@ -11,6 +12,7 @@ const NETWORK_FIRST_PATHS = new Set([
   "/",
   "/index.html",
   "/manifest.webmanifest",
+  "/version.json",
   "/favicon.png",
   "/pwa-192.png",
   "/pwa-512.png",
@@ -72,25 +74,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-First strategy for production static assets
   if (requestUrl.pathname.startsWith("/assets/")) {
-    event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-
-        return fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const clonedResponse = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, clonedResponse);
-            });
-          }
-          return networkResponse;
-        });
-      }),
-    );
+    event.respondWith(fetch(event.request));
     return;
   }
 

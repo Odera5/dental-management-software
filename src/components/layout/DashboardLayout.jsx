@@ -1096,11 +1096,10 @@ export default function DashboardLayout() {
         </AnimatePresence>
 
         {isPaidTier &&
-          paidSubscriptionActive &&
+          isSubscriptionCancelled &&
           subscriptionEnds &&
           new Date(subscriptionEnds) >= new Date() &&
           !showRestrictedAdminShell &&
-          isSubscriptionCancelled &&
           remainingPaidDays <= 7 && (
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2.5 text-center text-sm font-bold shadow-sm shrink-0 relative z-10 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 print:hidden">
               <span className="flex items-center gap-2">
