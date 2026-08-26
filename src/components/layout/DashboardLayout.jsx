@@ -243,12 +243,15 @@ export default function DashboardLayout() {
   const clinicPlan = clinic.plan || "PRO";
   const isPaidTier = ["PRO", "ENTERPRISE"].includes(clinicPlan);
   const subscriptionExpired = isSubscriptionExpired(clinic);
-  const subscriptionEnds = clinic.subscriptionEnds;
+  const subscriptionEnds = clinic.paystackNextPaymentDate && new Date(clinic.paystackNextPaymentDate) > new Date(clinic.subscriptionEnds || 0)
+    ? clinic.paystackNextPaymentDate
+    : clinic.subscriptionEnds;
   const paidSubscriptionActive = hasActivePaidSubscription(clinic);
   const activeProAccess = hasActiveProAccess(clinic);
   const enterpriseAccess = hasEnterpriseAccess(clinic);
   const trialing = isTrialingClinic(clinic);
   const remainingTrialDays = getTrialDaysRemaining(clinic);
+  const isSubscriptionCancelled = String(clinic?.paystackSubscriptionStatus || "").toLowerCase() === "non-renewing";
   let remainingPaidDays = 0;
 
   if (isPaidTier && subscriptionEnds && paidSubscriptionActive) {
@@ -1096,15 +1099,16 @@ export default function DashboardLayout() {
           subscriptionEnds &&
           new Date(subscriptionEnds) >= new Date() &&
           !showRestrictedAdminShell &&
+          isSubscriptionCancelled &&
           remainingPaidDays <= 7 && (
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2.5 text-center text-sm font-bold shadow-sm shrink-0 relative z-10 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 print:hidden">
               <span className="flex items-center gap-2">
-                <Crown size={18} /> {clinicPlan === "ENTERPRISE" ? "Enterprise" : "Pro"} Plan renews in {remainingPaidDays} {remainingPaidDays === 1 ? "day" : "days"} (
+                <Crown size={18} /> {clinicPlan === "ENTERPRISE" ? "Enterprise" : "Pro"} Plan expires in {remainingPaidDays} {remainingPaidDays === 1 ? "day" : "days"} (
                 {new Date(subscriptionEnds).toLocaleDateString("en-NG", {
                   year: "numeric",
                   month: "short",
                   day: "numeric",
-                })}).
+                })}). Reactivate subscription to avoid interruption.
               </span>
               {location.pathname !== "/upgrade" && (
                 <button

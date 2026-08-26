@@ -15,8 +15,12 @@ export const hasActivePaidSubscription = (clinic) => {
   );
   if (!hasStatus) return false;
 
-  if (clinic?.subscriptionEnds) {
-    const subscriptionEnd = new Date(clinic.subscriptionEnds);
+  const resolvedEnds = clinic?.paystackNextPaymentDate && new Date(clinic.paystackNextPaymentDate) > new Date(clinic.subscriptionEnds || 0)
+    ? clinic.paystackNextPaymentDate
+    : clinic?.subscriptionEnds;
+
+  if (resolvedEnds) {
+    const subscriptionEnd = new Date(resolvedEnds);
     if (!Number.isNaN(subscriptionEnd.getTime())) {
       return subscriptionEnd >= new Date();
     }
@@ -25,11 +29,15 @@ export const hasActivePaidSubscription = (clinic) => {
 };
 
 export const hasFutureSubscriptionWindow = (clinic) => {
-  if (!clinic?.subscriptionEnds) {
+  const resolvedEnds = clinic?.paystackNextPaymentDate && new Date(clinic.paystackNextPaymentDate) > new Date(clinic.subscriptionEnds || 0)
+    ? clinic.paystackNextPaymentDate
+    : clinic?.subscriptionEnds;
+
+  if (!resolvedEnds) {
     return false;
   }
 
-  const subscriptionEnd = new Date(clinic.subscriptionEnds);
+  const subscriptionEnd = new Date(resolvedEnds);
   if (Number.isNaN(subscriptionEnd.getTime())) {
     return false;
   }
@@ -79,11 +87,15 @@ export const getTrialDaysRemaining = (clinic) => {
     return 0;
   }
 
+  const end = new Date(clinic.subscriptionEnds);
+  const now = new Date();
+  const endDate = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
+  const nowDate = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+
   return Math.max(
     0,
-    Math.ceil(
-      (new Date(clinic.subscriptionEnds) - new Date()) /
-        (1000 * 60 * 60 * 24),
-    ),
+    Math.ceil((endDate - nowDate) / (1000 * 60 * 60 * 24)),
   );
 };
+
+

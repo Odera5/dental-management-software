@@ -1056,14 +1056,33 @@ export default function RecordForm({
       ? JSON.parse(recordData.vitals || "{}")
       : recordData.vitals || {};
 
-  const handleCheckboxChange = (e) =>
+  const handleCheckboxChange = (e) => {
+    const isConsentObtained = e.target.name === "consentObtained";
+    const checked = e.target.checked;
+    
+    let extraFields = {};
+    if (isConsentObtained) {
+      if (checked) {
+        const storedUser = getStoredUserObject() || {};
+        extraFields = {
+          consentDate: new Date().toISOString(),
+          consentTakenBy: storedUser.name || storedUser.email || "",
+        };
+      } else {
+        extraFields = {
+          consentDate: "",
+          consentTakenBy: "",
+          consentNotes: "",
+        };
+      }
+    }
+
     setRecordData({
       ...recordData,
-      [e.target.name]: e.target.checked,
-      ...(e.target.name === "consentObtained" && !e.target.checked
-        ? { consentDate: "", consentTakenBy: "", consentNotes: "" }
-        : {}),
+      [e.target.name]: checked,
+      ...extraFields,
     });
+  };
 
   const handleReset = () => {
     const emptyRecord = createEmptyRecord();
