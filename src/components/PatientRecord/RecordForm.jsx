@@ -1069,29 +1069,26 @@ export default function RecordForm({
       : recordData.vitals || {};
 
   const handleCheckboxChange = (e) => {
-    const isConsentObtained = e.target.name === "consentObtained";
     const checked = e.target.checked;
     
     setRecordData((prev) => {
       let extraFields = {};
-      if (isConsentObtained) {
-        if (checked) {
-          const storedUser = getStoredUserObject() || {};
-          extraFields = {
-            consentDate: new Date().toISOString(),
-            consentTakenBy: storedUser.name || storedUser.email || "User",
-          };
-        } else {
-          extraFields = {
-            consentDate: "",
-            consentTakenBy: "",
-            consentNotes: "",
-          };
-        }
+      if (checked) {
+        const storedUser = getStoredUserObject() || {};
+        extraFields = {
+          consentDate: new Date().toISOString(),
+          consentTakenBy: storedUser.name || storedUser.email || "User",
+        };
+      } else {
+        extraFields = {
+          consentDate: "",
+          consentTakenBy: "",
+          consentNotes: "",
+        };
       }
       return {
         ...prev,
-        [e.target.name]: checked,
+        consentObtained: checked,
         ...extraFields,
       };
     });
