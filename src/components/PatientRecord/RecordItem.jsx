@@ -72,13 +72,16 @@ function RecordItem({
     const date = new Date(dateValue);
     if (Number.isNaN(date.getTime())) return "Unknown date/time";
 
-    return date.toLocaleString("en-NG", {
+    return date
+      .toLocaleString("en-NG", {
       year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    });
+      hour12: true,
+    })
+      .replace(/\s?(am|pm)$/i, (match) => match.trim().toLowerCase());
   };
 
   const recordId = getEntityId(record);
