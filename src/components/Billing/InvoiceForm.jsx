@@ -98,9 +98,17 @@ export default function InvoiceForm({ patientId = null, onSuccess, onCancel, dra
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-lg text-slate-900">Treatment Items</h3>
-                <Button type="button" variant="outline" size="sm" onClick={handleAddItem} className="bg-white"><Plus size={16} className="mr-1" /> Add Custom Item</Button>
+              <div className="flex justify-between items-center gap-3 mb-4">
+                <h3 className="font-bold text-lg text-slate-900 whitespace-nowrap shrink-0">Treatment Items</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddItem}
+                  className="!w-auto shrink-0 bg-white text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 h-8 sm:h-9 whitespace-nowrap"
+                >
+                  <Plus size={15} className="mr-1 shrink-0" /> Add Custom Item
+                </Button>
               </div>
 
               <div className="mb-6 bg-blue-50/50 border border-blue-100 rounded-xl p-4">
