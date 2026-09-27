@@ -15,6 +15,7 @@ import api from "../services/api";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import usePersistentState from "../hooks/usePersistentState";
+import TurnstileWidget from "../components/ui/TurnstileWidget";
 import carechromeGreen from "../assets/CareChrome-green.png";
 import { COUNTRIES } from "../constants/countries";
 
@@ -153,6 +154,8 @@ export default function RegisterClinic() {
     initialForm,
   );
   const [password, setPassword] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [honeypot, setHoneypot] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -179,6 +182,8 @@ export default function RegisterClinic() {
       adminName: form.adminName.trim(),
       adminEmail: form.adminEmail.trim(),
       password: password.trim(),
+      turnstileToken,
+      hp_clinic_website: honeypot,
     };
 
     if (
@@ -423,6 +428,37 @@ export default function RegisterClinic() {
                 required
               />
             </div>
+
+            {/* Invisible Honeypot Field for anti-bot trap */}
+            <div
+              style={{
+                position: "absolute",
+                left: "-9999px",
+                opacity: 0,
+                height: 0,
+                width: 0,
+                overflow: "hidden",
+              }}
+              aria-hidden="true"
+            >
+              <label htmlFor="hp_clinic_website">Leave this field blank</label>
+              <input
+                id="hp_clinic_website"
+                type="text"
+                name="hp_clinic_website"
+                tabIndex={-1}
+                autoComplete="off"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+              />
+            </div>
+
+            {/* Cloudflare Turnstile Verification */}
+            <TurnstileWidget
+              onVerify={(token) => setTurnstileToken(token)}
+              onExpire={() => setTurnstileToken("")}
+              onError={() => setTurnstileToken("")}
+            />
 
             <Button type="submit" size="lg" isLoading={loading}>
               Create Clinic Environment
