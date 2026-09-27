@@ -160,126 +160,169 @@ export default function RegisterPatient() {
 
           <CardContent className="p-8">
             <form onSubmit={handleSubmit} className="space-y-8">
-              <div className="grid gap-6 md:grid-cols-2 mt-4">
-                <Input
-                  label="First Name *"
-                  name="firstName"
-                  icon={User}
-                  value={form.firstName || ""}
-                  onChange={handleChange}
-                  placeholder="e.g. Jane"
-                  disabled={loading}
-                  required
-                />
-                
-                <Input
-                  label="Last Name *"
-                  name="lastName"
-                  icon={User}
-                  value={form.lastName || ""}
-                  onChange={handleChange}
-                  placeholder="e.g. Doe"
-                  disabled={loading}
-                  required
-                />
+              {/* Section 1: Demographics */}
+              <div className="bg-slate-50/60 p-6 md:p-7 rounded-2xl border border-slate-100 space-y-6">
+                <div className="flex items-center gap-3 pb-3 border-b border-slate-200/80">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-primary-100 text-primary-700 font-bold text-sm">
+                    1
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base">Personal Demographics</h3>
+                    <p className="text-xs text-slate-500">Legal identity and birth information</p>
+                  </div>
+                </div>
 
-                <Input
-                  label="Other Name"
-                  name="otherName"
-                  icon={User}
-                  value={form.otherName || ""}
-                  onChange={handleChange}
-                  placeholder="Optional"
-                  disabled={loading}
-                />
-                
-                <Input
-                  label="Date of Birth *"
-                  name="dateOfBirth"
-                  type="date"
-                  icon={Calendar}
-                  value={form.dateOfBirth || ""}
-                  onChange={handleDateOfBirthChange}
-                  disabled={loading}
-                  required
-                />
+                <div className="grid gap-5 md:grid-cols-3">
+                  <Input
+                    label="First Name *"
+                    name="firstName"
+                    icon={User}
+                    value={form.firstName || ""}
+                    onChange={handleChange}
+                    placeholder="e.g. Jane"
+                    disabled={loading}
+                    required
+                  />
+                  
+                  <Input
+                    label="Last Name *"
+                    name="lastName"
+                    icon={User}
+                    value={form.lastName || ""}
+                    onChange={handleChange}
+                    placeholder="e.g. Doe"
+                    disabled={loading}
+                    required
+                  />
 
-                <Input
-                  label="Age (Auto-calculated)"
-                  name="age"
-                  type="number"
-                  icon={Calendar}
-                  value={form.age}
-                  placeholder="Auto-calculated from DOB"
-                  disabled={true}
-                  required
-                />
+                  <Input
+                    label="Other Name"
+                    name="otherName"
+                    icon={User}
+                    value={form.otherName || ""}
+                    onChange={handleChange}
+                    placeholder="Optional"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="grid gap-5 md:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Gender</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Hash size={18} className="text-slate-400" />
+                      </div>
+                      <select
+                        name="gender"
+                        value={form.gender}
+                        onChange={handleChange}
+                        className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none h-[46px]"
+                        disabled={loading}
+                      >
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <Input
+                    label="Date of Birth *"
+                    name="dateOfBirth"
+                    type="date"
+                    icon={Calendar}
+                    value={form.dateOfBirth || ""}
+                    onChange={handleDateOfBirthChange}
+                    disabled={loading}
+                    required
+                  />
+
+                  <Input
+                    label="Age (Auto-calculated)"
+                    name="age"
+                    type="number"
+                    icon={Calendar}
+                    value={form.age}
+                    placeholder="Auto-calculated from DOB"
+                    disabled={true}
+                    required
+                  />
+                </div>
               </div>
 
-              <div className="grid gap-6 md:grid-cols-2">
-                 <div className="space-y-1.5">
-                   <label className="text-sm font-medium text-slate-700">Gender</label>
-                   <div className="relative">
-                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                       <Hash size={18} className="text-slate-400" />
-                     </div>
-                     <select
-                       name="gender"
-                       value={form.gender}
-                       onChange={handleChange}
-                       className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none h-[46px]"
-                       disabled={loading}
-                     >
-                       <option value="male">Male</option>
-                       <option value="female">Female</option>
-                       <option value="other">Other</option>
-                     </select>
-                   </div>
-                 </div>
+              {/* Section 2: Contact & Location */}
+              <div className="bg-slate-50/60 p-6 md:p-7 rounded-2xl border border-slate-100 space-y-6">
+                <div className="flex items-center gap-3 pb-3 border-b border-slate-200/80">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-sm">
+                    2
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base">Contact & Residence</h3>
+                    <p className="text-xs text-slate-500">Phone number, email, and residential address</p>
+                  </div>
+                </div>
 
-                 <Input
-                  label="Phone Number *"
-                  name="phone"
-                  icon={Phone}
-                  value={form.phone}
-                  onChange={handleChange}
-                  placeholder="+1 (555) 000-0000"
-                  disabled={loading}
-                  required
-                />
+                <div className="grid gap-5 md:grid-cols-2">
+                  <Input
+                    label="Phone Number *"
+                    name="phone"
+                    icon={Phone}
+                    value={form.phone}
+                    onChange={handleChange}
+                    placeholder="+1 (555) 000-0000"
+                    disabled={loading}
+                    required
+                  />
+
+                  <Input
+                    label="Email Address"
+                    name="email"
+                    type="email"
+                    icon={Mail}
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="patient@example.com (Optional)"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div>
+                  <Input
+                    label="Residential Address *"
+                    name="address"
+                    icon={MapPin}
+                    value={form.address}
+                    onChange={handleChange}
+                    placeholder="Full street address"
+                    disabled={loading}
+                    required
+                  />
+                </div>
               </div>
 
-              <Input
-                label="Email Address"
-                name="email"
-                type="email"
-                icon={Mail}
-                value={form.email}
-                onChange={handleChange}
-                placeholder="patient@example.com"
-                disabled={loading}
-              />
+              {/* Section 3: Next of Kin */}
+              <div className="bg-slate-50/60 p-6 md:p-7 rounded-2xl border border-slate-100 space-y-6">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-amber-100 text-amber-700 font-bold text-sm">
+                      3
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-base">Next of Kin / Emergency Contact</h3>
+                      <p className="text-xs text-slate-500">Primary contact person in emergency situations</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-200/70 text-slate-600">
+                    Optional
+                  </span>
+                </div>
 
-              <Input
-                label="Residential Address *"
-                name="address"
-                icon={MapPin}
-                value={form.address}
-                onChange={handleChange}
-                placeholder="Full street address"
-                disabled={loading}
-                required
-              />
-
-              <div className="pt-6 border-t border-slate-100">
-                <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-                  <User size={18} className="text-primary-600" />
-                  Next of Kin / Emergency Contact
-                </h3>
-                <div className="grid gap-6 md:grid-cols-2">
+                <div className="grid gap-5 md:grid-cols-2">
                   <Input
                     label="Next of Kin Name"
                     name="nextOfKinName"
+                    icon={User}
                     value={form.nextOfKinName || ""}
                     onChange={handleChange}
                     placeholder="e.g. John Doe"
@@ -314,13 +357,18 @@ export default function RegisterPatient() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-6 mt-6 border-t border-slate-100">
-                <Button type="submit" size="lg" isLoading={loading} className="w-full sm:w-auto whitespace-nowrap">
-                  Complete Registration
-                </Button>
-                <Button type="button" variant="ghost" size="lg" onClick={() => navigate(-1)} disabled={loading} className="w-full sm:w-auto whitespace-nowrap">
-                  Cancel
-                </Button>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-4 border-t border-slate-100">
+                <p className="text-xs text-slate-500 order-2 sm:order-1">
+                  * Fields marked with an asterisk are required.
+                </p>
+                <div className="flex items-center gap-3 order-1 sm:order-2">
+                  <Button type="button" variant="ghost" size="lg" onClick={() => navigate(-1)} disabled={loading} className="w-full sm:w-auto whitespace-nowrap">
+                    Cancel
+                  </Button>
+                  <Button type="submit" size="lg" isLoading={loading} className="w-full sm:w-auto whitespace-nowrap shadow-md">
+                    Complete Registration <ArrowRight size={16} className="ml-2" />
+                  </Button>
+                </div>
               </div>
             </form>
           </CardContent>
