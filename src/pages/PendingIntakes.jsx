@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, X, Search, Calendar, Clock, User, Phone, MapPin, Mail, AlertCircle, Link as LinkIcon, Copy, CheckCircle2, RefreshCw, Power, Building2 } from "lucide-react";
+import { Check, X, Search, Calendar, Clock, User, Phone, MapPin, Mail, AlertCircle, Link as LinkIcon, Copy, CheckCircle2, RefreshCw, Power, Building2, ChevronDown } from "lucide-react";
 import Button from "../components/ui/Button";
 import ConfirmModal from "../components/ui/ConfirmModal";
 import Toast from "../components/Toast";
@@ -28,6 +28,27 @@ export default function PendingIntakes() {
   const [intakeAccess, setIntakeAccess] = useState(null);
   const [intakeUpdating, setIntakeUpdating] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [expandedIds, setExpandedIds] = useState({});
+
+  const toggleExpand = (id) => {
+    setExpandedIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const allExpanded = intakes.length > 0 && intakes.every((i) => expandedIds[i.id]);
+  const toggleAll = () => {
+    if (allExpanded) {
+      setExpandedIds({});
+    } else {
+      const next = {};
+      intakes.forEach((i) => {
+        next[i.id] = true;
+      });
+      setExpandedIds(next);
+    }
+  };
 
   const showToast = (message, type = "success") => setToast({ message, type });
   const createApprovalDraft = () => ({
@@ -270,6 +291,11 @@ export default function PendingIntakes() {
         delete next[intake.id];
         return next;
       });
+      setExpandedIds((current) => {
+        const next = { ...current };
+        delete next[intake.id];
+        return next;
+      });
       showToast(`${intake.name} has been approved and registered!`, "success");
 
       patchDashboardSummaryCache((current) => {
@@ -301,6 +327,11 @@ export default function PendingIntakes() {
     try {
       await api.delete(`/pending-intakes/${intake.id}`);
       setIntakes(intakes.filter(i => i.id !== intake.id));
+      setExpandedIds((current) => {
+        const next = { ...current };
+        delete next[intake.id];
+        return next;
+      });
       showToast("Intake request declined", "success");
 
       patchDashboardSummaryCache((current) => {
@@ -461,7 +492,23 @@ export default function PendingIntakes() {
           <p className="text-slate-500 max-w-md mx-auto">You're all caught up! When patients fill out your online intake form, they will appear here for your review.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-slate-800">
+                {totalCount} Pending Request{totalCount === 1 ? "" : "s"}
+              </span>
+              <span className="hidden sm:inline text-xs text-slate-400">• Click any card to review details and schedule</span>
+            </div>
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-200/80 px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            >
+              {allExpanded ? "Collapse All" : "Expand All"}
+            </button>
+          </div>
+
           <AnimatePresence>
             {intakes.map((intake) => {
               const approvalDraft = approvalDrafts[intake.id] || createApprovalDraft(intake);
@@ -470,6 +517,7 @@ export default function PendingIntakes() {
               const hasPartialAssignment =
                 (approvalDraft.assignedDate && !approvalDraft.assignedTime) ||
                 (!approvalDraft.assignedDate && approvalDraft.assignedTime);
+              const isExpanded = Boolean(expandedIds[intake.id]);
 
               return (
                 <motion.div
@@ -477,188 +525,303 @@ export default function PendingIntakes() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
-              >
-                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start">
-                   <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-lg border border-primary-200 shrink-0">
+                  className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden ${
+                    isExpanded
+                      ? "border-primary-300 ring-2 ring-primary-500/10 shadow-md"
+                      : "border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                  }`}
+                >
+                  {/* Collapsed / Summary Row (Clickable) */}
+                  <div
+                    onClick={() => toggleExpand(intake.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleExpand(intake.id);
+                      }
+                    }}
+                    className={`p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer select-none transition-colors ${
+                      isExpanded ? "bg-slate-50/70" : "bg-white hover:bg-slate-50/40"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div
+                        className={`h-11 w-11 rounded-full flex items-center justify-center font-bold text-base border shrink-0 transition-colors ${
+                          isExpanded
+                            ? "bg-primary-600 text-white border-primary-600"
+                            : "bg-primary-100 text-primary-700 border-primary-200"
+                        }`}
+                      >
                         {intake.name.charAt(0).toUpperCase()}
                       </div>
-                      <div>
-                        <h3 className="font-bold text-slate-900">{intake.name}</h3>
-                        <p className="text-sm text-slate-500 flex items-center gap-1">
-                          <User size={14}/> {intake.age} yrs • {intake.gender}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-bold text-slate-900 text-base truncate">{intake.name}</h3>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+                            {intake.age} yrs • {intake.gender}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5 font-mono">
+                          <Phone size={13} className="text-slate-400 shrink-0" />
+                          <span className="truncate">{intake.phone || "No phone provided"}</span>
                         </p>
                       </div>
-                   </div>
-                   <div className="text-xs font-medium bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full border border-amber-200">
-                      Pending
-                   </div>
-                </div>
-
-                <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                   <div className="space-y-3 min-w-0">
-                      <div className="flex items-start gap-2 text-slate-600 min-w-0">
-                        <Phone size={16} className="mt-0.5 shrink-0 text-slate-400" />
-                        <span className="break-all">{intake.phone || "Not provided"}</span>
-                      </div>
-                      <div className="flex items-start gap-2 text-slate-600 min-w-0">
-                        <Mail size={16} className="mt-0.5 shrink-0 text-slate-400" />
-                        <span className="break-all">{intake.email || "Not provided"}</span>
-                      </div>
-                      <div className="flex items-start gap-2 text-slate-600 min-w-0">
-                        <MapPin size={16} className="mt-0.5 shrink-0 text-slate-400" />
-                        <span className="break-words">{intake.address || "Not provided"}</span>
-                      </div>
-                   </div>
-
-                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                       <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Preferred Appointment</h4>
-                       {intake.preferredDate ? (
-                        <>
-                           <div className="flex items-center gap-2 text-slate-800 font-medium mb-1.5">
-                             <Calendar size={16} className="text-primary-500"/>
-                             {new Date(intake.preferredDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-                           </div>
-                           <div className="flex items-center gap-2 text-slate-600">
-                             <Clock size={16} className="text-primary-500"/>
-                             {intake.preferredTime || "Any time"}
-                           </div>
-                        </>
-                      ) : (
-                        <p className="text-slate-500 italic">No preference selected</p>
-                      )}
                     </div>
-                 </div>
 
-                 {intake.nextOfKinName && (
-                   <div className="px-5 pb-3">
-                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                       <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 text-slate-500">
-                         Next of Kin / Emergency Contact
-                       </h4>
-                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs text-slate-700">
-                         <div>
-                           <span className="font-semibold text-slate-400 block mb-0.5">Name</span>
-                           <span className="font-semibold text-slate-800">{intake.nextOfKinName}</span>
-                         </div>
-                         <div>
-                           <span className="font-semibold text-slate-400 block mb-0.5">Relationship</span>
-                           <span className="font-semibold text-slate-800">{intake.nextOfKinRelationship || "Not specified"}</span>
-                         </div>
-                         <div>
-                           <span className="font-semibold text-slate-400 block mb-0.5">Phone</span>
-                           <span className="font-semibold text-slate-800">{intake.nextOfKinPhone || "Not specified"}</span>
-                         </div>
-                         <div>
-                           <span className="font-semibold text-slate-400 block mb-0.5">Address</span>
-                           <span className="font-semibold text-slate-800 break-words">{intake.nextOfKinAddress || "Not specified"}</span>
-                         </div>
-                       </div>
-                     </div>
-                   </div>
-                 )}
+                    <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                      {intake.preferredDate ? (
+                        <div className="flex items-center gap-2 text-xs font-medium text-slate-700 bg-white md:bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
+                          <Calendar size={13} className="text-primary-600 shrink-0" />
+                          <span>
+                            {new Date(intake.preferredDate).toLocaleDateString("en-US", {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                            {intake.preferredTime && (
+                              <span className="text-slate-500 font-normal"> • {intake.preferredTime}</span>
+                            )}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic px-2">No preference</span>
+                      )}
 
-                 <div className="px-5 pb-5">
-                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                       Assign Appointment
-                     </h4>
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                       <div className="space-y-1.5">
-                         <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                           Date
-                         </label>
-                         <input
-                           type="date"
-                           value={approvalDraft.assignedDate}
-                           onChange={(event) => {
-                             const nextDate = event.target.value;
-                             setApprovalDrafts((current) => ({
-                               ...current,
-                               [intake.id]: {
-                                 ...(current[intake.id] || createApprovalDraft(intake)),
-                                 assignedDate: nextDate,
-                                 assignedTime: "",
-                               },
-                             }));
-                             loadAvailableSlots(intake.id, nextDate, intake.preferredTime || "");
-                           }}
-                           className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                         />
-                       </div>
-                       <div className="space-y-1.5">
-                         <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                           Time
-                         </label>
-                        <select
-                          value={approvalDraft.assignedTime}
-                          onFocus={() => {
-                            if (
-                              approvalDraft.assignedDate &&
-                              !slotLoading &&
-                              availableSlots.length === 0
-                            ) {
-                              loadAvailableSlots(
-                                intake.id,
-                                approvalDraft.assignedDate,
-                                intake.preferredTime || "",
-                              );
-                            }
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full border border-amber-200">
+                          Pending
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpand(intake.id);
                           }}
-                          onChange={(event) =>
-                            setApprovalDrafts((current) => ({
-                              ...current,
-                               [intake.id]: {
-                                 ...(current[intake.id] || createApprovalDraft(intake)),
-                                 assignedTime: event.target.value,
-                               },
-                             }))
-                           }
-                           disabled={!approvalDraft.assignedDate || slotLoading || availableSlots.length === 0}
-                           className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-slate-100 disabled:text-slate-400"
-                         >
-                           <option value="">
-                             {!approvalDraft.assignedDate
-                               ? "Select a date first"
-                               : slotLoading
-                                 ? "Loading available times..."
-                                 : availableSlots.length === 0
-                                   ? "No free times"
-                                   : "Select a time"}
-                           </option>
-                           {availableSlots.map((slot) => (
-                             <option key={slot} value={slot}>
-                               {slot}
-                             </option>
-                           ))}
-                         </select>
-                       </div>
-                     </div>
-                     <p className="mt-3 text-xs text-slate-500">
-                       Leave both fields blank if you only want to register the patient for now without booking a slot yet.
-                     </p>
-                   </div>
-                 </div>
-
-                 <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
-                   <Button 
-                    className="flex-1" 
-                    variant="outline" 
-                    onClick={() => setPendingRejectIntake(intake)}
-                    disabled={processing === intake.id}
-                  >
-                     <X size={16} className="mr-2" /> Decline
-                  </Button>
-                   <Button 
-                     className="flex-1 bg-primary-600 hover:bg-primary-700 text-white shadow-sm"
-                     onClick={() => handleApprove(intake)}
-                     disabled={hasPartialAssignment}
-                     isLoading={processing === intake.id}
-                   >
-                      <Check size={16} className="mr-2" /> Approve & Register
-                   </Button>
+                          className={`h-8 px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                            isExpanded
+                              ? "bg-primary-50 border-primary-200 text-primary-700"
+                              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
+                          }`}
+                          aria-label={isExpanded ? "Collapse details" : "Expand details"}
+                        >
+                          <span className="hidden sm:inline">{isExpanded ? "Collapse" : "Review"}</span>
+                          <ChevronDown
+                            size={15}
+                            className={`transition-transform duration-200 ${isExpanded ? "rotate-180 text-primary-600" : ""}`}
+                          />
+                        </button>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Expanded Details Body */}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        key="expanded-content"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        className="overflow-hidden border-t border-slate-100 bg-slate-50/50"
+                      >
+                        <div className="p-5 md:p-6 space-y-6">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                            {/* Left Column: Full Patient Details */}
+                            <div className="space-y-4">
+                              <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs space-y-3">
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                  Contact & Residence
+                                </h4>
+                                <div className="space-y-2 text-sm text-slate-600">
+                                  <div className="flex items-start gap-2.5">
+                                    <Mail size={16} className="mt-0.5 shrink-0 text-slate-400" />
+                                    <span className="break-all">{intake.email || "No email provided"}</span>
+                                  </div>
+                                  <div className="flex items-start gap-2.5">
+                                    <MapPin size={16} className="mt-0.5 shrink-0 text-slate-400" />
+                                    <span className="break-words">{intake.address || "No residential address provided"}</span>
+                                  </div>
+                                  {intake.preferredDate && (
+                                    <div className="pt-2 border-t border-slate-100">
+                                      <span className="text-xs text-slate-400 block mb-1">Requested Appointment:</span>
+                                      <div className="flex items-center gap-2 text-slate-800 font-medium text-xs">
+                                        <Calendar size={14} className="text-primary-600 shrink-0" />
+                                        <span>
+                                          {new Date(intake.preferredDate).toLocaleDateString("en-US", {
+                                            weekday: "long",
+                                            month: "long",
+                                            day: "numeric",
+                                            year: "numeric",
+                                          })}
+                                          {intake.preferredTime && (
+                                            <span className="text-slate-500 font-normal"> at {intake.preferredTime}</span>
+                                          )}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {intake.nextOfKinName && (
+                                <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs">
+                                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5 text-slate-500">
+                                    Next of Kin / Emergency Contact
+                                  </h4>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700">
+                                    <div>
+                                      <span className="font-semibold text-slate-400 block mb-0.5">Name</span>
+                                      <span className="font-semibold text-slate-800">{intake.nextOfKinName}</span>
+                                    </div>
+                                    <div>
+                                      <span className="font-semibold text-slate-400 block mb-0.5">Relationship</span>
+                                      <span className="font-semibold text-slate-800">
+                                        {intake.nextOfKinRelationship || "Not specified"}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="font-semibold text-slate-400 block mb-0.5">Phone</span>
+                                      <span className="font-semibold text-slate-800 font-mono">
+                                        {intake.nextOfKinPhone || "Not specified"}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="font-semibold text-slate-400 block mb-0.5">Address</span>
+                                      <span className="font-semibold text-slate-800 break-words">
+                                        {intake.nextOfKinAddress || "Not specified"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Right Column: Assign Appointment Slot */}
+                            <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-2xs space-y-4">
+                              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                  <Calendar size={14} className="text-primary-600" />
+                                  Assign Appointment Slot
+                                </h4>
+                                <span className="text-[11px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                                  Optional
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                  <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                    Date
+                                  </label>
+                                  <input
+                                    type="date"
+                                    value={approvalDraft.assignedDate}
+                                    onChange={(event) => {
+                                      const nextDate = event.target.value;
+                                      setApprovalDrafts((current) => ({
+                                        ...current,
+                                        [intake.id]: {
+                                          ...(current[intake.id] || createApprovalDraft(intake)),
+                                          assignedDate: nextDate,
+                                          assignedTime: "",
+                                        },
+                                      }));
+                                      loadAvailableSlots(intake.id, nextDate, intake.preferredTime || "");
+                                    }}
+                                    className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                  />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                  <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                    Time
+                                  </label>
+                                  <select
+                                    value={approvalDraft.assignedTime}
+                                    onFocus={() => {
+                                      if (
+                                        approvalDraft.assignedDate &&
+                                        !slotLoading &&
+                                        availableSlots.length === 0
+                                      ) {
+                                        loadAvailableSlots(
+                                          intake.id,
+                                          approvalDraft.assignedDate,
+                                          intake.preferredTime || "",
+                                        );
+                                      }
+                                    }}
+                                    onChange={(event) =>
+                                      setApprovalDrafts((current) => ({
+                                        ...current,
+                                        [intake.id]: {
+                                          ...(current[intake.id] || createApprovalDraft(intake)),
+                                          assignedTime: event.target.value,
+                                        },
+                                      }))
+                                    }
+                                    disabled={!approvalDraft.assignedDate || slotLoading || availableSlots.length === 0}
+                                    className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-slate-100 disabled:text-slate-400"
+                                  >
+                                    <option value="">
+                                      {!approvalDraft.assignedDate
+                                        ? "Select a date first"
+                                        : slotLoading
+                                          ? "Loading available times..."
+                                          : availableSlots.length === 0
+                                            ? "No free times"
+                                            : "Select a time"}
+                                    </option>
+                                    {availableSlots.map((slot) => (
+                                      <option key={slot} value={slot}>
+                                        {slot}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+
+                              <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                                💡 Leave both fields blank if you only want to register the patient without booking a slot yet.
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons Footer */}
+                          <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                            <button
+                              type="button"
+                              onClick={() => toggleExpand(intake.id)}
+                              className="text-xs text-slate-500 hover:text-slate-700 font-medium order-2 sm:order-1 cursor-pointer"
+                            >
+                              Close Details
+                            </button>
+                            <div className="flex items-center gap-3 w-full sm:w-auto order-1 sm:order-2">
+                              <Button
+                                variant="outline"
+                                onClick={() => setPendingRejectIntake(intake)}
+                                disabled={processing === intake.id}
+                                className="w-full sm:w-auto bg-white hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200"
+                              >
+                                <X size={16} className="mr-1.5" /> Decline
+                              </Button>
+                              <Button
+                                className="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white shadow-sm"
+                                onClick={() => handleApprove(intake)}
+                                disabled={hasPartialAssignment}
+                                isLoading={processing === intake.id}
+                              >
+                                <Check size={16} className="mr-1.5" /> Approve & Register
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               );
             })}
