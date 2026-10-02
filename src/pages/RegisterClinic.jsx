@@ -202,6 +202,14 @@ export default function RegisterClinic() {
       return;
     }
 
+    if (!turnstileToken) {
+      setError(
+        "Please complete the security check before creating your clinic environment.",
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await api.post("/auth/register-clinic", payload);
       const successMessage =
