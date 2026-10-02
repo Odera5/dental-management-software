@@ -66,34 +66,42 @@ export default function TurnstileWidget({
     }
   }, [onError]);
 
+  const [isVerified, setIsVerified] = useState(false);
+  const onVerifyRef = useRef(onVerify);
+  const onExpireRef = useRef(onExpire);
+  const onErrorRef = useRef(onError);
+
+  // Keep callback refs updated without triggering re-render of Turnstile
+  useEffect(() => {
+    onVerifyRef.current = onVerify;
+    onExpireRef.current = onExpire;
+    onErrorRef.current = onError;
+  });
+
   // Render Turnstile widget once container and script are ready
   useEffect(() => {
     if (!scriptLoaded || !window.turnstile || !containerRef.current) return;
 
-    // Reset previous widget if any
-    if (widgetIdRef.current !== null) {
-      try {
-        window.turnstile.remove(widgetIdRef.current);
-      } catch (e) {
-        // ignore remove errors
-      }
-      widgetIdRef.current = null;
-    }
+    // Prevent recreating the widget if it is already rendered and active
+    if (widgetIdRef.current !== null) return;
 
     try {
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
         callback: (token) => {
           setWidgetError("");
-          if (onVerify) onVerify(token);
+          setIsVerified(true);
+          onVerifyRef.current?.(token);
         },
         "expired-callback": () => {
-          if (onExpire) onExpire();
+          setIsVerified(false);
+          onExpireRef.current?.();
         },
         "error-callback": (err) => {
           console.warn("Turnstile widget challenge error:", err);
           setWidgetError("Security challenge error. Ensure dental.primuxcare.com is in Cloudflare Allowed Domains.");
-          if (onError) onError(err);
+          setIsVerified(false);
+          onErrorRef.current?.(err);
         },
         theme: "light",
       });
@@ -101,7 +109,10 @@ export default function TurnstileWidget({
       console.error("Error rendering Turnstile widget:", err);
       setWidgetError("Unable to initialize security challenge.");
     }
+  }, [scriptLoaded, siteKey]);
 
+  // Clean up widget ONLY when component unmounts
+  useEffect(() => {
     return () => {
       if (widgetIdRef.current !== null && window.turnstile) {
         try {
@@ -112,7 +123,7 @@ export default function TurnstileWidget({
         widgetIdRef.current = null;
       }
     };
-  }, [scriptLoaded, siteKey, onVerify, onExpire, onError]);
+  }, []);
 
   return (
     <div className={`flex flex-col items-center justify-center my-3 ${className}`}>

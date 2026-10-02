@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -159,6 +159,18 @@ export default function RegisterClinic() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const handleTurnstileVerify = useCallback((token) => {
+    setTurnstileToken(token);
+  }, []);
+
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken("");
+  }, []);
+
+  const handleTurnstileError = useCallback(() => {
+    setTurnstileToken("");
+  }, []);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -463,9 +475,9 @@ export default function RegisterClinic() {
 
             {/* Cloudflare Turnstile Verification */}
             <TurnstileWidget
-              onVerify={(token) => setTurnstileToken(token)}
-              onExpire={() => setTurnstileToken("")}
-              onError={() => setTurnstileToken("")}
+              onVerify={handleTurnstileVerify}
+              onExpire={handleTurnstileExpire}
+              onError={handleTurnstileError}
             />
 
             <Button type="submit" size="lg" isLoading={loading}>
