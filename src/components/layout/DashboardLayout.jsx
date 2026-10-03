@@ -53,6 +53,7 @@ import {
   getTrialDaysRemaining,
   hasEnterpriseAccess,
   isCancelledPaidSubscription,
+  resolveSubscriptionEndDate,
 } from "../../utils/clinicAccess";
 
 function NavItem({
@@ -244,9 +245,7 @@ export default function DashboardLayout() {
   const clinicPlan = clinic.plan || "PRO";
   const isPaidTier = ["PRO", "ENTERPRISE"].includes(clinicPlan);
   const subscriptionExpired = isSubscriptionExpired(clinic);
-  const subscriptionEnds = clinic.paystackNextPaymentDate && new Date(clinic.paystackNextPaymentDate) > new Date(clinic.subscriptionEnds || 0)
-    ? clinic.paystackNextPaymentDate
-    : clinic.subscriptionEnds;
+  const subscriptionEnds = resolveSubscriptionEndDate(clinic) || clinic.subscriptionEnds;
   const paidSubscriptionActive = hasActivePaidSubscription(clinic);
   const activeProAccess = hasActiveProAccess(clinic);
   const enterpriseAccess = hasEnterpriseAccess(clinic);
@@ -1027,7 +1026,7 @@ export default function DashboardLayout() {
             >
               <span className="flex items-center gap-2">
                 <Crown size={18} />
-                {clinic?.paystackSubscriptionStatus
+                {clinic?.paystackSubscriptionStatus || clinic?.stripeSubscriptionStatus
                   ? "Your paid plan access has expired. Clinic operations are locked until renewal."
                   : "Your 14-day free trial has ended. Select a paid plan to restore full clinic operations."}
               </span>
@@ -1036,7 +1035,7 @@ export default function DashboardLayout() {
                   onClick={() => navigate("/upgrade")}
                   className="bg-white/20 hover:bg-white/30 px-4 py-1.5 rounded-full text-xs transition-colors border border-white/30 backdrop-blur-sm shadow-sm"
                 >
-                  {clinic?.paystackSubscriptionStatus ? "Renew Now" : "Upgrade Plan"}
+                  {clinic?.paystackSubscriptionStatus || clinic?.stripeSubscriptionStatus ? "Renew Now" : "Upgrade Plan"}
                 </button>
               )}
             </MotionDiv>

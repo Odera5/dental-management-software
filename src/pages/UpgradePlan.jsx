@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Check, Crown, FileUp, BookOpen, Building2, ArrowRight } from "lucide-react";
+import {
+  Check,
+  Crown,
+  FileUp,
+  BookOpen,
+  Building2,
+  ArrowRight,
+  Globe,
+  ExternalLink,
+} from "lucide-react";
 import api from "../services/api";
 import Toast from "../components/Toast";
 import Button from "../components/ui/Button";
@@ -12,16 +22,21 @@ import {
   hasFutureSubscriptionWindow,
   isTrialingClinic,
   getTrialDaysRemaining,
+  getSubscriptionProvider,
+  resolveSubscriptionEndDate,
 } from "../utils/clinicAccess";
 import { getStoredUserObject } from "../utils/authStorage";
 
 const UPGRADE_PLAN_AUDIT_PAYLOAD = { auditSource: "upgrade_plan" };
 
 export default function UpgradePlan() {
+  const [searchParams] = useSearchParams();
+  const [currency, setCurrency] = useState("NGN");
   const [isAnnual, setIsAnnual] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [enterpriseCheckoutLoading, setEnterpriseCheckoutLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [billingInfo, setBillingInfo] = useState(null);
   const [toast, setToast] = useState(null);
   const [confirmConfig, setConfirmConfig] = useState(null);
@@ -30,77 +45,60 @@ export default function UpgradePlan() {
   const clinic = billingInfo || storedUser?.clinic || {};
   const currentPlan = clinic?.plan || "PRO";
   const currentPlanLabel = currentPlan === "ENTERPRISE" ? "Enterprise" : "Professional";
-  const subscriptionEnds = clinic?.subscriptionEnds || null;
-  const paystackNextPaymentDate = clinic?.paystackNextPaymentDate || null;
   const isPro = currentPlan === "PRO";
   const isEnterprise = currentPlan === "ENTERPRISE";
+
+  const activeProvider = getSubscriptionProvider(clinic);
+  const isStripe = activeProvider === "stripe";
+  const isPaystack = activeProvider === "paystack";
+
+  const resolvedSubscriptionEnd = resolveSubscriptionEndDate(clinic);
+  const subscriptionEnds = resolvedSubscriptionEnd || clinic?.subscriptionEnds || null;
+  const paystackNextPaymentDate = clinic?.paystackNextPaymentDate || null;
+  const stripeNextPaymentDate = clinic?.stripeNextPaymentDate || null;
+
   const paidSubscriptionActive = hasActivePaidSubscription(clinic);
-  const subscriptionStatus = String(clinic?.paystackSubscriptionStatus || "").toLowerCase();
+  const subscriptionStatus = String(
+    isStripe
+      ? clinic?.stripeSubscriptionStatus
+      : clinic?.paystackSubscriptionStatus || "",
+  ).toLowerCase();
+
   const autoRenewCanceled = subscriptionStatus === "non-renewing";
-  const subscriptionCannotResume = ["cancelled", "canceled", "completed"].includes(subscriptionStatus);
+  const subscriptionCannotResume = isStripe
+    ? ["cancelled", "canceled", "incomplete_expired"].includes(subscriptionStatus)
+    : ["cancelled", "canceled", "completed"].includes(subscriptionStatus);
+
   const proAccessActive = hasActiveProAccess(clinic);
   const enterpriseAccess = hasEnterpriseAccess(clinic);
   const currentPaidPeriodActive = hasFutureSubscriptionWindow(clinic) && subscriptionCannotResume;
   const trialing = isTrialingClinic(clinic);
   const remainingTrialDays = getTrialDaysRemaining(clinic);
 
-  useEffect(() => {
-    const loadBilling = async () => {
-      try {
-        const billingResponse = await api.get("/billing");
-        setBillingInfo(billingResponse.data?.clinic || null);
-      } catch (error) {
-        console.error("Failed to load billing page data", error);
-      }
-    };
-
-    loadBilling();
-  }, []);
-
-  const handleUpgradeClick = async (plan = "PRO", interval = isAnnual ? "annually" : "monthly") => {
-    const setLoading =
-      plan === "ENTERPRISE" ? setEnterpriseCheckoutLoading : setCheckoutLoading;
-
-    try {
-      setLoading(true);
-      const response = await api.post("/billing/paystack/initialize", {
-        interval,
-        plan,
-      });
-      const authorizationUrl = response.data?.authorizationUrl;
-
-      if (!authorizationUrl) {
-        throw new Error("Paystack did not return a checkout URL.");
-      }
-
-      window.location.href = authorizationUrl;
-    } catch (error) {
-      setToast({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "We could not start Paystack checkout.",
-        type: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const formattedRenewalDate = subscriptionEnds
-    ? new Date(subscriptionEnds).toLocaleDateString("en-NG", {
+    ? new Date(subscriptionEnds).toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
       })
     : null;
-  const formattedNextPaymentDate = paystackNextPaymentDate
-    ? new Date(paystackNextPaymentDate).toLocaleDateString("en-NG", {
+
+  const formattedNextPaymentDate = (isStripe ? stripeNextPaymentDate : paystackNextPaymentDate)
+    ? new Date(isStripe ? stripeNextPaymentDate : paystackNextPaymentDate).toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
       })
-    : null;
+    : formattedRenewalDate;
+
+  // Prices
+  const proPrice = currency === "USD"
+    ? (isAnnual ? "$690" : "$69")
+    : (isAnnual ? "NGN 1,000,000" : "NGN 100,000");
+
+  const enterprisePrice = currency === "USD"
+    ? (isAnnual ? "$1,290" : "$129")
+    : (isAnnual ? "NGN 1,500,000" : "NGN 150,000");
 
   const syncStoredUserClinic = (clinicPatch) => {
     [localStorage, sessionStorage].forEach((storage) => {
@@ -127,14 +125,153 @@ export default function UpgradePlan() {
     });
   };
 
+  useEffect(() => {
+    const loadBilling = async () => {
+      try {
+        const billingResponse = await api.get("/billing");
+        const loadedClinic = billingResponse.data?.clinic || null;
+        if (loadedClinic) {
+          setBillingInfo(loadedClinic);
+          // If active subscription is Stripe, switch currency view to USD
+          if (loadedClinic.stripeSubscriptionId || loadedClinic.stripeSubscriptionStatus) {
+            setCurrency("USD");
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load billing page data", error);
+      }
+    };
+
+    loadBilling();
+  }, []);
+
+  // Handle Stripe redirect callbacks
+  useEffect(() => {
+    const stripeStatus = searchParams.get("stripe_status");
+    const sessionId = searchParams.get("session_id");
+
+    if (stripeStatus === "success") {
+      const verifySession = async () => {
+        try {
+          if (sessionId) {
+            const verifyRes = await api.get(
+              `/billing/stripe/verify?session_id=${encodeURIComponent(sessionId)}`,
+            );
+            if (verifyRes.data?.clinic) {
+              setBillingInfo(verifyRes.data.clinic);
+              syncStoredUserClinic(verifyRes.data.clinic);
+            }
+          } else {
+            const billingRes = await api.get("/billing");
+            if (billingRes.data?.clinic) {
+              setBillingInfo(billingRes.data.clinic);
+              syncStoredUserClinic(billingRes.data.clinic);
+            }
+          }
+          setCurrency("USD");
+          setToast({
+            message: "🎉 Your subscription has been activated successfully with Stripe! Welcome to CareChrome.",
+            type: "success",
+          });
+        } catch (e) {
+          console.error("Verification error:", e);
+          setToast({
+            message: "Payment received! Your subscription has been activated.",
+            type: "success",
+          });
+        } finally {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      };
+      verifySession();
+    } else if (stripeStatus === "cancelled") {
+      setToast({
+        message: "Stripe checkout was cancelled. No charges were made.",
+        type: "info",
+      });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [searchParams]);
+
+  const handleUpgradeClick = async (plan = "PRO", interval = isAnnual ? "annually" : "monthly") => {
+    const setLoading =
+      plan === "ENTERPRISE" ? setEnterpriseCheckoutLoading : setCheckoutLoading;
+
+    try {
+      setLoading(true);
+
+      if (currency === "USD") {
+        const response = await api.post("/billing/stripe/initialize", {
+          interval,
+          plan,
+        });
+        const checkoutUrl = response.data?.checkoutUrl;
+
+        if (!checkoutUrl) {
+          throw new Error("Stripe did not return a checkout URL.");
+        }
+
+        window.location.href = checkoutUrl;
+      } else {
+        const response = await api.post("/billing/paystack/initialize", {
+          interval,
+          plan,
+        });
+        const authorizationUrl = response.data?.authorizationUrl;
+
+        if (!authorizationUrl) {
+          throw new Error("Paystack did not return a checkout URL.");
+        }
+
+        window.location.href = authorizationUrl;
+      }
+    } catch (error) {
+      setToast({
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          `We could not start ${currency === "USD" ? "Stripe" : "Paystack"} checkout.`,
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStripePortalClick = async () => {
+    try {
+      setPortalLoading(true);
+      const response = await api.get("/billing/stripe/portal");
+      if (response.data?.url) {
+        window.location.href = response.data.url;
+      } else {
+        throw new Error("No portal URL returned.");
+      }
+    } catch (error) {
+      setToast({
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Could not open Stripe billing portal.",
+        type: "error",
+      });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
   const executeCancelAutoRenew = async () => {
     try {
       setCancelLoading(true);
-      const response = await api.post("/billing/paystack/cancel", UPGRADE_PLAN_AUDIT_PAYLOAD);
-      const clinic = response.data?.clinic || null;
-      if (clinic) {
-        setBillingInfo(clinic);
-        syncStoredUserClinic(clinic);
+      const isStripeSub = isStripe;
+      const endpoint = isStripeSub ? "/billing/stripe/cancel" : "/billing/paystack/cancel";
+      const payload = isStripeSub ? {} : UPGRADE_PLAN_AUDIT_PAYLOAD;
+
+      const response = await api.post(endpoint, payload);
+      const updatedClinic = response.data?.clinic || null;
+      if (updatedClinic) {
+        setBillingInfo(updatedClinic);
+        syncStoredUserClinic(updatedClinic);
       }
       setToast({
         message:
@@ -154,6 +291,18 @@ export default function UpgradePlan() {
     }
   };
 
+  const cancelActivePlanBeforeSwitch = async () => {
+    const isStripeSub = isStripe;
+    const endpoint = isStripeSub ? "/billing/stripe/cancel" : "/billing/paystack/cancel";
+    const payload = isStripeSub ? {} : UPGRADE_PLAN_AUDIT_PAYLOAD;
+    const response = await api.post(endpoint, payload);
+    const updatedClinic = response.data?.clinic || null;
+    if (updatedClinic) {
+      setBillingInfo(updatedClinic);
+      syncStoredUserClinic(updatedClinic);
+    }
+  };
+
   const handleCancelAutoRenew = () => {
     setConfirmConfig({
       title: "Cancel Subscription",
@@ -170,18 +319,13 @@ export default function UpgradePlan() {
       setConfirmConfig({
         title: "Upgrade to Enterprise",
         message:
-          "You are upgrading your subscription from Professional to Enterprise. To avoid duplicate charges, your active Professional subscription will be automatically cancelled first. You will then be redirected to Paystack to complete checkout for the Enterprise plan. Your clinic access will remain active throughout this process.",
+          `You are upgrading your subscription from Professional to Enterprise. To avoid duplicate charges, your active Professional subscription will be automatically cancelled first. You will then be redirected to complete checkout for the Enterprise plan. Your clinic access will remain active throughout this process.`,
         confirmText: "Confirm & Proceed",
         cancelText: "Cancel",
         onConfirm: async () => {
           try {
             setEnterpriseCheckoutLoading(true);
-            const response = await api.post("/billing/paystack/cancel", UPGRADE_PLAN_AUDIT_PAYLOAD);
-            const updatedClinic = response.data?.clinic || null;
-            if (updatedClinic) {
-              setBillingInfo(updatedClinic);
-              syncStoredUserClinic(updatedClinic);
-            }
+            await cancelActivePlanBeforeSwitch();
             await handleUpgradeClick("ENTERPRISE", isAnnual ? "annually" : "monthly");
           } catch (error) {
             setToast({
@@ -205,18 +349,13 @@ export default function UpgradePlan() {
       setConfirmConfig({
         title: "Switch to Professional",
         message:
-          "You are switching your subscription from Enterprise to Professional. To avoid duplicate charges, your active Enterprise subscription will be automatically cancelled first. You will then be redirected to Paystack to complete checkout for the Professional plan. Your clinic access will remain active throughout this process.",
+          `You are switching your subscription from Enterprise to Professional. To avoid duplicate charges, your active Enterprise subscription will be automatically cancelled first. You will then be redirected to complete checkout for the Professional plan. Your clinic access will remain active throughout this process.`,
         confirmText: "Confirm & Proceed",
         cancelText: "Cancel",
         onConfirm: async () => {
           try {
             setCheckoutLoading(true);
-            const response = await api.post("/billing/paystack/cancel", UPGRADE_PLAN_AUDIT_PAYLOAD);
-            const updatedClinic = response.data?.clinic || null;
-            if (updatedClinic) {
-              setBillingInfo(updatedClinic);
-              syncStoredUserClinic(updatedClinic);
-            }
+            await cancelActivePlanBeforeSwitch();
             await handleUpgradeClick("PRO", isAnnual ? "annually" : "monthly");
           } catch (error) {
             setToast({
@@ -236,7 +375,12 @@ export default function UpgradePlan() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="w-full max-w-4xl mx-auto p-6 md:p-8 min-h-full">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="w-full max-w-4xl mx-auto p-6 md:p-8 min-h-full"
+    >
       {toast && (
         <Toast
           message={toast.message}
@@ -252,58 +396,97 @@ export default function UpgradePlan() {
         {...confirmConfig}
       />
 
-      <div className="text-center mb-12">
+      <div className="text-center mb-8">
         <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
           {paidSubscriptionActive
             ? "Manage Your Subscription"
             : !proAccessActive
-              ? (clinic.paystackSubscriptionStatus ? "Subscription Expired" : "Trial Ended")
+              ? (clinic.paystackSubscriptionStatus || clinic.stripeSubscriptionStatus ? "Subscription Expired" : "Trial Ended")
               : "Unlock Full Access"}
         </h1>
         <p className="text-lg text-slate-500 max-w-2xl mx-auto">
           {currentPaidPeriodActive
-            ? `Your ${currentPlanLabel} plan has been cancelled in Paystack. You still have access until the current paid period ends, but renewal requires a new checkout.`
+            ? `Your ${currentPlanLabel} plan has been cancelled. You still have access until the current paid period ends, but renewal requires a new checkout.`
             : paidSubscriptionActive
               ? autoRenewCanceled
-              ? `Your ${currentPlanLabel} plan is canceled for auto-renewal. You still have full access until the current paid period ends.`
-              : `You are currently subscribed to the ${currentPlanLabel} plan. You have full access to unlimited patients, automated reminders, and advanced analytics.`
+                ? `Your ${currentPlanLabel} plan is canceled for auto-renewal. You still have full access until the current paid period ends.`
+                : `You are currently subscribed to the ${currentPlanLabel} plan. You have full access to unlimited patients, automated reminders, and advanced analytics.`
             : !proAccessActive
-              ? (clinic.paystackSubscriptionStatus
+              ? (clinic.paystackSubscriptionStatus || clinic.stripeSubscriptionStatus
                 ? "Your paid subscription has expired. Renew your plan to unlock and restore full clinic operations."
                 : "Your 14-day free trial has ended. Select a paid plan to restore full clinic operations.")
               : "Start with a 14-day free trial, then continue with a paid subscription for unlimited patients, automated reminders, and advanced analytics."}
         </p>
+
         {trialing && (
           <p className="mt-4 text-sm inline-flex items-center gap-2 font-medium text-primary-700 bg-primary-50 px-4 py-1.5 rounded-full border border-primary-100 shadow-sm">
             <Crown size={16} /> Your 14-day trial has {remainingTrialDays} day
             {remainingTrialDays === 1 ? "" : "s"} remaining.
           </p>
         )}
+
         {(paidSubscriptionActive || currentPaidPeriodActive) && (
-          <p className={`mt-4 text-sm inline-flex items-center gap-2 font-medium px-4 py-1.5 rounded-full border shadow-sm ${
-            autoRenewCanceled || currentPaidPeriodActive
-              ? "text-amber-700 bg-amber-50 border-amber-100"
-              : "text-emerald-700 bg-emerald-50 border-emerald-100"
-          }`}>
-            <Crown size={16} /> {currentPaidPeriodActive
+          <p
+            className={`mt-4 text-sm inline-flex items-center gap-2 font-medium px-4 py-1.5 rounded-full border shadow-sm ${
+              autoRenewCanceled || currentPaidPeriodActive
+                ? "text-amber-700 bg-amber-50 border-amber-100"
+                : "text-emerald-700 bg-emerald-50 border-emerald-100"
+            }`}
+          >
+            <Crown size={16} />{" "}
+            {currentPaidPeriodActive
               ? `Subscription cancelled - Access until: ${formattedRenewalDate || formattedNextPaymentDate || "current period end"}`
               : autoRenewCanceled
                 ? `Auto-renew canceled - Access until: ${formattedRenewalDate || formattedNextPaymentDate || "current period end"}`
-              : `Subscription Active - Next payment: ${formattedNextPaymentDate || formattedRenewalDate}`}
+                : `Subscription Active (${isStripe ? "Stripe USD" : "Paystack NGN"}) - Next payment: ${formattedNextPaymentDate || formattedRenewalDate}`}
           </p>
         )}
+
         {!proAccessActive && !paidSubscriptionActive && (
           <p className="mt-4 text-sm inline-flex items-center gap-2 font-medium text-rose-700 bg-rose-50 px-4 py-1.5 rounded-full border border-rose-100 shadow-sm">
-            <Crown size={16} /> {clinic.paystackSubscriptionStatus ? "Your subscription has expired. Please renew to continue using the platform." : "Your trial has ended. Subscribe to continue using the platform."}
+            <Crown size={16} />{" "}
+            {clinic.paystackSubscriptionStatus || clinic.stripeSubscriptionStatus
+              ? "Your subscription has expired. Please renew to continue using the platform."
+              : "Your trial has ended. Subscribe to continue using the platform."}
           </p>
         )}
       </div>
 
-      <div className="flex justify-center mb-12">
-        <div className="bg-slate-100 p-1.5 rounded-full inline-flex items-center shadow-inner border border-slate-200">
+      {/* Gateway / Currency Toggle */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+        <div className="bg-slate-100 p-1.5 rounded-2xl inline-flex items-center shadow-inner border border-slate-200">
           <button
+            type="button"
+            onClick={() => setCurrency("NGN")}
+            className={`px-4 py-2 text-xs md:text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
+              currency === "NGN"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            <span className="text-base leading-none">🇳🇬</span>
+            <span>NGN (Paystack)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCurrency("USD")}
+            className={`px-4 py-2 text-xs md:text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
+              currency === "USD"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            <Globe size={15} className={currency === "USD" ? "text-primary-600" : "text-slate-400"} />
+            <span>USD (Stripe / Global)</span>
+          </button>
+        </div>
+
+        {/* Monthly / Annual Toggle */}
+        <div className="bg-slate-100 p-1.5 rounded-2xl inline-flex items-center shadow-inner border border-slate-200">
+          <button
+            type="button"
             onClick={() => setIsAnnual(false)}
-            className={`px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 ${
+            className={`px-5 py-2 text-xs md:text-sm font-bold rounded-xl transition-all duration-300 ${
               !isAnnual
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-700"
@@ -312,8 +495,9 @@ export default function UpgradePlan() {
             Monthly
           </button>
           <button
+            type="button"
             onClick={() => setIsAnnual(true)}
-            className={`px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 flex items-center gap-2 ${
+            className={`px-5 py-2 text-xs md:text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
               isAnnual
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-700"
@@ -328,6 +512,7 @@ export default function UpgradePlan() {
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">
+        {/* Professional Plan Card */}
         <div className="bg-gradient-to-b from-slate-50 via-white to-slate-100 rounded-3xl p-8 md:p-7 border border-slate-200 shadow-xl flex flex-col relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
           {isPro && (
             <div className="absolute top-5 right-5 z-10">
@@ -337,11 +522,12 @@ export default function UpgradePlan() {
                 </span>
               ) : (
                 <span className="bg-rose-600 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
-                  {clinic.paystackSubscriptionStatus ? "Expired Plan" : "Expired Trial"}
+                  {clinic.paystackSubscriptionStatus || clinic.stripeSubscriptionStatus ? "Expired Plan" : "Expired Trial"}
                 </span>
               )}
             </div>
           )}
+
           <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
             <span className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-sm font-bold uppercase tracking-widest py-1.5 px-4 rounded-full shadow-lg flex items-center gap-1.5">
               <Crown size={16} /> Professional
@@ -351,14 +537,13 @@ export default function UpgradePlan() {
           <div className="mb-6 mt-4">
             <h3 className="text-2xl font-bold text-slate-900 mb-2">Professional Plan</h3>
             <p className="text-slate-600 text-sm">
-              Full access for clinics that need scale, automation,
-              and uninterrupted operations.
+              Full access for clinics that need scale, automation, and uninterrupted operations.
             </p>
           </div>
 
           <div className="mb-8 flex items-end gap-1">
             <span className="text-3xl md:text-4xl font-extrabold text-slate-900 transition-all">
-              NGN {isAnnual ? "1,000,000" : "100,000"}
+              {proPrice}
             </span>
             <span className="text-slate-500 font-medium mb-1 transition-all">
               / {isAnnual ? "year" : "month"}
@@ -367,20 +552,7 @@ export default function UpgradePlan() {
 
           {isPro && (paidSubscriptionActive || currentPaidPeriodActive) ? (
             <div className="mb-6 space-y-3">
-              {currentPaidPeriodActive ? (
-                <>
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-                    Professional access remains active until {formattedRenewalDate || "the current paid period ends"}. Renew now to keep your subscription active after this date.
-                  </div>
-                  <Button
-                    className="w-full py-4 text-base font-bold bg-primary-500 hover:bg-primary-400 text-white shadow-[0_0_20px_rgba(14,165,233,0.3)] border-transparent"
-                    onClick={handleProUpgradeClick}
-                    isLoading={checkoutLoading}
-                  >
-                    Renew Professional Subscription
-                  </Button>
-                </>
-              ) : autoRenewCanceled ? (
+              {currentPaidPeriodActive || autoRenewCanceled ? (
                 <>
                   <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
                     Professional access remains active until {formattedRenewalDate || "the current paid period ends"}. Renew now to keep your subscription active after this date.
@@ -394,21 +566,33 @@ export default function UpgradePlan() {
                   </Button>
                 </>
               ) : (
-                <Button
-                  variant="outline"
-                  className="w-full border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                  onClick={handleCancelAutoRenew}
-                  isLoading={cancelLoading}
-                >
-                  Cancel Professional Subscription
-                </Button>
+                <>
+                  {isStripe && (
+                    <Button
+                      variant="outline"
+                      className="w-full border-slate-300 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center gap-2"
+                      onClick={handleStripePortalClick}
+                      isLoading={portalLoading}
+                    >
+                      <ExternalLink size={16} /> Manage Billing in Stripe Portal
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="w-full border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                    onClick={handleCancelAutoRenew}
+                    isLoading={cancelLoading}
+                  >
+                    Cancel Professional Subscription
+                  </Button>
+                </>
               )}
             </div>
           ) : (
             <>
               {isPro && !proAccessActive && (
                 <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                  {clinic.paystackSubscriptionStatus
+                  {clinic.paystackSubscriptionStatus || clinic.stripeSubscriptionStatus
                     ? "Your Professional subscription has expired. Clinic operations are locked until renewal."
                     : "Your Professional trial has ended. Subscribe to restore full clinic operations."}
                 </div>
@@ -419,7 +603,9 @@ export default function UpgradePlan() {
                 isLoading={checkoutLoading}
               >
                 {isPro && !proAccessActive
-                  ? (clinic.paystackSubscriptionStatus ? "Renew Professional Subscription" : "Unlock Professional Access")
+                  ? (clinic.paystackSubscriptionStatus || clinic.stripeSubscriptionStatus
+                    ? "Renew Professional Subscription"
+                    : "Unlock Professional Access")
                   : isEnterprise
                     ? "Switch to Professional"
                     : "Unlock Professional Access"}
@@ -429,17 +615,9 @@ export default function UpgradePlan() {
 
           <div className="mb-5 flex justify-center items-center">
             <p className="text-slate-600 text-xs font-medium bg-white px-4 py-2 rounded-xl border border-slate-200 text-center leading-relaxed">
-              {paidSubscriptionActive
-                ? autoRenewCanceled
-                  ? "Renewing starts a secure checkout for your next billing period."
-                  : "Your subscription is currently active with secure recurring billing in NGN."
-                : currentPaidPeriodActive
-                  ? "This subscription cannot be resumed. Renewing starts a fresh secure checkout."
-                : isPro && !proAccessActive
-                  ? (clinic.paystackSubscriptionStatus
-                    ? "Your Professional subscription has expired. Renew to restore full clinic access."
-                    : "Your Professional trial has ended. Subscribe to restore full clinic access.")
-                  : "New clinics begin with a 14-day trial, then continue with secure recurring billing in NGN."}
+              {currency === "USD"
+                ? "Billed securely in USD via Stripe (International Cards, Apple Pay, Google Pay)."
+                : "Billed securely in NGN via Paystack (Debit Cards, Bank Transfer, USSD)."}
             </p>
           </div>
 
@@ -462,7 +640,7 @@ export default function UpgradePlan() {
             <FeatureItem included>
               Automated Appointment Reminder Emails
             </FeatureItem>
-            <FeatureItem included>Simple Analytic</FeatureItem>
+            <FeatureItem included>Simple Analytics</FeatureItem>
             <FeatureItem included>Custom Invoice Branding</FeatureItem>
             <FeatureItem included>
               Advanced Role-Based Access (RBAC)
@@ -471,6 +649,7 @@ export default function UpgradePlan() {
           </div>
         </div>
 
+        {/* Enterprise Plan Card */}
         <div className="relative h-full">
           <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 rounded-3xl p-8 md:p-7 border border-slate-800 shadow-xl flex flex-col h-full relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
             {isEnterprise && (
@@ -481,7 +660,7 @@ export default function UpgradePlan() {
                   </span>
                 ) : (
                   <span className="bg-rose-600 text-white text-xs font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
-                    {clinic.paystackSubscriptionStatus ? "Expired Plan" : "Expired Trial"}
+                    {clinic.paystackSubscriptionStatus || clinic.stripeSubscriptionStatus ? "Expired Plan" : "Expired Trial"}
                   </span>
                 )}
               </div>
@@ -500,122 +679,126 @@ export default function UpgradePlan() {
             <div className="mb-6 mt-4 relative z-10">
               <h3 className="text-2xl font-bold text-white">Enterprise Plan</h3>
               <p className="mt-2 text-sm leading-7 text-slate-300">
-              Built for clinic groups that need multi-branch control, branch-level
-              separation, and centralized oversight.
-            </p>
-          </div>
-
-          <div className="mb-8 flex items-end gap-1">
-            <span className="text-3xl md:text-4xl font-extrabold text-white transition-all">
-              NGN {isAnnual ? "1,500,000" : "150,000"}
-            </span>
-            <span className="text-slate-400 font-medium mb-1 transition-all">
-              / {isAnnual ? "year" : "month"}
-            </span>
-          </div>
-          <p className="mt-2 text-sm text-slate-400 mb-8">
-            Enterprise billing for multi-location clinics and hospital groups.
-          </p>
-
-          {isEnterprise && (paidSubscriptionActive || currentPaidPeriodActive) ? (
-            <div className="mb-6 space-y-3">
-              <div className={`mb-3 rounded-2xl px-4 py-3 text-sm font-medium ${
-                autoRenewCanceled || currentPaidPeriodActive
-                  ? "border border-amber-400/25 bg-amber-500/10 text-amber-100"
-                  : "border border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
-              }`}>
-                {currentPaidPeriodActive
-                  ? `Enterprise access remains active until ${formattedRenewalDate || "the current paid period ends"}. Renew now to keep your subscription active after this date.`
-                  : autoRenewCanceled
-                    ? `Enterprise access remains active until ${formattedRenewalDate || "the current paid period ends"}. Renew now to keep your subscription active after this date.`
-                  : "Enterprise access is active on this clinic account. Branch management is unlocked."}
-              </div>
-              {currentPaidPeriodActive ? (
-                <Button
-                  variant="outline"
-                  className="mb-6 w-full border-white/20 bg-white/10 text-white hover:bg-white/15"
-                  onClick={handleEnterpriseUpgradeClick}
-                  isLoading={enterpriseCheckoutLoading}
-                >
-                  Renew Enterprise Subscription
-                  <ArrowRight size={16} className="ml-2" />
-                </Button>
-              ) : autoRenewCanceled ? (
-                <Button
-                  variant="outline"
-                  className="mb-6 w-full border-white/20 bg-white/10 text-white hover:bg-white/15"
-                  onClick={handleEnterpriseUpgradeClick}
-                  isLoading={enterpriseCheckoutLoading}
-                >
-                  Renew Enterprise Subscription
-                  <ArrowRight size={16} className="ml-2" />
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="w-full border-red-400/20 bg-red-500/10 text-red-400 hover:bg-red-500/20"
-                  onClick={handleCancelAutoRenew}
-                  isLoading={cancelLoading}
-                >
-                  Cancel Enterprise Subscription
-                </Button>
-              )}
+                Built for clinic groups that need multi-branch control, branch-level separation, and centralized oversight.
+              </p>
             </div>
-          ) : (
-            <>
-              {isEnterprise && !enterpriseAccess && (
-                <div className="mb-3 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-200">
-                  {clinic.paystackSubscriptionStatus
-                    ? "Your Enterprise subscription has expired. Clinic operations are locked until renewal."
-                    : "Your Enterprise trial has ended. Subscribe to restore full clinic operations."}
-                </div>
-              )}
-              <Button
-                variant="outline"
-                className="mb-6 w-full border-white/20 bg-white/10 text-white hover:bg-white/15"
-                onClick={handleEnterpriseUpgradeClick}
-                isLoading={enterpriseCheckoutLoading}
-              >
-                {isEnterprise && !enterpriseAccess
-                  ? (clinic.paystackSubscriptionStatus ? "Renew Enterprise Subscription" : "Get Enterprise Features")
-                  : paidSubscriptionActive && !isEnterprise
-                    ? "Upgrade to Enterprise"
-                    : "Get Enterprise Features"}
-                <ArrowRight size={16} className="ml-2" />
-              </Button>
-            </>
-          )}
 
-          <div className="space-y-4 flex-1">
-            <FeatureItem included dark highlight icon={<Crown size={18} />}>
-              Everything in Professional Plan
-            </FeatureItem>
-            <FeatureItem included dark icon={<Building2 size={18} />}>
-              Multi-Branch Management
-            </FeatureItem>
-            <FeatureItem included dark>
-              Separate branches for locations
-            </FeatureItem>
-            <FeatureItem included dark>
-              Branch identity duplicate protection
-            </FeatureItem>
-            <FeatureItem included dark>
-              Dedicated branch management page
-            </FeatureItem>
-            <FeatureItem included dark>
-              Branch activation and lifecycle control
-            </FeatureItem>
-            <FeatureItem included dark>
-              Centralized admin expansion path for branch-scoped staff and analytics
-            </FeatureItem>
-            <FeatureItem included dark>
-              Advance Analytic
-            </FeatureItem>
-            <FeatureItem included dark>
-              Priority 24/7 Support
-            </FeatureItem>
+            <div className="mb-8 flex items-end gap-1 relative z-10">
+              <span className="text-3xl md:text-4xl font-extrabold text-white transition-all">
+                {enterprisePrice}
+              </span>
+              <span className="text-slate-400 font-medium mb-1 transition-all">
+                / {isAnnual ? "year" : "month"}
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-slate-400 mb-8 relative z-10">
+              Enterprise billing for multi-location clinics and dental hospital groups.
+            </p>
+
+            {isEnterprise && (paidSubscriptionActive || currentPaidPeriodActive) ? (
+              <div className="mb-6 space-y-3 relative z-10">
+                <div
+                  className={`mb-3 rounded-2xl px-4 py-3 text-sm font-medium ${
+                    autoRenewCanceled || currentPaidPeriodActive
+                      ? "border border-amber-400/25 bg-amber-500/10 text-amber-100"
+                      : "border border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
+                  }`}
+                >
+                  {currentPaidPeriodActive || autoRenewCanceled
+                    ? `Enterprise access remains active until ${formattedRenewalDate || "the current paid period ends"}. Renew now to keep your subscription active after this date.`
+                    : `Enterprise access is active on this clinic account (${isStripe ? "Stripe USD" : "Paystack NGN"}). Branch management is unlocked.`}
+                </div>
+
+                {currentPaidPeriodActive || autoRenewCanceled ? (
+                  <Button
+                    variant="outline"
+                    className="mb-6 w-full border-white/20 bg-white/10 text-white hover:bg-white/15"
+                    onClick={handleEnterpriseUpgradeClick}
+                    isLoading={enterpriseCheckoutLoading}
+                  >
+                    Renew Enterprise Subscription
+                    <ArrowRight size={16} className="ml-2" />
+                  </Button>
+                ) : (
+                  <>
+                    {isStripe && (
+                      <Button
+                        variant="outline"
+                        className="w-full border-white/20 bg-white/10 text-white hover:bg-white/15 flex items-center justify-center gap-2 mb-2"
+                        onClick={handleStripePortalClick}
+                        isLoading={portalLoading}
+                      >
+                        <ExternalLink size={16} /> Manage Billing in Stripe Portal
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      className="w-full border-red-400/20 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                      onClick={handleCancelAutoRenew}
+                      isLoading={cancelLoading}
+                    >
+                      Cancel Enterprise Subscription
+                    </Button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="relative z-10">
+                {isEnterprise && !enterpriseAccess && (
+                  <div className="mb-3 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-200">
+                    {clinic.paystackSubscriptionStatus || clinic.stripeSubscriptionStatus
+                      ? "Your Enterprise subscription has expired. Clinic operations are locked until renewal."
+                      : "Your Enterprise trial has ended. Subscribe to restore full clinic operations."}
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  className="mb-6 w-full border-white/20 bg-white/10 text-white hover:bg-white/15"
+                  onClick={handleEnterpriseUpgradeClick}
+                  isLoading={enterpriseCheckoutLoading}
+                >
+                  {isEnterprise && !enterpriseAccess
+                    ? (clinic.paystackSubscriptionStatus || clinic.stripeSubscriptionStatus
+                      ? "Renew Enterprise Subscription"
+                      : "Get Enterprise Features")
+                    : paidSubscriptionActive && !isEnterprise
+                      ? "Upgrade to Enterprise"
+                      : "Get Enterprise Features"}
+                  <ArrowRight size={16} className="ml-2" />
+                </Button>
+              </div>
+            )}
+
+            <div className="space-y-4 flex-1 relative z-10">
+              <FeatureItem included dark highlight icon={<Crown size={18} />}>
+                Everything in Professional Plan
+              </FeatureItem>
+              <FeatureItem included dark icon={<Building2 size={18} />}>
+                Multi-Branch Management
+              </FeatureItem>
+              <FeatureItem included dark>
+                Separate branches for locations
+              </FeatureItem>
+              <FeatureItem included dark>
+                Branch identity duplicate protection
+              </FeatureItem>
+              <FeatureItem included dark>
+                Dedicated branch management page
+              </FeatureItem>
+              <FeatureItem included dark>
+                Branch activation and lifecycle control
+              </FeatureItem>
+              <FeatureItem included dark>
+                Centralized admin expansion path for branch-scoped staff and analytics
+              </FeatureItem>
+              <FeatureItem included dark>
+                Advanced Analytics
+              </FeatureItem>
+              <FeatureItem included dark>
+                Priority 24/7 Support
+              </FeatureItem>
+            </div>
           </div>
-        </div>
         </div>
       </div>
     </motion.div>
@@ -646,4 +829,3 @@ function FeatureItem({ children, included, dark, highlight, icon }) {
     </div>
   );
 }
-
