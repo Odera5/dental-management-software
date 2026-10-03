@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -29,9 +29,29 @@ import { getStoredUserObject } from "../utils/authStorage";
 
 const UPGRADE_PLAN_AUDIT_PAYLOAD = { auditSource: "upgrade_plan" };
 
+const resolveDefaultCurrency = (clinicObj) => {
+  if (clinicObj?.stripeSubscriptionId || clinicObj?.stripeSubscriptionStatus) {
+    return "USD";
+  }
+  if (clinicObj?.paystackSubscriptionCode || clinicObj?.paystackSubscriptionStatus) {
+    return "NGN";
+  }
+  const country = String(clinicObj?.country || "").trim().toLowerCase();
+  if (country === "nigeria" || country === "ng") {
+    return "NGN";
+  }
+  if (country) {
+    return "USD";
+  }
+  return "NGN";
+};
+
 export default function UpgradePlan() {
   const [searchParams] = useSearchParams();
-  const [currency, setCurrency] = useState("NGN");
+  const storedUser = getStoredUserObject() || {};
+  const initialClinic = storedUser?.clinic || {};
+  const hasUserChangedCurrency = useRef(false);
+  const [currency, setCurrency] = useState(() => resolveDefaultCurrency(initialClinic));
   const [isAnnual, setIsAnnual] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [enterpriseCheckoutLoading, setEnterpriseCheckoutLoading] = useState(false);
@@ -41,7 +61,6 @@ export default function UpgradePlan() {
   const [toast, setToast] = useState(null);
   const [confirmConfig, setConfirmConfig] = useState(null);
 
-  const storedUser = getStoredUserObject() || {};
   const clinic = billingInfo || storedUser?.clinic || {};
   const currentPlan = clinic?.plan || "PRO";
   const currentPlanLabel = currentPlan === "ENTERPRISE" ? "Enterprise" : "Professional";
@@ -132,9 +151,8 @@ export default function UpgradePlan() {
         const loadedClinic = billingResponse.data?.clinic || null;
         if (loadedClinic) {
           setBillingInfo(loadedClinic);
-          // If active subscription is Stripe, switch currency view to USD
-          if (loadedClinic.stripeSubscriptionId || loadedClinic.stripeSubscriptionStatus) {
-            setCurrency("USD");
+          if (!hasUserChangedCurrency.current) {
+            setCurrency(resolveDefaultCurrency(loadedClinic));
           }
         }
       } catch (error) {
@@ -453,62 +471,76 @@ export default function UpgradePlan() {
       </div>
 
       {/* Gateway / Currency Toggle */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-        <div className="bg-slate-100 p-1.5 rounded-2xl inline-flex items-center shadow-inner border border-slate-200">
-          <button
-            type="button"
-            onClick={() => setCurrency("NGN")}
-            className={`px-4 py-2 text-xs md:text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
-              currency === "NGN"
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            <span className="text-base leading-none">🇳🇬</span>
-            <span>NGN (Paystack)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setCurrency("USD")}
-            className={`px-4 py-2 text-xs md:text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
-              currency === "USD"
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            <Globe size={15} className={currency === "USD" ? "text-primary-600" : "text-slate-400"} />
-            <span>USD (Stripe / Global)</span>
-          </button>
+      <div className="flex flex-col items-center justify-center gap-3 mb-8">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="bg-slate-100 p-1.5 rounded-2xl inline-flex items-center shadow-inner border border-slate-200">
+            <button
+              type="button"
+              onClick={() => {
+                setCurrency("NGN");
+                hasUserChangedCurrency.current = true;
+              }}
+              className={`px-4 py-2 text-xs md:text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
+                currency === "NGN"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <span className="text-base leading-none">🇳🇬</span>
+              <span>NGN (Paystack)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCurrency("USD");
+                hasUserChangedCurrency.current = true;
+              }}
+              className={`px-4 py-2 text-xs md:text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
+                currency === "USD"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <Globe size={15} className={currency === "USD" ? "text-primary-600" : "text-slate-400"} />
+              <span>USD (Stripe / Global)</span>
+            </button>
+          </div>
+
+          {/* Monthly / Annual Toggle */}
+          <div className="bg-slate-100 p-1.5 rounded-2xl inline-flex items-center shadow-inner border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setIsAnnual(false)}
+              className={`px-5 py-2 text-xs md:text-sm font-bold rounded-xl transition-all duration-300 ${
+                !isAnnual
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAnnual(true)}
+              className={`px-5 py-2 text-xs md:text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
+                isAnnual
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Annually
+              <span className="bg-emerald-100 text-emerald-700 text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full font-bold">
+                Save 17%
+              </span>
+            </button>
+          </div>
         </div>
 
-        {/* Monthly / Annual Toggle */}
-        <div className="bg-slate-100 p-1.5 rounded-2xl inline-flex items-center shadow-inner border border-slate-200">
-          <button
-            type="button"
-            onClick={() => setIsAnnual(false)}
-            className={`px-5 py-2 text-xs md:text-sm font-bold rounded-xl transition-all duration-300 ${
-              !isAnnual
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsAnnual(true)}
-            className={`px-5 py-2 text-xs md:text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
-              isAnnual
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            Annually
-            <span className="bg-emerald-100 text-emerald-700 text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full font-bold">
-              Save 17%
-            </span>
-          </button>
-        </div>
+        {(clinic?.country || storedUser?.clinic?.country) && (
+          <p className="text-xs text-slate-400">
+            Auto-selected for <span className="font-semibold text-slate-600">{clinic?.country || storedUser?.clinic?.country}</span>. You can switch currencies anytime.
+          </p>
+        )}
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">
