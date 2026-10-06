@@ -39,7 +39,7 @@ export default function ClinicSettings() {
   );
   const [billingInfo, setBillingInfo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [savingSection, setSavingSection] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [initiatingDeactivation, setInitiatingDeactivation] = useState(false);
@@ -380,7 +380,7 @@ export default function ClinicSettings() {
       }
     }
 
-    setSaving(true);
+    setSavingSection(section);
     
     if (section === "profile") {
       payload.brandColor = billingInfo?.brandColor || "#0f172a";
@@ -460,7 +460,7 @@ export default function ClinicSettings() {
     } catch (err) { 
       setToast({ show: true, message: err.response?.data?.message || "Failed to update", type: "error" }); 
     } finally { 
-      setSaving(false); 
+      setSavingSection(null); 
     }
   };
 
@@ -671,7 +671,7 @@ export default function ClinicSettings() {
                       </div>
 
                       <div className="pt-4 border-t border-slate-100">
-                         <Button type="submit" isLoading={saving} className="shadow-md py-6 px-8"><Save size={18} className="mr-2" /> Save Profile</Button>
+                         <Button type="submit" isLoading={savingSection === "profile"} className="shadow-md py-6 px-8"><Save size={18} className="mr-2" /> Save Profile</Button>
                       </div>
                    </form>
                 </CardContent>
@@ -703,7 +703,7 @@ export default function ClinicSettings() {
                       
                       {hasProAccess && (
                         <div className="pt-4 mt-2">
-                           <Button onClick={handleSaveBranding} isLoading={saving} className="shadow-md">
+                           <Button type="button" onClick={handleSaveBranding} isLoading={savingSection === "branding"} className="shadow-md">
                               <Save size={18} className="mr-2" /> Save Custom Branding
                            </Button>
                         </div>

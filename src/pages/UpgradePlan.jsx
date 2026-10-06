@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Globe,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
 import api from "../services/api";
 import Toast from "../components/Toast";
@@ -88,6 +89,33 @@ export default function UpgradePlan() {
   const currentPaidPeriodActive = hasFutureSubscriptionWindow(clinic) && subscriptionCannotResume;
   const trialing = isTrialingClinic(clinic);
   const remainingTrialDays = getTrialDaysRemaining(clinic);
+
+  const remainingPaidDays = React.useMemo(() => {
+    if (!subscriptionEnds) return 0;
+    const end = new Date(subscriptionEnds);
+    const now = new Date();
+    if (isNaN(end.getTime()) || end <= now) return 0;
+    const diffMs = end.getTime() - now.getTime();
+    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  }, [subscriptionEnds]);
+
+  const projectedRenewalDate = React.useMemo(() => {
+    if (!subscriptionEnds) return null;
+    const end = new Date(subscriptionEnds);
+    const now = new Date();
+    const anchor = !isNaN(end.getTime()) && end > now ? new Date(end) : new Date(now);
+    const nextDate = new Date(anchor);
+    if (isAnnual) {
+      nextDate.setFullYear(nextDate.getFullYear() + 1);
+    } else {
+      nextDate.setMonth(nextDate.getMonth() + 1);
+    }
+    return nextDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }, [subscriptionEnds, isAnnual]);
 
   const formattedRenewalDate = subscriptionEnds
     ? new Date(subscriptionEnds).toLocaleDateString("en-US", {
@@ -179,7 +207,7 @@ export default function UpgradePlan() {
             }
           }
           setToast({
-            message: "🎉 Your subscription has been activated successfully! Welcome to CareChrome.",
+            message: "🎉 Your subscription has been renewed successfully! Any leftover days were added to your period.",
             type: "success",
           });
         } catch (e) {
@@ -444,9 +472,9 @@ export default function UpgradePlan() {
           >
             <Crown size={16} />{" "}
             {currentPaidPeriodActive
-              ? `Subscription cancelled - Access until: ${formattedRenewalDate || formattedNextPaymentDate || "current period end"}`
+              ? `Subscription cancelled - Access until: ${formattedRenewalDate || formattedNextPaymentDate || "current period end"}${remainingPaidDays > 0 ? ` (${remainingPaidDays} days remaining)` : ""}`
               : autoRenewCanceled
-                ? `Auto-renew canceled - Access until: ${formattedRenewalDate || formattedNextPaymentDate || "current period end"}`
+                ? `Auto-renew canceled - Access until: ${formattedRenewalDate || formattedNextPaymentDate || "current period end"}${remainingPaidDays > 0 ? ` (${remainingPaidDays} days remaining)` : ""}`
                 : `Subscription Active - Next payment: ${formattedNextPaymentDate || formattedRenewalDate}`}
           </p>
         )}
@@ -535,8 +563,23 @@ export default function UpgradePlan() {
             <div className="mb-6 space-y-3">
               {currentPaidPeriodActive || autoRenewCanceled ? (
                 <>
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-                    Professional access remains active until {formattedRenewalDate || "the current paid period ends"}. Renew now to keep your subscription active after this date.
+                  <div className="rounded-2xl border border-amber-300/80 bg-amber-50/90 p-4 text-sm text-amber-900 shadow-sm space-y-2">
+                    <div className="flex items-center gap-2 font-bold text-amber-950">
+                      <Sparkles size={16} className="text-amber-600 shrink-0" />
+                      <span>
+                        Access active until {formattedRenewalDate || "period end"}
+                        {remainingPaidDays > 0 ? ` (${remainingPaidDays} day${remainingPaidDays === 1 ? "" : "s"} left)` : ""}
+                      </span>
+                    </div>
+                    {remainingPaidDays > 0 ? (
+                      <p className="text-xs text-amber-800 leading-relaxed">
+                        <strong>Zero lost days:</strong> Renewing today automatically preserves your remaining days and stacks onto your balance, extending access to <strong>{projectedRenewalDate}</strong>.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-amber-800 leading-relaxed">
+                        Renew now to continue full operations and keep your subscription active without interruption.
+                      </p>
+                    )}
                   </div>
                   <Button
                     className="w-full py-4 text-base font-bold bg-primary-500 hover:bg-primary-400 text-white shadow-[0_0_20px_rgba(14,165,233,0.3)] border-transparent"
@@ -679,15 +722,34 @@ export default function UpgradePlan() {
             {isEnterprise && (paidSubscriptionActive || currentPaidPeriodActive) ? (
               <div className="mb-6 space-y-3 relative z-10">
                 <div
-                  className={`mb-3 rounded-2xl px-4 py-3 text-sm font-medium ${
+                  className={`mb-3 rounded-2xl p-4 text-sm font-medium ${
                     autoRenewCanceled || currentPaidPeriodActive
-                      ? "border border-amber-400/25 bg-amber-500/10 text-amber-100"
+                      ? "border border-amber-400/30 bg-amber-500/10 text-amber-100 space-y-2"
                       : "border border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
                   }`}
                 >
-                  {currentPaidPeriodActive || autoRenewCanceled
-                    ? `Enterprise access remains active until ${formattedRenewalDate || "the current paid period ends"}. Renew now to keep your subscription active after this date.`
-                    : `Enterprise access is active on this clinic account (${isStripe ? "Stripe USD" : "Paystack NGN"}). Branch management is unlocked.`}
+                  {currentPaidPeriodActive || autoRenewCanceled ? (
+                    <>
+                      <div className="font-semibold flex items-center gap-2 text-amber-200">
+                        <Sparkles size={16} className="text-amber-400 shrink-0" />
+                        <span>
+                          Enterprise access active until {formattedRenewalDate || "the current period ends"}
+                          {remainingPaidDays > 0 ? ` (${remainingPaidDays} day${remainingPaidDays === 1 ? "" : "s"} left)` : ""}
+                        </span>
+                      </div>
+                      {remainingPaidDays > 0 ? (
+                        <p className="text-xs text-amber-200/90 leading-relaxed">
+                          <strong>Zero lost days:</strong> Renewing today automatically stacks onto your remaining days, extending access to <strong>{projectedRenewalDate}</strong>.
+                        </p>
+                      ) : (
+                        <p className="text-xs text-amber-200/90 leading-relaxed">
+                          Renew now to keep your Enterprise subscription active without interruption.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    `Enterprise access is active on this clinic account (${isStripe ? "Stripe USD" : "Paystack NGN"}). Branch management is unlocked.`
+                  )}
                 </div>
 
                 {currentPaidPeriodActive || autoRenewCanceled ? (
