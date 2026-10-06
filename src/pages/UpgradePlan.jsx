@@ -802,7 +802,13 @@ function FeatureItem({ children, included, dark, highlight, icon }) {
       </div>
       <span
         className={`text-sm font-medium ${
-          highlight ? "font-bold text-slate-900" : dark ? "text-slate-200" : "text-slate-700"
+          highlight
+            ? dark
+              ? "font-bold text-slate-200"
+              : "font-bold text-slate-900"
+            : dark
+              ? "text-slate-200"
+              : "text-slate-700"
         }`}
       >
         {children}
