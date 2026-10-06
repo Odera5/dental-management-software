@@ -141,4 +141,35 @@ export function clearAuthState() {
       storage.removeItem(key);
     });
   });
+
+  if (typeof window !== "undefined") {
+    try {
+      if (window.sessionStorage) {
+        window.sessionStorage.clear();
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      if (window.localStorage) {
+        const keysToRemove = [];
+        for (let i = 0; i < window.localStorage.length; i++) {
+          const key = window.localStorage.key(i);
+          if (
+            key &&
+            (key.startsWith("carechrome:draft:") ||
+              key.startsWith("carechrome:last-visited-route") ||
+              key.startsWith("carechrome:birthday-celebrated:") ||
+              key === "carechrome:active-branch-id")
+          ) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach((k) => window.localStorage.removeItem(k));
+      }
+    } catch {
+      // ignore
+    }
+  }
 }

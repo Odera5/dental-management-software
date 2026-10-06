@@ -497,7 +497,7 @@ export default function ClinicSettings() {
       setDeactivating(true);
       await api.post("/auth/clinic-profile/deactivate/verify", { otp: deactivateOtp });
       await logoutCurrentUser();
-      navigate("/login", { replace: true });
+      window.location.href = "/login";
     } catch (err) {
       setToast({ show: true, message: err.response?.data?.message || "Failed to verify deactivation code", type: "error" });
     } finally {

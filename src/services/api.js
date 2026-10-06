@@ -22,24 +22,35 @@ api.interceptors.request.use((config) => {
   const branchId = getActiveBranchId();
   const accessToken = getStoredAccessToken();
 
+  config.headers = config.headers || {};
+  // Prevent browser caching for all API requests to guarantee fresh data
+  config.headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+  config.headers["Pragma"] = "no-cache";
+  config.headers["Expires"] = "0";
+
   if (branchId) {
-    config.headers = {
-      ...(config.headers || {}),
-      "x-branch-id": branchId,
-    };
+    config.headers["x-branch-id"] = branchId;
   }
 
   if (accessToken) {
-    config.headers = {
-      ...(config.headers || {}),
-      Authorization: `Bearer ${accessToken}`,
-    };
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
 
   return config;
 });
 
 export const apiWriteListeners = [];
+export const authResetListeners = [];
+
+export const triggerAuthReset = () => {
+  authResetListeners.forEach((listener) => {
+    try {
+      listener();
+    } catch (e) {
+      console.error("Auth reset listener error:", e);
+    }
+  });
+};
 
 api.interceptors.response.use(
   (response) => {
@@ -92,6 +103,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         clearAuthState();
+        triggerAuthReset();
         window.location.href = "/login";
         return Promise.reject(refreshError);
       }
@@ -119,6 +131,7 @@ api.interceptors.response.use(
         }
       } else {
         clearAuthState();
+        triggerAuthReset();
         window.location.href = "/login";
       }
     }
@@ -129,6 +142,7 @@ api.interceptors.response.use(
       !isRefreshEndpoint
     ) {
       clearAuthState();
+      triggerAuthReset();
       window.location.href = "/login";
     }
 
@@ -145,6 +159,7 @@ export const logoutCurrentUser = async () => {
   } finally {
     clearLastVisitedRoute();
     clearAuthState();
+    triggerAuthReset();
   }
 };
 

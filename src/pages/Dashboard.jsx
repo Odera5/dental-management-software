@@ -257,7 +257,7 @@ export default function Dashboard() {
         applySummary(cachedSummary.data);
       }
 
-      const summary = await getDashboardSummary();
+      const summary = await getDashboardSummary({ forceRefresh: true });
       applySummary(summary);
     } catch (err) {
       console.error(err);

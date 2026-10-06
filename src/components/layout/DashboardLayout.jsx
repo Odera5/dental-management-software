@@ -319,8 +319,8 @@ export default function DashboardLayout() {
       }
     };
 
-    fetchCounts();
-    const intervalId = setInterval(fetchCounts, 30000);
+    fetchCounts({ forceRefresh: true });
+    const intervalId = setInterval(() => fetchCounts({ forceRefresh: true }), 30000);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
@@ -391,7 +391,7 @@ export default function DashboardLayout() {
 
         if (!isAdmin && isSubscriptionExpired(latestClinic)) {
           await logoutCurrentUser();
-          navigate("/login", { replace: true });
+          window.location.href = "/login";
           return;
         }
 
@@ -606,7 +606,7 @@ export default function DashboardLayout() {
 
   const handleLogout = async () => {
     await logoutCurrentUser();
-    navigate("/login");
+    window.location.href = "/login";
   };
 
   const handleNavClick = (path) => {

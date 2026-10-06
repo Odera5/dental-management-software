@@ -1,4 +1,4 @@
-import api, { apiWriteListeners } from "./api";
+import api, { apiWriteListeners, authResetListeners } from "./api";
 
 const defaultOptionsCache = new Map();
 const patientByIdCache = new Map();
@@ -7,6 +7,10 @@ export const clearPatientDirectoryCache = () => {
   defaultOptionsCache.clear();
   patientByIdCache.clear();
 };
+
+authResetListeners.push(() => {
+  clearPatientDirectoryCache();
+});
 
 apiWriteListeners.push((config) => {
   if (config.url && config.url.includes("/patients")) {

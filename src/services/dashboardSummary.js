@@ -1,4 +1,4 @@
-import api from "./api";
+import api, { apiWriteListeners, authResetListeners } from "./api";
 import { getActiveBranchId } from "../utils/branchStorage";
 
 const SUMMARY_CACHE_TTL_MS = 30_000;
@@ -8,6 +8,33 @@ let cachedSummary = null;
 let cachedAt = 0;
 let inFlightSummaryPromise = null;
 let cachedBranchId = "";
+
+export const clearDashboardSummaryCache = () => {
+  cachedSummary = null;
+  cachedAt = 0;
+  inFlightSummaryPromise = null;
+  cachedBranchId = "";
+  notifySummaryListeners();
+};
+
+authResetListeners.push(() => {
+  clearDashboardSummaryCache();
+});
+
+apiWriteListeners.push((config) => {
+  const url = config?.url || "";
+  if (
+    url.includes("/appointments") ||
+    url.includes("/patients") ||
+    url.includes("/billing") ||
+    url.includes("/invoices") ||
+    url.includes("/waiting-room") ||
+    url.includes("/intakes")
+  ) {
+    cachedSummary = null;
+    cachedAt = 0;
+  }
+});
 
 const isCacheFresh = () =>
   cachedSummary &&

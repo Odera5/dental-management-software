@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Mail, Lock } from "lucide-react";
-import api from "../services/api";
+import api, { triggerAuthReset } from "../services/api";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import {
@@ -64,6 +64,7 @@ export default function Login() {
       const user = res.data.user;
       if (!user) throw new Error("No user data returned from API");
 
+      triggerAuthReset();
       saveAuthSession({
         user,
         accessToken: res.data?.accessToken || "",
