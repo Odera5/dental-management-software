@@ -124,7 +124,7 @@ export default function Login() {
       <div className="relative hidden w-1/2 lg:block">
         <div className="absolute inset-0 z-10 bg-gradient-to-tr from-primary-900/60 to-primary-600/20 mix-blend-multiply" />
         <img
-          src="/auth_bg.png"
+          src="/auth_bg.webp"
           alt="Abstract Medical Tech"
           className="absolute inset-0 h-full w-full object-cover"
         />

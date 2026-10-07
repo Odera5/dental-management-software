@@ -263,7 +263,7 @@ export default function RegisterClinic() {
       <div className="relative hidden w-[45%] lg:block">
         <div className="absolute inset-0 z-10 bg-gradient-to-br from-primary-950/80 via-primary-900/60 to-primary-600/40 mix-blend-multiply" />
         <img
-          src="/auth_bg.png"
+          src="/auth_bg.webp"
           alt="Abstract Medical Tech"
           className="absolute inset-0 h-full w-full object-cover"
         />

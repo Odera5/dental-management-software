@@ -1,2 +1,2 @@
-export const APP_VERSION = "2026-10-03T08:27:52.319Z";
-export const APP_BUILT_AT = "2026-10-03T08:27:52.319Z";
+export const APP_VERSION = "2026-10-07T09:24:48.408Z";
+export const APP_BUILT_AT = "2026-10-07T09:24:48.408Z";
