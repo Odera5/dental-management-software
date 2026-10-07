@@ -11,8 +11,7 @@ import {
 } from "../utils/persistence";
 import { saveAuthSession } from "../utils/authStorage";
 import usePersistentState from "../hooks/usePersistentState";
-import carechromeWhite from "../assets/CareChrome-white.png";
-import carechromeGreen from "../assets/CareChrome-green.png";
+import carechromeGreen from "../assets/CareChrome-green.webp";
 export default function Login() {
   const [loginDraft, setLoginDraft, clearLoginDraft] = usePersistentState(
     "carechrome:draft:login",

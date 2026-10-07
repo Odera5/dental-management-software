@@ -16,7 +16,7 @@ import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import usePersistentState from "../hooks/usePersistentState";
 import TurnstileWidget from "../components/ui/TurnstileWidget";
-import carechromeGreen from "../assets/CareChrome-green.png";
+import carechromeGreen from "../assets/CareChrome-green.webp";
 import { COUNTRIES } from "../constants/countries";
 
 const initialForm = {

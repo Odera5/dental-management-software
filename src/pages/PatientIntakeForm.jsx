@@ -6,7 +6,7 @@ import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import api from "../services/api";
 import { resolveAssetUrl } from "../utils/assetUrl";
-import carechromeLogo from "../assets/CareChrome-white.png";
+import carechromeLogo from "../assets/CareChrome-white.webp";
 
 export default function PatientIntakeForm() {
   const { clinicId } = useParams();

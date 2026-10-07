@@ -282,6 +282,18 @@ export default function AppointmentSchedule({ patientId = null }) {
         label: "Reminder queued",
         className: "bg-sky-100 text-sky-700 border-sky-200",
       },
+      queued: {
+        label: "Reminder queued",
+        className: "bg-sky-100 text-sky-700 border-sky-200",
+      },
+      sent: {
+        label: "Reminder sent",
+        className: "bg-emerald-100 text-emerald-700 border-emerald-200",
+      },
+      partial: {
+        label: "Partial delivery",
+        className: "bg-amber-100 text-amber-800 border-amber-200",
+      },
       sent_24h: {
         label: "24h sent",
         className: "bg-indigo-100 text-indigo-700 border-indigo-200",

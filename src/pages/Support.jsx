@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Mail, MessageCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import Button from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
-import carechromeLogo from "../assets/CareChrome-green.png";
+import carechromeLogo from "../assets/CareChrome-green.webp";
 
 const supportEmail = "support@carechrome.com";
 const infoEmail = "info@carechrome.com";

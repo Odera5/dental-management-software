@@ -36,7 +36,7 @@ import {
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 import Toast from "../Toast";
-import carechromeLogo from "../../assets/CareChrome-white.png";
+import carechromeLogo from "../../assets/CareChrome-white.webp";
 import { getStoredUserObject, updateStoredUser } from "../../utils/authStorage";
 import { resolveAssetUrl } from "../../utils/assetUrl";
 import {
@@ -1269,7 +1269,6 @@ export default function DashboardLayout() {
     </div>
   );
 }
-
 
 
 
